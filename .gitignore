@@ -1,3 +1,7 @@
+### Local environment / secrets ###
+# Copy .env.example to .env and set your own values. Never commit real passwords.
+.env
+
 database/data/*
 
 frontend/css/*
@@ -6,6 +10,12 @@ frontend/sass/*.css
 frontend/sass/*.css.map
 
 web-api/bin/
+
+### Node / desktop app (Tauri) ###
+node_modules/
+desktop/dist/
+desktop/src-tauri/target/
+desktop/src-tauri/gen/schemas/
 
 ### IntelliJ ###
 .idea

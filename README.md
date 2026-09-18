@@ -13,6 +13,7 @@ Please note that this is an early public release, and further improvements are r
 
 ## Start ArboDat+ Application:  
 ##### Requirements: *Docker*
+`cp .env.example .env` (then set your own `DATABASE_PASSWORD` in `.env`)  
 `docker compose --profile prod up -d --build`
 
 Next, open a web browser and go to `http://localhost`
@@ -59,7 +60,7 @@ Next, open a web browser and go to `http://localhost`
 │   ├── API-URLs
 │   └── data-migration-table-mapping
 :
-├── .env
+├── .env.example             # copy to .env (git-ignored) and set the database password
 ├── .gitignore
 └── docker-compose.yml
 ```

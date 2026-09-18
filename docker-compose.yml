@@ -8,7 +8,7 @@ services:
     expose:
       - 5432
     environment:
-      POSTGRES_PASSWORD: ${DATABASE_PASSWORD}
+      POSTGRES_PASSWORD: ${DATABASE_PASSWORD:?Set DATABASE_PASSWORD in .env (cp .env.example .env)}
     healthcheck:
       test: [ "CMD-SHELL", "pg_isready -U postgres -h localhost -p 5432" ]
       interval: 10s
@@ -24,7 +24,7 @@ services:
     environment:
       SPRING_DATASOURCE_URL: jdbc:postgresql://database:5432/postgres
       SPRING_DATASOURCE_USERNAME: postgres # default
-      SPRING_DATASOURCE_PASSWORD: ${DATABASE_PASSWORD}
+      SPRING_DATASOURCE_PASSWORD: ${DATABASE_PASSWORD:?Set DATABASE_PASSWORD in .env (cp .env.example .env)}
     depends_on:
       database:
         condition: service_healthy
@@ -61,4 +61,4 @@ services:
       - arbodat_plus-network
 
 networks:
-  - arbodat_plus-network:
+  arbodat_plus-network:
