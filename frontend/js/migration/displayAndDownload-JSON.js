@@ -24,5 +24,6 @@ function downloadJSON() {
     a.download = "nonMatchingLabels.json";
     a.click();
 
-    URL.revokeObjectURL(url);
+    // Revoke later: WebKit (macOS app window) cancels downloads whose blob URL is already revoked.
+    setTimeout(() => URL.revokeObjectURL(url), 60000);
 }

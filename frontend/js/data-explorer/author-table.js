@@ -11,7 +11,7 @@ async function buildAuthorTable() {
     // GET authors --------------------------------------------------------------
     let authors = [];
     try {
-        const response = await axios.get("http://localhost:8080/authors");
+        const response = await axios.get("api/authors");
         authors = response.data;
     } catch (error) {
         console.error("Error loading authors:", error);
@@ -65,7 +65,7 @@ async function buildAuthorTable() {
                 ...author,
             };
     
-            axios.put(`http://localhost:8080/authors/${authorId}`, JSON.stringify(payload), {
+            axios.put(`api/authors/${authorId}`, JSON.stringify(payload), {
                 headers: {
                     "Content-Type": 'application/json'
                 }
@@ -97,7 +97,7 @@ async function buildAuthorTable() {
             // Get id
             const authorId = row.getData().id;
 
-            axios.delete(`http://localhost:8080/authors/${authorId}`)
+            axios.delete(`api/authors/${authorId}`)
             .then(response => {
                 console.log(response.data);
                 row.delete();

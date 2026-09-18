@@ -11,7 +11,7 @@ async function buildDatingTable() {
     // GET absolute datings --------------------------------------------------------------
     let absoluteDatings = [];
     try {
-        const response = await axios.get("http://localhost:8080/absolute_datings");
+        const response = await axios.get("api/absolute_datings");
         absoluteDatings = response.data;
     } catch (error) {
         console.error("Error loading absolute datings:", error);
@@ -20,7 +20,7 @@ async function buildDatingTable() {
     // GET sites --------------------------------------------------------------
     let sites = [];
     try {
-        const response = await axios.get("http://localhost:8080/sites");
+        const response = await axios.get("api/sites");
         sites = response.data;
     } catch (error) {
         console.error("Error loading sites:", error)
@@ -29,7 +29,7 @@ async function buildDatingTable() {
     // GET features --------------------------------------------------------------
     let features = [];
     try {
-        const response = await axios.get("http://localhost:8080/features");
+        const response = await axios.get("api/features");
         features = response.data;
     } catch (error) {
         console.error("Error loading features:", error)
@@ -38,7 +38,7 @@ async function buildDatingTable() {
     // GET samples --------------------------------------------------------------
     let samples = [];
     try {
-        const response = await axios.get("http://localhost:8080/samples");
+        const response = await axios.get("api/samples");
         samples = response.data;
     } catch (error) {
         console.error("Error loading samples:", error)
@@ -47,7 +47,7 @@ async function buildDatingTable() {
     // GET literature -----------------------------------------------------------
     let literature = [];
     try {
-        const response = await axios.get("http://localhost:8080/literature");
+        const response = await axios.get("api/literature");
         literature = response.data;
     } catch (error) {
         console.error("Error loading literature:", error)
@@ -376,7 +376,7 @@ async function buildDatingTable() {
                 datingMethod: datingMethodAsObjects,
             };
     
-            axios.put(`http://localhost:8080/absolute_datings/${absoluteDatingId}`, JSON.stringify(payload), {
+            axios.put(`api/absolute_datings/${absoluteDatingId}`, JSON.stringify(payload), {
                 headers: {
                     "Content-Type": 'application/json'
                 }
@@ -408,7 +408,7 @@ async function buildDatingTable() {
             // Get id
             const absoluteDatingId = row.getData().id;
 
-            axios.delete(`http://localhost:8080/absolute_datings/${absoluteDatingId}`)
+            axios.delete(`api/absolute_datings/${absoluteDatingId}`)
             .then(response => {
                 console.log(response.data);
                 row.delete();
@@ -495,7 +495,8 @@ document.getElementById("download-json").addEventListener("click", function(){
         a.href = url;
         a.download = "ArboDat+_Download_Datings.json";
         a.click();
-        URL.revokeObjectURL(url);
+        // Revoke later: WebKit (macOS app window) cancels downloads whose blob URL is already revoked.
+        setTimeout(() => URL.revokeObjectURL(url), 60000);
     }
 });
 

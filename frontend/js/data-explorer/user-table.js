@@ -11,7 +11,7 @@ async function buildUserTable() {
     // GET users ----------------------------------------------------------------
     let users = [];
     try {
-        const response = await axios.get("http://localhost:8080/users");
+        const response = await axios.get("api/users");
         users = response.data;
     } catch (error) {
         console.error("Error loading users:", error);
@@ -20,7 +20,7 @@ async function buildUserTable() {
     // GET institutions ---------------------------------------------------------
     let institutions = [];
     try {
-        const response = await axios.get("http://localhost:8080/institutions");
+        const response = await axios.get("api/institutions");
         institutions = response.data;
     } catch (error) {
         console.error("Error loading institutions:", error)
@@ -117,7 +117,7 @@ async function buildUserTable() {
             formData.append("transferredUser", new Blob([JSON.stringify(userWithoutInstitutions)], { type: "application/json" }));
             formData.append("institutionList", new Blob([JSON.stringify(institutionsAsObjects)], { type: "application/json" }));
     
-            axios.put(`http://localhost:8080/users/${userId}`, formData, {
+            axios.put(`api/users/${userId}`, formData, {
                 headers: {
                     "Content-Type": 'multipart/form-data'
                 }
@@ -149,7 +149,7 @@ async function buildUserTable() {
             // Get id
             const userId = row.getData().id;
 
-            axios.delete(`http://localhost:8080/users/${userId}`)
+            axios.delete(`api/users/${userId}`)
             .then(response => {
                 console.log(response.data);
                 row.delete();
@@ -189,7 +189,8 @@ document.getElementById("download-json").addEventListener("click", function(){
         a.href = url;
         a.download = "ArboDat+_Download_Users.json";
         a.click();
-        URL.revokeObjectURL(url);
+        // Revoke later: WebKit (macOS app window) cancels downloads whose blob URL is already revoked.
+        setTimeout(() => URL.revokeObjectURL(url), 60000);
     }
 });
 

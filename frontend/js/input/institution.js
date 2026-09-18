@@ -1,7 +1,7 @@
 let institutions = [];
 
 async function getInstitutions() {
-    const { data } = await axios.get('http://localhost:8080/institutions');    
+    const { data } = await axios.get('api/institutions');    
     institutions = data;
 }
 
@@ -25,7 +25,7 @@ function create_update_institution() {
         if (institutionId) { // Update (PUT) -------------------------------------------
             payload.id = institutionId; // Add id to payload
 
-            axios.put(`http://localhost:8080/institutions/${institutionId}`, payload)
+            axios.put(`api/institutions/${institutionId}`, payload)
             .then(response => {
                 console.log(response.data);
                 toast.success("institution updated");
@@ -36,7 +36,7 @@ function create_update_institution() {
             });
 
         } else { // Create (POST) ------------------------------------------------------
-            axios.post('http://localhost:8080/institutions', payload)
+            axios.post('api/institutions', payload)
             .then(response => {
                 console.log(response.data);
                 toast.success("institution created");

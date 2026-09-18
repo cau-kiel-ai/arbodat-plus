@@ -145,7 +145,7 @@ function populateLabList() {
     lab_list.innerHTML = "";
 
     // Populate laborytories
-    axios.get('http://localhost:8080/laboratories')
+    axios.get('api/laboratories')
     .then(response => {
         response.data.forEach(item => {
             // Create option
@@ -183,7 +183,7 @@ async function updateAbsDatingWithLabAndNumber (absoluteDatingId, datingMethod, 
 
                 try {
                     const response = await fetch(
-                        `http://localhost:8080/absolute_datings/${absoluteDatingId}/updateC14Dating/${number}`,
+                        `api/absolute_datings/${absoluteDatingId}/updateC14Dating/${number}`,
                         {
                             method: 'PUT',
                             headers: {
@@ -240,7 +240,7 @@ async function updateAbsDatingWithLabAndNumber (absoluteDatingId, datingMethod, 
 
                 try {
                     const response = await fetch(
-                        `http://localhost:8080/absolute_datings/${absoluteDatingId}/update/${datingMethod}/${number}`,
+                        `api/absolute_datings/${absoluteDatingId}/update/${datingMethod}/${number}`,
                         {
                             method: 'PUT',
                             headers: {

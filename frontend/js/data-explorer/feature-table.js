@@ -11,7 +11,7 @@ async function buildFeatureTable() {
     // GET features -------------------------------------------------------------
     let features = [];
     try {
-        const response = await axios.get("http://localhost:8080/features");
+        const response = await axios.get("api/features");
         features = response.data;
     } catch (error) {
         console.error("Error loading features:", error);
@@ -20,7 +20,7 @@ async function buildFeatureTable() {
     // GET sites ----------------------------------------------------------------
     let sites = [];
     try {
-        const response = await axios.get("http://localhost:8080/sites");
+        const response = await axios.get("api/sites");
         sites = response.data;
     } catch (error) {
         console.error("Error loading sites:", error)
@@ -287,7 +287,7 @@ async function buildFeatureTable() {
                 site: feature.site ? { id: feature.site.id } : null,
             };
     
-            axios.put(`http://localhost:8080/features/${featureId}`, JSON.stringify(payload), {
+            axios.put(`api/features/${featureId}`, JSON.stringify(payload), {
                 headers: {
                     "Content-Type": 'application/json'
                 }
@@ -319,7 +319,7 @@ async function buildFeatureTable() {
             // Get id
             const featureId = row.getData().id;
 
-            axios.delete(`http://localhost:8080/features/${featureId}`)
+            axios.delete(`api/features/${featureId}`)
             .then(response => {
                 console.log(response.data);
                 row.delete();
@@ -373,7 +373,8 @@ document.getElementById("download-json").addEventListener("click", function(){
         a.href = url;
         a.download = "ArboDat+_Download_Features.json";
         a.click();
-        URL.revokeObjectURL(url);
+        // Revoke later: WebKit (macOS app window) cancels downloads whose blob URL is already revoked.
+        setTimeout(() => URL.revokeObjectURL(url), 60000);
     }
 });
 

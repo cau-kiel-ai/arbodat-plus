@@ -1,7 +1,7 @@
 let sites = [];
 
 async function getSites() {
-    const { data } = await axios.get('http://localhost:8080/sites');    
+    const { data } = await axios.get('api/sites');    
     sites = data;
 }
 
@@ -580,7 +580,7 @@ function create_update_site() {
             payload.id = siteId;
             payload.institutionList = window.siteInstitutionList;
 
-            axios.put(`http://localhost:8080/sites/${siteId}`, payload)
+            axios.put(`api/sites/${siteId}`, payload)
             .then(response => {
                 console.log(response.data);
                 toast.success("site updated");
@@ -598,7 +598,7 @@ function create_update_site() {
             formData.append("institutionList", new Blob([JSON.stringify(siteInstitutionList)], { type: "application/json" }));
             formData.append("transferredSite", new Blob([JSON.stringify(payload)], { type: "application/json" }));
 
-            axios.post('http://localhost:8080/sites', formData, {
+            axios.post('api/sites', formData, {
                 headers: {
                     'Content-Type': 'multipart/form-data'
                 }

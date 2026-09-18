@@ -10,8 +10,6 @@ import java.util.List;
 import java.util.UUID;
 import java.util.zip.GZIPOutputStream;
 
-//@CrossOrigin(origins = "http://127.0.0.1:5500")
-@CrossOrigin(origins = "*")
 @RestController
 @RequestMapping("/data_export")
 public class ExportController {

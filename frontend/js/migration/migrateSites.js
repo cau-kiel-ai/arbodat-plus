@@ -54,7 +54,7 @@ async function migrateSites(researchProjectList) {
 
     // Send data to backend via POST
     try {
-        const response = await axios.post("http://localhost:8080/migration", formData, {
+        const response = await axios.post("api/migration", formData, {
             headers: {
                 "Content-Type": "multipart/form-data"
             }

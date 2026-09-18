@@ -8,8 +8,6 @@ import org.springframework.web.bind.annotation.*;
 
 import java.util.*;
 
-@CrossOrigin(origins = "*") // Allow requests from all domains
-//@CrossOrigin(origins = "http://127.0.0.1:5500")
 ///* enables CORS (cross origin resource sharing) from Frontend (Bootstrap on port 5500)
 //* info source: https://spring.io/guides/gs/rest-service-cors */
 

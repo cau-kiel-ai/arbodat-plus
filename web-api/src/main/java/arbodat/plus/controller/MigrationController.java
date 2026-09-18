@@ -17,8 +17,6 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 
-//@CrossOrigin(origins = "http://127.0.0.1:5500")
-@CrossOrigin(origins = "*") // Allow requests from all domains
 @RestController
 @RequestMapping("/migration")
 public class MigrationController {

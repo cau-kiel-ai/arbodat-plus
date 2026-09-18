@@ -11,7 +11,7 @@ async function buildLiteratureTable() {
     // GET literature -----------------------------------------------------------
     let literature = [];
     try {
-        const response = await axios.get("http://localhost:8080/literature");
+        const response = await axios.get("api/literature");
         literature = response.data;
     } catch (error) {
         console.error("Error loading literature:", error);
@@ -20,7 +20,7 @@ async function buildLiteratureTable() {
     // GET authors --------------------------------------------------------------
     let authors = [];
     try {
-        const response = await axios.get("http://localhost:8080/authors");
+        const response = await axios.get("api/authors");
         authors = response.data;
     } catch (error) {
         console.error("Error loading authors:", error)
@@ -163,7 +163,7 @@ async function buildLiteratureTable() {
             formData.append("transferredLiterature", new Blob([JSON.stringify(literatureWithoutAuthorList)], { type: "application/json" }));
             formData.append("authorList", new Blob([JSON.stringify(authorsAsObjects)], { type: "application/json" }));
 
-            axios.put(`http://localhost:8080/literature/${literatureId}`, formData, {
+            axios.put(`api/literature/${literatureId}`, formData, {
                 headers: {
                     "Content-Type": 'multipart/form-data'
                 }
@@ -195,7 +195,7 @@ async function buildLiteratureTable() {
             // Get id
             const literatureId = row.getData().id;
 
-            axios.delete(`http://localhost:8080/literature/${literatureId}`)
+            axios.delete(`api/literature/${literatureId}`)
             .then(response => {
                 console.log(response.data);
                 row.delete();
@@ -236,7 +236,8 @@ document.getElementById("download-json").addEventListener("click", function(){
         a.href = url;
         a.download = "ArboDat+_Download_Literature.json";
         a.click();
-        URL.revokeObjectURL(url);
+        // Revoke later: WebKit (macOS app window) cancels downloads whose blob URL is already revoked.
+        setTimeout(() => URL.revokeObjectURL(url), 60000);
     }
 });
 

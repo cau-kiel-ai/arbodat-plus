@@ -13,8 +13,6 @@ import org.springframework.web.bind.annotation.*;
 import java.util.List;
 import java.util.UUID;
 
-//@CrossOrigin(origins = "http://127.0.0.1:5500")
-@CrossOrigin(origins = "*") // Allow requests from all domains
 @RestController
 @RequestMapping("/coordinates")
 public class CoordinateController {

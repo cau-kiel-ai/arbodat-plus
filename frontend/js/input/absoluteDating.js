@@ -1,7 +1,7 @@
 let absoluteDatings = [];
 
 async function getAbsoluteDatings() {
-    const { data } = await axios.get('http://localhost:8080/absolute_datings');
+    const { data } = await axios.get('api/absolute_datings');
     absoluteDatings = data;
 }
 
@@ -459,7 +459,7 @@ function populateLabList() {
     lab_list.innerHTML = "";
 
     // Populate laborytories
-    axios.get('http://localhost:8080/laboratories')
+    axios.get('api/laboratories')
     .then(response => {
         response.data.forEach(item => {
             // Create option
@@ -571,7 +571,7 @@ function create_update_absoulteDating() {
         }
         
         if (absoluteDatingId) { // Update (PUT) --------------------------------------------
-            axios.put(`http://localhost:8080/absolute_datings/${absoluteDatingId}`, payload)
+            axios.put(`api/absolute_datings/${absoluteDatingId}`, payload)
             .then(response => {
                 console.log(response.data);
                 toast.success("dating updated");
@@ -582,7 +582,7 @@ function create_update_absoulteDating() {
             });
 
         } else { // Create (POST) ----------------------------------------------------------
-            axios.post('http://localhost:8080/absolute_datings', payload)
+            axios.post('api/absolute_datings', payload)
             .then(response => {
                 console.log(response.data);
                 toast.success("dating created");

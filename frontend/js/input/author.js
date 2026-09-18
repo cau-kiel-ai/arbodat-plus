@@ -1,7 +1,7 @@
 let authors = [];
 
 async function getAuthors() {
-    const { data } = await axios.get('http://localhost:8080/authors');    
+    const { data } = await axios.get('api/authors');    
     authors = data;
 }
 
@@ -27,7 +27,7 @@ function create_update_author() {
         if (authorId) { // Update (PUT) --------------------------------------------
             payload.id = authorId; // Add id to payload
 
-            axios.put(`http://localhost:8080/authors/${authorId}`, payload)
+            axios.put(`api/authors/${authorId}`, payload)
             .then(response => {
                 console.log(response.data);
                 toast.success("author updated");
@@ -38,7 +38,7 @@ function create_update_author() {
             });
 
         } else { // Create (POST) --------------------------------------------------
-            axios.post('http://localhost:8080/authors', payload)
+            axios.post('api/authors', payload)
             .then(response => {
                 console.log(response.data);
                 toast.success("author created");

@@ -16,7 +16,7 @@ async function buildResultTable() {
     let last = false;
     while (!last) {
         try {
-            const response = await axios.get("http://localhost:8080/results", {
+            const response = await axios.get("api/results", {
                 params: { page, size }
             });
 
@@ -31,7 +31,7 @@ async function buildResultTable() {
     // GET sites --------------------------------------------------------------
     let sites = [];
     try {
-        const response = await axios.get("http://localhost:8080/sites");
+        const response = await axios.get("api/sites");
         sites = response.data;
     } catch (error) {
         console.error("Error loading sites:", error)
@@ -40,7 +40,7 @@ async function buildResultTable() {
     // GET features --------------------------------------------------------------
     let features = [];
     try {
-        const response = await axios.get("http://localhost:8080/features");
+        const response = await axios.get("api/features");
         features = response.data;
     } catch (error) {
         console.error("Error loading features:", error)
@@ -49,7 +49,7 @@ async function buildResultTable() {
     // GET samples --------------------------------------------------------------
     let samples = [];
     try {
-        const response = await axios.get("http://localhost:8080/samples");
+        const response = await axios.get("api/samples");
         samples = response.data;
     } catch (error) {
         console.error("Error loading samples:", error)
@@ -58,7 +58,7 @@ async function buildResultTable() {
     // GET absolute datings -----------------------------------------------------
     let datings = [];
     try {
-        const response = await axios.get("http://localhost:8080/absolute_datings");
+        const response = await axios.get("api/absolute_datings");
         datings = response.data;
     } catch (error) {
         console.error("Error loading absolute datings:", error)
@@ -77,7 +77,7 @@ async function buildResultTable() {
     // GET rest type ------------------------------------------------------------
     let restTypes = [];
     try {
-        const response = await axios.get("http://localhost:8080/dante_attributes/rest_type");
+        const response = await axios.get("api/dante_attributes/rest_type");
         restTypes = response.data;
     } catch (error) {
         console.error("Error loading rest types:", error)
@@ -610,7 +610,7 @@ async function buildResultTable() {
                 absoluteDatingList: datingsAsObjects,
             };
     
-            axios.put(`http://localhost:8080/results/${resultId}`, JSON.stringify(payload), {
+            axios.put(`api/results/${resultId}`, JSON.stringify(payload), {
                 headers: {
                     "Content-Type": 'application/json'
                 }
@@ -642,7 +642,7 @@ async function buildResultTable() {
             // Get id
             const resultId = row.getData().id;
 
-            axios.delete(`http://localhost:8080/results/${resultId}`)
+            axios.delete(`api/results/${resultId}`)
             .then(response => {
                 console.log(response.data);
                 row.delete();
@@ -752,7 +752,8 @@ document.getElementById("download-json").addEventListener("click", function(){
         a.href = url;
         a.download = "ArboDat+_Download_Results.json";
         a.click();
-        URL.revokeObjectURL(url);
+        // Revoke later: WebKit (macOS app window) cancels downloads whose blob URL is already revoked.
+        setTimeout(() => URL.revokeObjectURL(url), 60000);
     }
 });
 

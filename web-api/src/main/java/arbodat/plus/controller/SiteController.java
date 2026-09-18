@@ -8,8 +8,6 @@ import java.io.Serializable;
 import java.util.*;
 import java.util.stream.Collectors;
 
-//@CrossOrigin(origins = "http://127.0.0.1:5500")
-@CrossOrigin(origins = "*") // Allow requests from all domains
 @RestController
 @RequestMapping("/sites")
 public class SiteController implements Serializable {

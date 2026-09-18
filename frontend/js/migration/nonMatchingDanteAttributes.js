@@ -577,7 +577,7 @@ async function updateAttributes(id, attribute, row, triggerNext=true) {
         let payload = []
 
         if (attribute == "siteType") {            
-            url = `http://localhost:8080/sites/${id}/updateSiteTypes`;
+            url = `api/sites/${id}/updateSiteTypes`;
             
             payload = attributeIds.map((id, index) => ({
                 id: id,
@@ -639,65 +639,65 @@ async function updateAttribute(id, attribute, row, triggerNext=true) {
         switch (attribute) {
             // site
             case ("naturalUnit"):
-                url = `http://localhost:8080/sites/${id}/updateNaturalUnit`;  
+                url = `api/sites/${id}/updateNaturalUnit`;  
                 tableBodyId = "naturalUnitTableBody";
                 break;
 
             // feature
             case ("featureType"):
-                url = `http://localhost:8080/features/${id}/updateFeatureType`;
+                url = `api/features/${id}/updateFeatureType`;
                 tableBodyId = "featureTypeTableBody";
                 break;
             
             case ("preservationCondition"):
-                url = `http://localhost:8080/features/${id}/updatePreservationCondition`;
+                url = `api/features/${id}/updatePreservationCondition`;
                 tableBodyId = "preservationConditionTableBody";
                 break;
 
             // sample
             case ("sampleType"):
-                url = `http://localhost:8080/samples/${id}/updateSampleType`;
+                url = `api/samples/${id}/updateSampleType`;
                 tableBodyId = "sampleTypeTableBody";
                 break;
 
             case ("chronozone"):
-                url = `http://localhost:8080/samples/${id}/updateChronozone`;
+                url = `api/samples/${id}/updateChronozone`;
                 tableBodyId = "chronozoneTableBody";
                 break;
 
             // case ("archaeologicalDating"):
-            //     url = `http://localhost:8080/samples/${id}/updateArchaeologicalDating`;
+            //     url = `api/samples/${id}/updateArchaeologicalDating`;
             //     tableBodyId = "archaeologicalDatingTableBody";
             //     break;
 
             // case ("culturalGroup"):
-            //     url = `http://localhost:8080/samples/${id}/updateCulturalGroup`;
+            //     url = `api/samples/${id}/updateCulturalGroup`;
             //     tableBodyId = "culturalGroupTableBody";
             //     break;
 
             case ("seedsAndFruits"):
-                url = `http://localhost:8080/samples/${id}/updateSeedsAndFruits`;
+                url = `api/samples/${id}/updateSeedsAndFruits`;
                 tableBodyId = "seedsAndFruitsTableBody";
                 break;
 
             case ("charcoalInvestigated"):
-                url = `http://localhost:8080/samples/${id}/updateCharcoalInvestigated`;
+                url = `api/samples/${id}/updateCharcoalInvestigated`;
                 tableBodyId = "charcoalInvestigatedTableBody";
                 break;
 
             case ("woodSubfossile"):
-                url = `http://localhost:8080/samples/${id}/updateWoodSubfossile`;
+                url = `api/samples/${id}/updateWoodSubfossile`;
                 tableBodyId = "woodSubfossileTableBody";
                 break;
 
             // absoluteDating
             case ("datingMethod"):
-                url = `http://localhost:8080/absolute_datings/${id}/updateDatingMethod`;
+                url = `api/absolute_datings/${id}/updateDatingMethod`;
                 tableBodyId = "datingMethodTableBody";
                 break;
 
             case ("material"):
-                url = `http://localhost:8080/absolute_datings/${id}/updateMaterial`;
+                url = `api/absolute_datings/${id}/updateMaterial`;
                 tableBodyId = "materialTableBody";
                 break;
             

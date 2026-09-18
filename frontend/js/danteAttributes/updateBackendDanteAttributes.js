@@ -212,7 +212,7 @@ async function updateBackendDanteAttributes() {
 
     // POST -----------------------------------------------------------------------------
     try {
-        await axios.post("http://localhost:8080/dante_attributes", danteAttributesJSON);
+        await axios.post("api/dante_attributes", danteAttributesJSON);
 
     } catch (error) {
         console.error('Error during post dante attributes: ', error);

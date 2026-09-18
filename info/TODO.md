@@ -16,9 +16,11 @@ Each entry says what to do and why.
   Start with a baseline of the current schema (`baselineOnMigrate`) so existing databases are adopted unchanged.
   Should be done before releases that change the schema are shipped through the desktop app's update.
 - [ ] **Upgrade Spring Boot.** 3.3.x no longer gets OSS support. Move to a supported line and re-test the `.mdb` migration.
-- [ ] **Remove `@CrossOrigin("*")`.** Since v5 the frontend and API share one origin (nginx `/api/`), so CORS is no
-  longer needed. With wildcard CORS and no login, any website a user visits can read and change a local ArboDat+
-  database through the user's browser. Also add a Host allowlist in nginx against DNS rebinding.
+- [ ] **CSRF / DNS-rebinding hardening.** Wildcard CORS (`@CrossOrigin("*")`) was removed in v5, so other websites can
+  no longer *read* the API or send JSON requests to it. They can still trigger "simple" cross-site requests (HTML
+  forms, multipart uploads) whose responses they cannot read. Reject `/api/` requests whose `Origin` header doesn't
+  match the host (nginx `map` on `$http_origin`) and add a `Host` allowlist. Document that server reverse proxies must
+  forward the original `Host` header.
 - [ ] **Authentication for server deployments.** The API has no login. Until it does, server installs must stay
   inside an intranet/VPN or behind reverse-proxy authentication (e.g. OIDC via oauth2-proxy).
 - [ ] **Optimistic locking.** Add `@Version` to the entities so two users editing the same record on a shared server

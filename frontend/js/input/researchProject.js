@@ -1,7 +1,7 @@
 let researchProjects = [];
 
 async function getResearchProjects() {
-    const { data } = await axios.get('http://localhost:8080/research_projects');    
+    const { data } = await axios.get('api/research_projects');    
     researchProjects = data;
 }
 
@@ -41,7 +41,7 @@ function create_update_researchProject() {
         if (researchProjectId) { // Update (PUT) ---------------------------------------------
             payload.id = researchProjectId; // Add id to payload
             
-            axios.put(`http://localhost:8080/research_projects/${researchProjectId}`, payload)
+            axios.put(`api/research_projects/${researchProjectId}`, payload)
             .then(response => {
                 console.log(response.data);
                 toast.success("research project updated");
@@ -52,7 +52,7 @@ function create_update_researchProject() {
             });
 
         } else { // Create (POST) ------------------------------------------------------------
-            axios.post('http://localhost:8080/research_projects', payload)
+            axios.post('api/research_projects', payload)
             .then((response) => {
                 console.log(response.data);
                 toast.success("research project created");

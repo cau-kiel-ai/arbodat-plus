@@ -25,7 +25,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
         adjustDropdownWidth();
 
-        fetch('http://localhost:8080/users', { // Customise here
+        fetch('api/users', { // Customise here
             method: 'GET',
             headers: {
                 'Content-Type': 'application/json',

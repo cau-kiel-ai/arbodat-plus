@@ -259,7 +259,7 @@ $('#result_sample_dropdown').on('select2:select', async function (event) {
 
     try {
         // Get absolute datings
-        const response = await axios.get('http://localhost:8080/absolute_datings');
+        const response = await axios.get('api/absolute_datings');
 
         // Reset multi-select boxes
         $('#result_datings')
@@ -298,7 +298,7 @@ $('#result_sample_dropdown').on('select2:select', async function (event) {
         .prop('disabled', true);
 
     try {
-        const response = await axios.get('http://localhost:8080/fractions_analyzed');
+        const response = await axios.get('api/fractions_analyzed');
 
         // Reset dropdown
         $('#result_fraction')
@@ -445,7 +445,7 @@ function submitResult() {
             // ---------------------------------------------------
         };
         
-        axios.post('http://localhost:8080/results', payload)
+        axios.post('api/results', payload)
         .then(response => {
             if (response.data === "result is created") {
                 toast.success("result created");

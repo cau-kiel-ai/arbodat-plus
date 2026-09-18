@@ -1,7 +1,7 @@
 let users = [];
 
 async function getUsers() {
-    const { data } = await axios.get('http://localhost:8080/users');    
+    const { data } = await axios.get('api/users');    
     users = data;
 }
 
@@ -103,7 +103,7 @@ function create_update_user() {
                 new Blob([JSON.stringify(payload)], { type: "application/json" })
             );
 
-            axios.put(`http://localhost:8080/users/${userId}`, formData, {
+            axios.put(`api/users/${userId}`, formData, {
                 headers: {
                     'Content-Type': 'multipart/form-data'
                 }
@@ -129,7 +129,7 @@ function create_update_user() {
                 new Blob([JSON.stringify(payload)], { type: "application/json" })
             );
 
-            axios.post('http://localhost:8080/users', formData, {
+            axios.post('api/users', formData, {
                 headers: {
                     'Content-Type': 'multipart/form-data'
                 }

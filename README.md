@@ -16,7 +16,11 @@ Please note that this is an early public release, and further improvements are r
 `cp .env.example .env` (then set your own `DATABASE_PASSWORD` in `.env`)  
 `docker compose --profile prod up -d --build`
 
-Next, open a web browser and go to `http://localhost`
+Next, open a web browser and go to `http://localhost:8480`
+
+The frontend's nginx server is the only entry point: it serves the web pages, forwards `/api/…` to the
+web-api and `/nominatim-reverse` to OpenStreetMap Nominatim (reverse geocoding). The REST API is documented in
+[info/API.txt](info/API.txt). The port can be changed with `ARBODAT_PORT` in `.env`.
 
 ## Directory Structure
 ```
@@ -31,6 +35,7 @@ Next, open a web browser and go to `http://localhost`
 │   ├── js
 │   ├── sass
 │   │   └── scss files       # are compiled to css files
+│   ├── nginx/templates      # nginx config: static files + /api/ and /nominatim-reverse proxies
 │   ├── html files
 │   └── Dockerfile
 │
@@ -50,11 +55,6 @@ Next, open a web browser and go to `http://localhost`
 │   ├── build.gradle
 │   └── Dockerfile
 │
-├── node-proxy
-│   ├── server.js
-│   ├── package.json
-│   └── Dockerfile
-│
 ├── info
 │   ├── DANTE-terminologies
 │   ├── API-URLs
@@ -69,7 +69,7 @@ Next, open a web browser and go to `http://localhost`
 - Build Docker Images:  
   `docker compose --profile prod build --no-cache`
 - Export and bundle Docker Images:  
-  `docker save -o ArboDat+.tar postgres:16 arbodat_plus-frontend:latest arbodat_plus-web-api:latest arbodat_plus-node-proxy:latest`
+  `docker save -o ArboDat+.tar postgres:16 arbodat_plus-frontend:latest arbodat_plus-web-api:latest`
 - Load Docker Images:  
   `docker load -i ArboDat+.tar`
 - Start ArboDat+ via Docker:  
@@ -81,7 +81,8 @@ Start ArboDat+ via Docker in dev mode:
 `docker compose --profile dev up --build`  
 - bind mount of frontend folder into nginx container  
 (auto update of frontend changes while Application is running)
-- node-proxy is available at http://localhost:3000
+- the UI is available at http://localhost:8480 (same nginx config as production, see `frontend/nginx/templates`)
+- the web-api is additionally published at http://localhost:8080 for debugging (dev only)
 
 ### Database - PostgreSQL
 Database is created using *postgres:16* Docker Image
@@ -100,11 +101,6 @@ Web API (backend) is built with *Spring Boot 3.3*, using *Gradle 8.8* as the bui
   - Linux/macOS:  
   `cd web-api && chmod u+x gradlew && cd ..` (make ***gradlew*** file executable)  
   `cd web-api && sudo ./gradlew build && cd ..`
-
-### Node Proxy
-- Creation of test node-proxy:  
-  `docker build --no-cache -t node-proxy ./node-proxy`  
-  `docker run --name test-node-proxy -p 3000:3000 node-proxy`
 
 ### Frontend
 - Compile css files from scss files via *Sass*

@@ -11,7 +11,7 @@ async function buildInstitutionTable() {
     // GET institutions ---------------------------------------------------------
     let institutions = [];
     try {
-        const response = await axios.get("http://localhost:8080/institutions");
+        const response = await axios.get("api/institutions");
         institutions = response.data;
     } catch (error) {
         console.error("Error loading institutions:", error);
@@ -66,7 +66,7 @@ async function buildInstitutionTable() {
                 ...institution,
             };
     
-            axios.put(`http://localhost:8080/institutions/${institutionId}`, JSON.stringify(payload), {
+            axios.put(`api/institutions/${institutionId}`, JSON.stringify(payload), {
                 headers: {
                     "Content-Type": 'application/json'
                 }
@@ -98,7 +98,7 @@ async function buildInstitutionTable() {
             // Get id
             const institutionId = row.getData().id;
 
-            axios.delete(`http://localhost:8080/institutions/${institutionId}`)
+            axios.delete(`api/institutions/${institutionId}`)
             .then(response => {
                 console.log(response.data);
                 row.delete();

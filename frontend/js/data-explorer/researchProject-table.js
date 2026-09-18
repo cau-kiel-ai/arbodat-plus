@@ -11,7 +11,7 @@ async function buildResearchProjectTable() {
     // GET research projects ----------------------------------------------------
     let researchProjects = [];
     try {
-        const response = await axios.get("http://localhost:8080/research_projects");
+        const response = await axios.get("api/research_projects");
         researchProjects = response.data;
     } catch (error) {
         console.error("Error loading research projects:", error);
@@ -20,7 +20,7 @@ async function buildResearchProjectTable() {
     // GET sites ----------------------------------------------------------------
     let sites = [];
     try {
-        const response = await axios.get("http://localhost:8080/sites");
+        const response = await axios.get("api/sites");
         sites = response.data;
     } catch (error) {
         console.error("Error loading sites:", error)
@@ -156,7 +156,7 @@ async function buildResearchProjectTable() {
                 siteList: siteListAsObjects
             };
     
-            axios.put(`http://localhost:8080/research_projects/${researchProjectId}`, JSON.stringify(payload), {
+            axios.put(`api/research_projects/${researchProjectId}`, JSON.stringify(payload), {
                 headers: {
                     "Content-Type": 'application/json'
                 }
@@ -182,7 +182,7 @@ async function buildResearchProjectTable() {
         // update site list headerFilterParams ----------------
         // GET sites
         try {
-            const response = await axios.get("http://localhost:8080/sites");
+            const response = await axios.get("api/sites");
             sites = response.data;
         } catch (error) {
             console.error("Error loading sites:", error)
@@ -227,7 +227,7 @@ async function buildResearchProjectTable() {
             // Get id
             const researchProjectId = row.getData().id;
 
-            axios.delete(`http://localhost:8080/research_projects/${researchProjectId}`)
+            axios.delete(`api/research_projects/${researchProjectId}`)
             .then(response => {
                 console.log(response.data);
                 row.delete();
@@ -273,7 +273,8 @@ document.getElementById("download-json").addEventListener("click", function(){
         a.href = url;
         a.download = "ArboDat+_Download_ResearchProjects.json";
         a.click();
-        URL.revokeObjectURL(url);
+        // Revoke later: WebKit (macOS app window) cancels downloads whose blob URL is already revoked.
+        setTimeout(() => URL.revokeObjectURL(url), 60000);
     }
 });
 

@@ -144,7 +144,7 @@ async function createFractionAnalyzed (orgOrMin, sieveSize, row, triggerNext=tru
 
         try {
             const response = await fetch(
-                'http://localhost:8080/fractions_analyzed',
+                'api/fractions_analyzed',
                 {
                     method: 'POST',
                     headers: {

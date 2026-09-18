@@ -9,8 +9,6 @@ import org.springframework.web.bind.annotation.*;
 
 import java.util.*;
 
-//@CrossOrigin(origins = "http://127.0.0.1:5500")
-@CrossOrigin(origins = "*") // Allow requests from all domains
 @RestController
 @RequestMapping("/dante_attributes")
 public class DanteAttributeController {

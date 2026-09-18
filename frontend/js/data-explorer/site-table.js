@@ -11,7 +11,7 @@ async function buildSiteTable() {
     // GET sites ----------------------------------------------------------------
     let sites = [];
     try {
-        const response = await axios.get("http://localhost:8080/sites");
+        const response = await axios.get("api/sites");
         sites = response.data;
     } catch (error) {
         console.error("Error loading sites:", error);
@@ -20,7 +20,7 @@ async function buildSiteTable() {
     // GET research projects ----------------------------------------------------
     let researchProjects = [];
     try {
-        const response = await axios.get("http://localhost:8080/research_projects");
+        const response = await axios.get("api/research_projects");
         researchProjects = response.data;
     } catch (error) {
         console.error("Error loading research projects:", error)
@@ -44,7 +44,7 @@ async function buildSiteTable() {
     // GET literature -----------------------------------------------------------
     let literature = [];
     try {
-        const response = await axios.get("http://localhost:8080/literature");
+        const response = await axios.get("api/literature");
         literature = response.data;
     } catch (error) {
         console.error("Error loading literature:", error)
@@ -53,7 +53,7 @@ async function buildSiteTable() {
     // GET site types -----------------------------------------------------------
     let siteTypes = [];
     try {
-        const response = await axios.get("http://localhost:8080/dante_attributes/site_type");
+        const response = await axios.get("api/dante_attributes/site_type");
         siteTypes = response.data;
     } catch (error) {
         console.error("Error loading site types:", error)
@@ -77,7 +77,7 @@ async function buildSiteTable() {
     // GET natural units --------------------------------------------------------
     let naturalUnits = [];
     try {
-        const response = await axios.get("http://localhost:8080/dante_attributes/natural_unit");
+        const response = await axios.get("api/dante_attributes/natural_unit");
         naturalUnits = response.data;
     } catch (error) {
         console.error("Error loading natural units:", error)
@@ -92,7 +92,7 @@ async function buildSiteTable() {
     // GET institutions ---------------------------------------------------------
     let institutions = [];
     try {
-        const response = await axios.get("http://localhost:8080/institutions");
+        const response = await axios.get("api/institutions");
         institutions = response.data;
     } catch (error) {
         console.error("Error loading institutions:", error)
@@ -101,7 +101,7 @@ async function buildSiteTable() {
     // GET users ----------------------------------------------------------------
     let users = [];
     try {
-        const response = await axios.get("http://localhost:8080/users");
+        const response = await axios.get("api/users");
         users = response.data;
     } catch (error) {
         console.error("Error loading users:", error)
@@ -664,7 +664,7 @@ async function buildSiteTable() {
                 },
             };
     
-            axios.put(`http://localhost:8080/sites/${siteId}`, JSON.stringify(payload), {
+            axios.put(`api/sites/${siteId}`, JSON.stringify(payload), {
                 headers: {
                     "Content-Type": 'application/json'
                 }
@@ -697,7 +697,7 @@ async function buildSiteTable() {
             // Get id
             const siteId = row.getData().id;
 
-            axios.delete(`http://localhost:8080/sites/${siteId}`)
+            axios.delete(`api/sites/${siteId}`)
             .then(response => {
                 console.log(response.data);
                 row.delete();
@@ -819,7 +819,8 @@ document.getElementById("download-json").addEventListener("click", function(){
         a.href = url;
         a.download = "ArboDat+_Download_Sites.json";
         a.click();
-        URL.revokeObjectURL(url);
+        // Revoke later: WebKit (macOS app window) cancels downloads whose blob URL is already revoked.
+        setTimeout(() => URL.revokeObjectURL(url), 60000);
     }
 });
 

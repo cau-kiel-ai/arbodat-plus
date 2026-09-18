@@ -14,7 +14,7 @@ async function getSites() {
   const strukDataFile = document.getElementById('strukDataFile');
   if (strukDataFile.files.length === 0) {
     toast.info("Please select a 'ArchBotStrukDat.mdb' file.");
-    hideLoading() = 'none';
+    hideLoading();
     return;
   }
 
@@ -23,7 +23,7 @@ async function getSites() {
   formData.append("file", dataFile.files[0]);
 
   try {
-    const response = await axios.post("http://localhost:8080/migration/getSites", formData, {
+    const response = await axios.post("api/migration/getSites", formData, {
       headers: {
         "Content-Type": "multipart/form-data"
       }

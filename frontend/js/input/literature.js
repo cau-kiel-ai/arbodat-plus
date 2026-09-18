@@ -1,7 +1,7 @@
 let literature = [];
 
 async function getLiterature() {
-    const { data } = await axios.get('http://localhost:8080/literature');    
+    const { data } = await axios.get('api/literature');    
     literature = data;
 }
 
@@ -120,7 +120,7 @@ function create_update_literature() {
         ); // -----------------------------------------
 
         if (literatureId) { // Update (PUT) --------------------------------------------
-            axios.put(`http://localhost:8080/literature/${literatureId}`, payload)
+            axios.put(`api/literature/${literatureId}`, payload)
             .then(response => {
                 console.log(response.data);
                 toast.success("literature updated");
@@ -135,7 +135,7 @@ function create_update_literature() {
                 alert("action failed");
             });
         } else { // Create (POST) ------------------------------------------------------
-            axios.post('http://localhost:8080/literature', payload)
+            axios.post('api/literature', payload)
             .then(response => {
                 console.log(response.data);
                 toast.success("literature created");

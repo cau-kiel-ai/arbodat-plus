@@ -11,7 +11,7 @@ async function buildSampleTable() {
     // GET samples --------------------------------------------------------------
     let samples = [];
     try {
-        const response = await axios.get("http://localhost:8080/samples");
+        const response = await axios.get("api/samples");
         samples = response.data;
     } catch (error) {
         console.error("Error loading samples:", error);
@@ -20,7 +20,7 @@ async function buildSampleTable() {
     // GET sites ----------------------------------------------------------------
     let sites = [];
     try {
-        const response = await axios.get("http://localhost:8080/sites");
+        const response = await axios.get("api/sites");
         sites = response.data;
     } catch (error) {
         console.error("Error loading sites:", error)
@@ -29,7 +29,7 @@ async function buildSampleTable() {
     // GET features --------------------------------------------------------------
     let features = [];
     try {
-        const response = await axios.get("http://localhost:8080/features");
+        const response = await axios.get("api/features");
         features = response.data;
     } catch (error) {
         console.error("Error loading features:", error)
@@ -41,7 +41,7 @@ async function buildSampleTable() {
     // GET users ----------------------------------------------------------------
     let users = [];
     try {
-        const response = await axios.get("http://localhost:8080/users");
+        const response = await axios.get("api/users");
         users = response.data;
     } catch (error) {
         console.error("Error loading users:", error)
@@ -50,7 +50,7 @@ async function buildSampleTable() {
     // GET fractions -----------------------------------------------------------
     let fractions = [];
     try {
-        const response = await axios.get("http://localhost:8080/fractions_analyzed");
+        const response = await axios.get("api/fractions_analyzed");
         fractions = response.data;
     } catch (error) {
         console.error("Error loading fractions_analyzed:", error)
@@ -637,7 +637,7 @@ async function buildSampleTable() {
                 fractionAnalyzedList: fractionsAsObjects,
             };
     
-            axios.put(`http://localhost:8080/samples/${sampleId}`, JSON.stringify(payload), {
+            axios.put(`api/samples/${sampleId}`, JSON.stringify(payload), {
                 headers: {
                     "Content-Type": 'application/json'
                 }
@@ -669,7 +669,7 @@ async function buildSampleTable() {
             // Get id
             const sampleId = row.getData().id;
 
-            axios.delete(`http://localhost:8080/samples/${sampleId}`)
+            axios.delete(`api/samples/${sampleId}`)
             .then(response => {
                 console.log(response.data);
                 row.delete();
@@ -806,7 +806,8 @@ document.getElementById("download-json").addEventListener("click", function(){
         a.href = url;
         a.download = "ArboDat+_Download_Samples.json";
         a.click();
-        URL.revokeObjectURL(url);
+        // Revoke later: WebKit (macOS app window) cancels downloads whose blob URL is already revoked.
+        setTimeout(() => URL.revokeObjectURL(url), 60000);
     }
 });
 

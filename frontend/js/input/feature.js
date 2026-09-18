@@ -1,7 +1,7 @@
 let features = [];
 
 async function getFeatures() {
-    const { data } = await axios.get('http://localhost:8080/features');    
+    const { data } = await axios.get('api/features');    
     features = data;
 }
 
@@ -142,7 +142,7 @@ function create_update_feature() {
         if (featureId) { // Update (PUT) --------------------------------------------
             payload.id = featureId;
 
-            axios.put(`http://localhost:8080/features/${featureId}`, payload)
+            axios.put(`api/features/${featureId}`, payload)
             .then(response => {
                 console.log(response.data);
                 toast.success("feature updated");
@@ -152,7 +152,7 @@ function create_update_feature() {
                 alert("action failed");
             });
         } else { // Create (POST) ---------------------------------------------------
-            axios.post('http://localhost:8080/features', payload)
+            axios.post('api/features', payload)
             .then(response => {
                 console.log(response.data);
                 toast.success("feature created");

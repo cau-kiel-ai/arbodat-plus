@@ -76,7 +76,7 @@ function populateUsers(userList) {
 
 function fetchUsers() {
     // Send a GET request to get all users
-    fetch('http://localhost:8080/users', {
+    fetch('api/users', {
         method: 'GET',
         headers: {
             'Content-Type': 'application/json',
@@ -152,10 +152,10 @@ async function updateWithUser(type, id, userIds, userRole, row, triggerNext=true
     if (userIds && userIds !== "[]") {
         let url = null;        
         if (type == "site") {
-            url = `http://localhost:8080/sites/${id}/updateEmployees/${userRole}`;
+            url = `api/sites/${id}/updateEmployees/${userRole}`;
         } 
         else if (type == "sample") {
-            url = `http://localhost:8080/samples/${id}/updateBotanicalDeterminationBy`;
+            url = `api/samples/${id}/updateBotanicalDeterminationBy`;
         }
 
         try {

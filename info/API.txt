@@ -1,63 +1,70 @@
-localhost:8080/research_projects
-localhost:8080/institutions
-localhost:8080/users
-localhost:8080/authors
-localhost:8080/literature
-localhost:8080/sites
-localhost:8080/features
-localhost:8080/samples
-localhost:8080/absolute_datings
-localhost:8080/results?page=<num>&size=250
+ArboDat+ REST API
 
-localhost:8080/addresses
-localhost:8080/coordinates
-localhost:8080/fractions_analyzed
-localhost:8080/laboratories
+All endpoints are served under /api/ by the ArboDat+ web server:
+  local installation (desktop app):  http://localhost:8480/api/...
+  server installation:               https://<your-server>/api/...
+The list below uses the local default address.
+
+localhost:8480/api/research_projects
+localhost:8480/api/institutions
+localhost:8480/api/users
+localhost:8480/api/authors
+localhost:8480/api/literature
+localhost:8480/api/sites
+localhost:8480/api/features
+localhost:8480/api/samples
+localhost:8480/api/absolute_datings
+localhost:8480/api/results?page=<num>&size=250
+
+localhost:8480/api/addresses
+localhost:8480/api/coordinates
+localhost:8480/api/fractions_analyzed
+localhost:8480/api/laboratories
 
 ----------------- DANTE Attributes -----------------
 ## Research Project
-localhost:8080/dante_attributes/license
+localhost:8480/api/dante_attributes/license
 
 ## Site
-localhost:8080/dante_attributes/taxonomy
-localhost:8080/dante_attributes/site_type
-localhost:8080/dante_attributes/natural_unit
+localhost:8480/api/dante_attributes/taxonomy
+localhost:8480/api/dante_attributes/site_type
+localhost:8480/api/dante_attributes/natural_unit
 
 ## Coordinate
-localhost:8080/dante_attributes/coordinate_system
+localhost:8480/api/dante_attributes/coordinate_system
 
 ## Feature
-localhost:8080/dante_attributes/preservation_condition
-localhost:8080/dante_attributes/feature_type
+localhost:8480/api/dante_attributes/preservation_condition
+localhost:8480/api/dante_attributes/feature_type
 
 ## Sample
-localhost:8080/dante_attributes/sample_type
-localhost:8080/dante_attributes/sample_investigated
-localhost:8080/dante_attributes/chronozone
+localhost:8480/api/dante_attributes/sample_type
+localhost:8480/api/dante_attributes/sample_investigated
+localhost:8480/api/dante_attributes/chronozone
 
 ## Absolute dating
-localhost:8080/dante_attributes/material
-localhost:8080/dante_attributes/dating_method
-localhost:8080/dante_attributes/c14_laboratory
+localhost:8480/api/dante_attributes/material
+localhost:8480/api/dante_attributes/dating_method
+localhost:8480/api/dante_attributes/c14_laboratory
 
 ## Result
-localhost:8080/dante_attributes/state_of_preservation
-localhost:8080/dante_attributes/classification_confer
-localhost:8080/dante_attributes/tax_code
-localhost:8080/dante_attributes/rest_type
+localhost:8480/api/dante_attributes/state_of_preservation
+localhost:8480/api/dante_attributes/classification_confer
+localhost:8480/api/dante_attributes/tax_code
+localhost:8480/api/dante_attributes/rest_type
 
 --------------------- Export ---------------------
 ## Export all data
-localhost:8080/data_export?export_file_name=<name>
+localhost:8480/api/data_export?export_file_name=<name>
 
 ## Filter by research projects
-localhost:8080/data_export?research_projects=<id1>,<id2>,...&export_file_name=<name>
+localhost:8480/api/data_export?research_projects=<id1>,<id2>,...&export_file_name=<name>
 
 ## Filter by sites
-localhost:8080/data_export?sites=<id1>,<id2>,...&export_file_name=<name>
+localhost:8480/api/data_export?sites=<id1>,<id2>,...&export_file_name=<name>
 
 ## Filter by features
-localhost:8080/data_export?features=<id1>,<id2>,...&export_file_name=<name>
+localhost:8480/api/data_export?features=<id1>,<id2>,...&export_file_name=<name>
 
 ## Filter by samples
-localhost:8080/data_export?samples=<id1>,<id2>,...&export_file_name=<name>
+localhost:8480/api/data_export?samples=<id1>,<id2>,...&export_file_name=<name>

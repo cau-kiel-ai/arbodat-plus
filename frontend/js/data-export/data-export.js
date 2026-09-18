@@ -31,7 +31,7 @@ $('#researchProjectDropdown')
 $(document).ready(async function () {
     try {
         // Get research projects
-        const response = await axios.get('http://localhost:8080/research_projects');
+        const response = await axios.get('api/research_projects');
         const researchProjects = response.data;
 
         // Reset multi-select
@@ -88,7 +88,7 @@ $('#researchProjectDropdown').on('change', async function () {
 
     try {
         // Get sites
-        const response = await axios.get('http://localhost:8080/sites');
+        const response = await axios.get('api/sites');
 
         // Reset multi-select
         $('#siteDropdown')
@@ -164,7 +164,7 @@ $('#siteDropdown').on('change', async function () {
 
     try {
         // Get features
-        const response = await axios.get('http://localhost:8080/features');
+        const response = await axios.get('api/features');
 
         // Reset multi-select
         $('#featureDropdown')
@@ -225,7 +225,7 @@ $('#featureDropdown').on('change', async function () {
 
     try {
         // Get samples
-        const response = await axios.get('http://localhost:8080/samples');
+        const response = await axios.get('api/samples');
 
         // Reset multi-select
         $('#sampleDropdown')
@@ -385,7 +385,8 @@ function downloadBlob(blobData, fileName) {
     link.click();
     link.remove();
 
-    window.URL.revokeObjectURL(url);
+    // Revoke later: WebKit (macOS app window) cancels downloads whose blob URL is already revoked.
+    setTimeout(() => URL.revokeObjectURL(url), 60000);
 }
 
 /*
@@ -425,7 +426,7 @@ async function exportData() {
     exportButton.textContent = 'Exporting ...';
 
     try {
-        const response = await axios.get(`http://localhost:8080/data_export`, {
+        const response = await axios.get(`api/data_export`, {
             params,
             responseType: 'blob'
         });

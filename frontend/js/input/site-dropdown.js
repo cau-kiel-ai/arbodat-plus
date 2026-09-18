@@ -68,7 +68,7 @@ document.addEventListener("DOMContentLoaded", () => {
         adjustDropdownWidth();
 
         // Send a GET request to get all items
-        fetch('http://localhost:8080/sites', { // Customise here
+        fetch('api/sites', { // Customise here
             method: 'GET',
             headers: {
                 'Content-Type': 'application/json',

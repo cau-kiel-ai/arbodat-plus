@@ -469,7 +469,7 @@ async function createResult(itemId, row, triggerNext=true) {
 
             try {
                 const response = await fetch(
-                    `http://localhost:8080/results/createViaMigration/${taxonomyLabel}`,
+                    `api/results/createViaMigration/${taxonomyLabel}`,
                     {
                         method: 'POST',
                         headers: {

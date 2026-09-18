@@ -20,7 +20,7 @@ services:
   web-api:
     build: web-api
     ports:
-      - "8080:8080"
+      - "8080:8080" # dev only: direct API access for debugging (the UI uses /api/ via nginx)
     environment:
       SPRING_DATASOURCE_URL: jdbc:postgresql://database:5432/postgres
       SPRING_DATASOURCE_USERNAME: postgres # default
@@ -32,12 +32,15 @@ services:
       - arbodat_plus-network
 
   frontend-dev:
-    image: nginx
+    image: nginx:1.30-alpine
     profiles: [dev]
+    environment:
+      NGINX_ENTRYPOINT_LOCAL_RESOLVERS: "1"
     volumes:
-      - ./frontend:/usr/share/nginx/html # bind mount
+      - ./frontend:/usr/share/nginx/html:ro # bind mount: frontend changes are live
+      - ./frontend/nginx/templates:/etc/nginx/templates:ro
     ports:
-      - "80:80"
+      - "${ARBODAT_PORT:-8480}:80"
     depends_on:
       - web-api
     networks:
@@ -47,16 +50,9 @@ services:
     build: frontend
     profiles: [prod]
     ports:
-      - "80:80"
+      - "${ARBODAT_PORT:-8480}:80"
     depends_on:
       - web-api
-    networks:
-      - arbodat_plus-network
-
-  proxy:
-    build: proxy
-    ports:
-      - "3000:3000"
     networks:
       - arbodat_plus-network
 

@@ -1,7 +1,7 @@
 let samples = [];
 
 async function getSamples() {
-    const { data } = await axios.get('http://localhost:8080/samples');
+    const { data } = await axios.get('api/samples');
     samples = data;
 }
 
@@ -466,7 +466,7 @@ function create_update_sample() {
         if (sampleId) { // Update (PUT) -----------------------------------
             payload.id = sampleId;
 
-            axios.put(`http://localhost:8080/samples/${sampleId}`, payload)
+            axios.put(`api/samples/${sampleId}`, payload)
             .then(response => {
                 console.log(response.data);
                 toast.success("sample updated");
@@ -476,7 +476,7 @@ function create_update_sample() {
                 alert("action failed");
             });
         } else { // Create (POST) -----------------------------------------
-            axios.post('http://localhost:8080/samples', payload)
+            axios.post('api/samples', payload)
             .then(response => {
                 console.log(response.data);
                 toast.success("sample created");

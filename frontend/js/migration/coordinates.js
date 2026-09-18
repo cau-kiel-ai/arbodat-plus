@@ -351,7 +351,7 @@ async function createCoordinate(itemType, itemId, row, triggerNext = true) {
 
                 try {
                     const response = await fetch(
-                        `http://localhost:8080/coordinates/${itemType}/${itemId}`,
+                        `api/coordinates/${itemType}/${itemId}`,
                         {
                             method: 'POST',
                             headers: {

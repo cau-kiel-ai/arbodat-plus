@@ -70,7 +70,7 @@ async function fetchDanteAttribute(attribute) {
         // researchProject --------------------------
         case ("license"):
             if (cachedLicenses_loaded == false) {
-                url = "http://api.dante.gbv.de/voc/license/top?properties=narrower,notation"
+                url = "https://api.dante.gbv.de/voc/license/top?properties=narrower,notation"
                 break;
             } else {
                 return;
@@ -79,7 +79,7 @@ async function fetchDanteAttribute(attribute) {
         // site -------------------------------------
         case "taxonomy":
             if (cachedTaxonomies_loaded == false) {
-                url = "http://api.dante.gbv.de/voc/arbodat_taxonomy/top"
+                url = "https://api.dante.gbv.de/voc/arbodat_taxonomy/top"
                 break;
             } else {
                 return;
@@ -104,7 +104,7 @@ async function fetchDanteAttribute(attribute) {
         // coordinate -------------------------------
         case "coordinateSystem":
             if (cachedCoordinateSystems_loaded == false) {
-                url = "http://api.dante.gbv.de/voc/arbodat_coordinate_reference_system/top?properties=narrower,notation";
+                url = "https://api.dante.gbv.de/voc/arbodat_coordinate_reference_system/top?properties=narrower,notation";
                 break;
             } else {
                 return;
@@ -113,7 +113,7 @@ async function fetchDanteAttribute(attribute) {
         // feature --------------------------------------
         case ("featureType"):
             if (cachedFeatureTypes_loaded == false) {
-                url = "http://api.dante.gbv.de/voc/arbodat_feature_type/top?properties=narrower,altLabel";
+                url = "https://api.dante.gbv.de/voc/arbodat_feature_type/top?properties=narrower,altLabel";
                 break;
             } else {
                 return;
@@ -121,7 +121,7 @@ async function fetchDanteAttribute(attribute) {
 
         case ("preservationCondition"):
             if (cachedPreservationConditions_loaded == false) {
-                url = "http://api.dante.gbv.de/voc/arbodat_preservation_condition/top?properties=narrower,altLabel";
+                url = "https://api.dante.gbv.de/voc/arbodat_preservation_condition/top?properties=narrower,altLabel";
                 break;
             } else {
                 return;
@@ -130,7 +130,7 @@ async function fetchDanteAttribute(attribute) {
         // sample ---------------------------------------
         case ("sampleType"):
             if (cachedSampleTypes_loaded == false) {
-                url = "http://api.dante.gbv.de/voc/arbodat_sample_type/top?properties=narrower,altLabel";
+                url = "https://api.dante.gbv.de/voc/arbodat_sample_type/top?properties=narrower,altLabel";
                 break;
             } else {
                 return;
@@ -138,7 +138,7 @@ async function fetchDanteAttribute(attribute) {
 
         case ("chronozone"):
             if (cachedChronozones_loaded == false) {                
-                url = "http://api.dante.gbv.de/voc/arbodat_chronozone/top?properties=narrower";
+                url = "https://api.dante.gbv.de/voc/arbodat_chronozone/top?properties=narrower";
                 break;
             } else {
                 return;
@@ -150,7 +150,7 @@ async function fetchDanteAttribute(attribute) {
         case ("charcoalInvestigated"):
         case ("woodSubfossile"):
             if (cachedSampleInvestigated_loaded == false) {
-                url = "http://api.dante.gbv.de/voc/arbodat_sample_investigated/top?properties=narrower,altLabel";
+                url = "https://api.dante.gbv.de/voc/arbodat_sample_investigated/top?properties=narrower,altLabel";
                 break;
             } else {
                 return;
@@ -159,7 +159,7 @@ async function fetchDanteAttribute(attribute) {
         // absoluteDating -------------------------------
         case ("material"):
             if (cachedMaterials_loaded == false) {
-                url = "http://api.dante.gbv.de/voc/arbodat_dated_material/top?properties=narrower";
+                url = "https://api.dante.gbv.de/voc/arbodat_dated_material/top?properties=narrower";
                 break;
             } else {
                 return;
@@ -167,7 +167,7 @@ async function fetchDanteAttribute(attribute) {
 
         case ("datingMethod"):
             if (cachedDatingMethods_loaded == false) {
-                url = "http://api.dante.gbv.de/voc/arbodat_dating_method/top?properties=narrower,altLabel";
+                url = "https://api.dante.gbv.de/voc/arbodat_dating_method/top?properties=narrower,altLabel";
                 break;
             } else {
                 return;
@@ -176,7 +176,7 @@ async function fetchDanteAttribute(attribute) {
         // C14Dating ------------------------------------
         case "c14Laboratory":
             if (cachedC14Laboratories_loaded == false) {
-                url = "http://api.dante.gbv.de/voc/nihk_c14_laboratory/top?properties=notation,narrower";
+                url = "https://api.dante.gbv.de/voc/nihk_c14_laboratory/top?properties=notation,narrower";
                 break;
             } else {
                 return;
@@ -185,7 +185,7 @@ async function fetchDanteAttribute(attribute) {
         // result ---------------------------------------
         case ("stateOfPreservation"):
             if (cachedStateOfPreservation_loaded == false) {
-                url = "http://api.dante.gbv.de/voc/arbodat_result_condition/top?properties=narrower,altLabel";
+                url = "https://api.dante.gbv.de/voc/arbodat_result_condition/top?properties=narrower,altLabel";
                 break;
             } else {
                 return;
@@ -201,7 +201,7 @@ async function fetchDanteAttribute(attribute) {
 
         case ("classificationConfer"):
             if (cachedClassificationConfers_loaded == false) {
-                url = "http://api.dante.gbv.de/voc/arbodat_classification_confer/top?properties=narrower,altLabel";
+                url = "https://api.dante.gbv.de/voc/arbodat_classification_confer/top?properties=narrower,altLabel";
                 break;
             } else {
                 return;

@@ -16,8 +16,12 @@ RUN npm install -g sass@1.62.1
 # Compile SCSS to CSS
 RUN sass --style=compressed ./sass:./css 
 
-# Stage 2: Serve files with nginx
-FROM nginx AS production-stage
+# Stage 2: Serve files with nginx (>= 1.27.3 for "upstream ... resolve")
+FROM nginx:1.30-alpine AS production-stage
+
+# nginx config: static files + /api/ -> web-api, /nominatim-reverse -> OpenStreetMap
+ENV NGINX_ENTRYPOINT_LOCAL_RESOLVERS=1
+COPY nginx/templates /etc/nginx/templates
 
 # Copy compiled CSS files and other necessary files into nginx's web root
 COPY . /usr/share/nginx/html
