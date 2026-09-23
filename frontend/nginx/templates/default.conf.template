@@ -39,6 +39,12 @@ server {
         return 200 "ok\n";
     }
 
+    # Defense in depth: the production image only ever contains the files actually served (see
+    # frontend/Dockerfile), but in dev the whole frontend/ folder is bind-mounted as the web root,
+    # so nginx's own config and the SCSS/Docker build sources would otherwise be reachable too.
+    location ~ ^/(nginx|sass|bootstrap-scss)(/|$) { return 404; }
+    location ~ ^/(Dockerfile|\.dockerignore)$ { return 404; }
+
     # Static pages. Files are not fingerprinted, so browsers must revalidate after an update.
     location / {
         try_files $uri $uri/ =404;

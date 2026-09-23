@@ -1,0 +1,15 @@
+# These images are not referenced from any page (see info/TODO.md) and are not needed in the
+# build context at all; excluding them keeps "docker build" from uploading ~80MB for nothing.
+img/IMG_3329-2.png
+img/banner.tif
+img/banner_gross.png
+img/banner_homepage.png
+img/logo_2.png
+
+# Locally compiled output (sass runs again inside the build stage) and editor/VCS cruft.
+css/*.css
+css/*.css.map
+node_modules/
+
+Dockerfile
+.dockerignore

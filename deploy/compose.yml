@@ -1,0 +1,70 @@
+# ArboDat+ production stack.
+#
+# This is the single source of truth for how ArboDat+ is deployed: server admins run it directly
+# with `docker compose up -d`, and the desktop app embeds this exact file for local installs.
+#
+# DATA SAFETY:
+#   - Never run `docker compose down -v` -- it would try to remove the data volume. Because the
+#     volume below is declared `external: true`, Compose refuses to remove it either way, but
+#     don't rely on that as the only safeguard.
+#   - Never edit the `volumes:` block below (name or key). Renaming it silently starts a second,
+#     empty database instead of migrating the existing one.
+#   - Back up before every version upgrade (`ARBODAT_VERSION` in .env): see README.md.
+
+name: arbodat-plus
+
+services:
+
+  database:
+    image: postgres:16-trixie
+    restart: unless-stopped
+    environment:
+      POSTGRES_PASSWORD: ${DATABASE_PASSWORD:?Set DATABASE_PASSWORD in .env}
+    volumes:
+      - database:/var/lib/postgresql/data
+    healthcheck:
+      test: [ "CMD-SHELL", "pg_isready -U postgres -h 127.0.0.1" ]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 60s
+    stop_grace_period: 60s # give Postgres time for a clean shutdown instead of SIGKILL
+
+  web-api:
+    image: ghcr.io/cau-kiel-ai/arbodat-plus-web-api:${ARBODAT_VERSION:?Set ARBODAT_VERSION in .env}
+    restart: unless-stopped
+    environment:
+      SPRING_DATASOURCE_URL: jdbc:postgresql://database:5432/postgres
+      SPRING_DATASOURCE_USERNAME: postgres
+      SPRING_DATASOURCE_PASSWORD: ${DATABASE_PASSWORD:?Set DATABASE_PASSWORD in .env}
+    depends_on:
+      database:
+        condition: service_healthy
+    healthcheck:
+      test: [ "CMD", "curl", "-fsS", "-o", "/dev/null", "http://127.0.0.1:8080/results?page=0&size=1" ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 180s # first start creates the schema (Hibernate ddl-auto=update)
+    stop_grace_period: 30s
+
+  frontend:
+    image: ghcr.io/cau-kiel-ai/arbodat-plus-frontend:${ARBODAT_VERSION:?Set ARBODAT_VERSION in .env}
+    restart: unless-stopped
+    ports:
+      # Only this port is published; web-api and the database are reached through nginx (/api/).
+      - "${ARBODAT_BIND:-127.0.0.1}:${ARBODAT_PORT:-8480}:80"
+    depends_on:
+      - web-api # nginx resolves web-api lazily and survives it starting later or restarting
+    healthcheck:
+      test: [ "CMD", "wget", "-q", "-O", "/dev/null", "http://127.0.0.1/healthz" ]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+
+volumes:
+  # external: true means Compose only attaches to this volume, never creates, recreates or
+  # removes it. Whoever runs this file for the first time must create it once (see README.md).
+  database:
+    name: arbodat-plus-database
+    external: true
