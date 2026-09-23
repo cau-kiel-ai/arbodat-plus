@@ -1,0 +1,52 @@
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches: [develop, main]
+
+permissions:
+  contents: read
+
+jobs:
+  web-api-build:
+    # gradle bootJar in the same gradle:8.8-jdk17 image the prod Dockerfile uses
+    runs-on: ubuntu-latest
+    container: gradle:8.8-jdk17
+    steps:
+      - uses: actions/checkout@v4
+      - run: gradle bootJar --no-daemon
+        working-directory: web-api
+
+  smoke:
+    # Builds both images from source (not GHCR) and brings up the full stack, then checks it actually answers requests.
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Start the stack
+        run: |
+          echo "DATABASE_PASSWORD=ci-smoke-test" > .env
+          docker compose --profile prod up -d --build --wait --wait-timeout 300
+
+      - name: Check it actually answers requests
+        run: |
+          set -euo pipefail
+          # Wait for web-api to finish startup
+          for i in $(seq 1 60); do
+            code=$(curl -s -o /dev/null -w '%{http_code}' 'http://localhost:8480/api/results?page=0&size=1')
+            [ "$code" = 200 ] && break
+            sleep 1
+          done
+          curl -fsS http://localhost:8480/healthz
+          curl -fsS http://localhost:8480/version.json
+          curl -fsS 'http://localhost:8480/api/results?page=0&size=1' | grep -q '"content"'
+          echo "OK: healthz, version.json and /api/results all responded."
+
+      - name: Show logs on failure
+        if: failure()
+        run: docker compose --profile prod logs
+
+      - name: Tear down
+        if: always()
+        run: docker compose --profile prod down

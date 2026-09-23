@@ -1,0 +1,151 @@
+name: Release
+
+# One git tag is the whole release process: it builds and pushes multi-arch images, smoke-tests
+# them for real (anonymous pull + a running stack), then publishes a GitHub Release with the
+# deploy/ files attached. See scripts/set-version.mjs for preparing a tag.
+
+on:
+  push:
+    tags: ["v*"]
+
+permissions:
+  contents: read
+
+jobs:
+  meta:
+    # Refuses to build anything if the tag doesn't match what's actually in the repo
+    runs-on: ubuntu-latest
+    outputs:
+      tag: ${{ github.ref_name }}
+      version: ${{ steps.version.outputs.version }}
+      prerelease: ${{ steps.version.outputs.prerelease }}
+    steps:
+      - uses: actions/checkout@v4
+      - id: version
+        run: |
+          TAG="${{ github.ref_name }}"
+          VERSION="${TAG#v}"
+          node scripts/check-version.mjs "$TAG"
+          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+          if [[ "$VERSION" == *-* ]]; then
+            echo "prerelease=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "prerelease=false" >> "$GITHUB_OUTPUT"
+          fi
+
+  images:
+    needs: meta
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+    strategy:
+      matrix:
+        include:
+          - name: frontend
+            context: ./frontend
+          - name: web-api
+            context: ./web-api
+    steps:
+      - uses: actions/checkout@v4
+
+      # Set up BuildKit to be able to build multi-platform images
+      # https://github.com/docker/setup-buildx-action
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@f95db51fddba0c2d1ec667646a06c2ce06100226 # v3.0.0
+
+      - name: Log in to GHCR
+        uses: docker/login-action@343f7c4344506bcbf9b4de18042ae17996df046d # v3.0.0
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - id: image-meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ghcr.io/cau-kiel-ai/arbodat-plus-${{ matrix.name }}
+          # floating "latest": deploy/compose.yml always requires an explicit ARBODAT_VERSION
+          tags: type=raw,value=${{ needs.meta.outputs.version }}
+          flavor: latest=false
+
+      - name: Build and push ${{ matrix.name }} image
+        uses: docker/build-push-action@0565240e2d4ab88bba5387d719585280857ece09 # v5.0.0
+        with:
+          context: ${{ matrix.context }}
+          platforms: linux/amd64,linux/arm64
+          push: true
+          tags: ${{ steps.image-meta.outputs.tags }}
+          labels: ${{ steps.image-meta.outputs.labels }}
+          build-args: |
+            APP_VERSION=${{ needs.meta.outputs.version }}
+          cache-from: type=gha,scope=${{ matrix.name }}
+          cache-to: type=gha,mode=max,scope=${{ matrix.name }}
+
+  smoke:
+    # Proves the tag is actually usable: a real anonymous pull and a real running stack.
+    needs: [meta, images]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Pull images anonymously
+        run: |
+          docker logout ghcr.io || true
+          docker pull ghcr.io/cau-kiel-ai/arbodat-plus-web-api:${{ needs.meta.outputs.version }}
+          docker pull ghcr.io/cau-kiel-ai/arbodat-plus-frontend:${{ needs.meta.outputs.version }}
+
+      - name: Start the stack
+        working-directory: deploy
+        run: |
+          docker volume create arbodat-plus-database
+          {
+            echo "ARBODAT_VERSION=${{ needs.meta.outputs.version }}"
+            echo "DATABASE_PASSWORD=release-smoke-test"
+          } > .env
+          docker compose up -d --wait --wait-timeout 300
+
+      - name: Check it actually answers requests
+        run: |
+          set -euo pipefail
+          # Wait for web-api to finish startup
+          for i in $(seq 1 60); do
+            code=$(curl -s -o /dev/null -w '%{http_code}' 'http://127.0.0.1:8480/api/results?page=0&size=1')
+            [ "$code" = 200 ] && break
+            sleep 1
+          done
+          curl -fsS http://127.0.0.1:8480/healthz
+          curl -fsS http://127.0.0.1:8480/version.json | grep -q "${{ needs.meta.outputs.version }}"
+          curl -fsS 'http://127.0.0.1:8480/api/results?page=0&size=1' | grep -q '"content"'
+
+      - name: Show logs on failure
+        if: failure()
+        working-directory: deploy
+        run: docker compose logs
+
+      - name: Tear down
+        if: always()
+        working-directory: deploy
+        run: |
+          docker compose down || true
+          docker volume rm arbodat-plus-database || true
+
+  release:
+    needs: [meta, smoke]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+      - name: Create GitHub Release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG: ${{ needs.meta.outputs.tag }}
+          PRERELEASE: ${{ needs.meta.outputs.prerelease }}
+        run: |
+          flags=(--title "$TAG" --generate-notes)
+          if [ "$PRERELEASE" = "true" ]; then
+            flags+=(--prerelease)
+          fi
+          gh release create "$TAG" "${flags[@]}" \
+            deploy/compose.yml deploy/.env.example deploy/README.md

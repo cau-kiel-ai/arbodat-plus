@@ -36,6 +36,16 @@ Each entry says what to do and why.
 - [ ] **Clean up assets.** Remove the unused images in `frontend/img` (~81 MB, e.g. `banner.tif`) and the dead
   `manual.html` link in `input.html`.
 
+## Release process
+
+- [ ] **Decide a CITATION.cff versioning policy.** It already tracks its own Zenodo DOI
+  (`10.5281/zenodo.17938312`) independently of the app version (currently `1.3.0` vs. the app's
+  `4.0.0`). The v5.0.0 release automation (`scripts/check-version.mjs`) deliberately does not touch
+  it, so it stays a manual, deliberate action by a maintainer — bumping it on every release
+  candidate would mint a citable DOI snapshot for builds nobody should actually cite. Decide
+  whether/when to automate it (e.g. only on stable, non-prerelease tags) once there's a real
+  release cadence to look at.
+
 ## Desktop app & release
 
 - [ ] **In-app updater.** Use the Tauri updater plugin: the app checks GitHub Releases for a signed `latest.json`, then
