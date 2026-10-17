@@ -55,6 +55,13 @@ web-api and `/nominatim-reverse` to OpenStreetMap Nominatim (reverse geocoding).
 │   ├── build.gradle
 │   └── Dockerfile
 │
+├── desktop                  # ArboDat+ desktop app (Tauri + Svelte), see desktop/README.md
+│   ├── src                  # launcher UI
+│   └── src-tauri            # Rust: finds Docker, knows the state of the local stack
+│
+├── deploy                   # production compose.yml: server installs, embedded in the desktop app
+├── scripts                  # release version helpers (set-version.mjs / check-version.mjs)
+│
 ├── info
 │   ├── DANTE-terminologies
 │   ├── API-URLs
@@ -62,7 +69,7 @@ web-api and `/nominatim-reverse` to OpenStreetMap Nominatim (reverse geocoding).
 :
 ├── .env.example             # copy to .env (git-ignored) and set the database password
 ├── .gitignore
-└── docker-compose.yml
+└── docker-compose.yml       # development stack (compose project "arbodat-plus-dev")
 ```
 
 ## Export ArboDat+

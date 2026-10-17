@@ -5,7 +5,7 @@ plugins {
 }
 
 group = 'arbodat'
-version = '3.1.0'
+version = '5.0.0-dev'
 
 java {
 	toolchain {

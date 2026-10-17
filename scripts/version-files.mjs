@@ -13,6 +13,24 @@ export const versionFiles = [
     pattern: /^version = '([^']*)'$/m,
     replace: (version) => `version = '${version}'`,
   },
+  {
+    // tauri.conf.json reads the app version from here ("version": "../package.json").
+    path: "desktop/package.json",
+    pattern: /^  "version": "([^"]*)",$/m,
+    replace: (version) => `  "version": "${version}",`,
+  },
+  {
+    // The first line-leading `version = ` is [package]; dependency versions are inline tables.
+    path: "desktop/src-tauri/Cargo.toml",
+    pattern: /^version = "([^"]*)"$/m,
+    replace: (version) => `version = "${version}"`,
+  },
+  {
+    // Kept in step so CI's `--locked` builds don't fail after a version bump.
+    path: "desktop/src-tauri/Cargo.lock",
+    pattern: /^\[\[package\]\]\nname = "arbodat-plus"\nversion = "([^"]*)"$/m,
+    replace: (version) => `[[package]]\nname = "arbodat-plus"\nversion = "${version}"`,
+  },
 ];
 
 export function readVersion(file) {

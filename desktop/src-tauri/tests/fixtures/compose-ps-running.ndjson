@@ -1,0 +1,3 @@
+{"Service":"database","Name":"arbodat-plus-database-1","Project":"arbodat-plus","Image":"postgres:16-trixie","State":"running","Status":"Up 27 seconds (healthy)","Health":"healthy","ExitCode":0,"Ports":"5432/tcp"}
+{"Service":"frontend","Name":"arbodat-plus-frontend-1","Project":"arbodat-plus","Image":"ghcr.io/cau-kiel-ai/arbodat-plus-frontend:5.0.0-dev","State":"running","Status":"Up 22 seconds (healthy)","Health":"healthy","ExitCode":0,"Ports":"127.0.0.1:8480->80/tcp"}
+{"Service":"web-api","Name":"arbodat-plus-web-api-1","Project":"arbodat-plus","Image":"ghcr.io/cau-kiel-ai/arbodat-plus-web-api:5.0.0-dev","State":"running","Status":"Up 22 seconds (healthy)","Health":"healthy","ExitCode":0,"Ports":"8080/tcp"}

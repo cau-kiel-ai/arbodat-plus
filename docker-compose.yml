@@ -1,3 +1,7 @@
+# Development stack. The explicit name keeps it apart from the production stack
+# ("arbodat-plus", deploy/compose.yml) that the desktop app manages on the same machine.
+name: arbodat-plus-dev
+
 services:
 
   database:

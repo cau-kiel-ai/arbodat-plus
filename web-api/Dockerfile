@@ -14,7 +14,7 @@ FROM eclipse-temurin:17-jre AS production-stage
 
 ARG APP_VERSION=0.0.0
 LABEL org.opencontainers.image.title="ArboDat+ web-api" \
-      org.opencontainers.image.source="https://github.com/cau-kiel-ai/arbodat_plus" \
+      org.opencontainers.image.source="https://github.com/cau-kiel-ai/arbodat-plus" \
       org.opencontainers.image.version="${APP_VERSION}"
 
 # The base image ships a non-root "ubuntu" user (uid/gid 1000) and a world-writable /tmp
