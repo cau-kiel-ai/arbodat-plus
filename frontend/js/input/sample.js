@@ -496,13 +496,14 @@ function create_update_sample() {
         }
 
     } else {  // Report ----------------
-        // Set focus on invalid field
-        sample_feature_dropdown.focus();
-
-        // wait until focus is set
-        setTimeout(() => {
-            sampleForm.reportValidity();
-        }, 850);
+        // Bootstrap's `scroll-behavior: smooth` animates the browser's scroll
+        // to the invalid field; jump to it instantly, then report.
+        const firstInvalid = sampleForm.querySelector(':invalid');
+        if (firstInvalid) {
+            firstInvalid.scrollIntoView({ block: 'center', behavior: 'instant' });
+            firstInvalid.focus({ preventScroll: true });
+        }
+        sampleForm.reportValidity();
     } // -------------------------------
 }
 

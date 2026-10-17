@@ -604,13 +604,14 @@ function create_update_absoulteDating() {
         }        
 
     } else { // Report --------------------------
-        // Set focus on invalid field
-        absoluteDating_sample_dropdown.focus();
-
-        // wait until focus is set
-        setTimeout(() => {
-            absoluteDating_form.reportValidity();
-        }, 450);
+        // Bootstrap's `scroll-behavior: smooth` animates the browser's scroll
+        // to the invalid field; jump to it instantly, then report.
+        const firstInvalid = absoluteDating_form.querySelector(':invalid');
+        if (firstInvalid) {
+            firstInvalid.scrollIntoView({ block: 'center', behavior: 'instant' });
+            firstInvalid.focus({ preventScroll: true });
+        }
+        absoluteDating_form.reportValidity();
     } // ----------------------------------------
 }
 

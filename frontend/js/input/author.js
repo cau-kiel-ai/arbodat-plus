@@ -53,10 +53,13 @@ function create_update_author() {
         };
         
     } else { // Report -----------------
-        authorLastNameInput.focus();
-        // wait until focus is set
-        setTimeout(() => {
-            authorForm.reportValidity();
-        }, 200);
+        // Bootstrap's `scroll-behavior: smooth` animates the browser's scroll
+        // to the invalid field; jump to it instantly, then report.
+        const firstInvalid = authorForm.querySelector(':invalid');
+        if (firstInvalid) {
+            firstInvalid.scrollIntoView({ block: 'center', behavior: 'instant' });
+            firstInvalid.focus({ preventScroll: true });
+        }
+        authorForm.reportValidity();
     } // -------------------------------
 }

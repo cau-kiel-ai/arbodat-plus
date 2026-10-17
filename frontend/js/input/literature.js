@@ -157,11 +157,14 @@ function create_update_literature() {
         };
         
     } else { // Report ---------------------
-        titleInput.focus();
-        // wait until focus is set
-        setTimeout(() => {
-            literatureForm.reportValidity();
-        }, 400);
+        // Bootstrap's `scroll-behavior: smooth` animates the browser's scroll
+        // to the invalid field; jump to it instantly, then report.
+        const firstInvalid = literatureForm.querySelector(':invalid');
+        if (firstInvalid) {
+            firstInvalid.scrollIntoView({ block: 'center', behavior: 'instant' });
+            firstInvalid.focus({ preventScroll: true });
+        }
+        literatureForm.reportValidity();
     } // -----------------------------------
 }
 

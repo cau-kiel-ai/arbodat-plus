@@ -51,10 +51,13 @@ function create_update_institution() {
         }
 
     } else { // Report ----------------------
-        institutionLabel.focus();
-        // wait until focus is set
-        setTimeout(() => {
-            institutionForm.reportValidity();
-        }, 200);
+        // Bootstrap's `scroll-behavior: smooth` animates the browser's scroll
+        // to the invalid field; jump to it instantly, then report.
+        const firstInvalid = institutionForm.querySelector(':invalid');
+        if (firstInvalid) {
+            firstInvalid.scrollIntoView({ block: 'center', behavior: 'instant' });
+            firstInvalid.focus({ preventScroll: true });
+        }
+        institutionForm.reportValidity();
     } // ------------------------------------
 }

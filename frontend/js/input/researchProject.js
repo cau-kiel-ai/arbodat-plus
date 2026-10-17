@@ -69,10 +69,13 @@ function create_update_researchProject() {
         };
 
     } else { // Report -----------
-        projectNameInput.focus();
-        // wait until focus is set
-        setTimeout(() => {
-            researchProjectForm.reportValidity();
-        }, 300);
+        // Bootstrap's `scroll-behavior: smooth` animates the browser's scroll
+        // to the invalid field; jump to it instantly, then report.
+        const firstInvalid = researchProjectForm.querySelector(':invalid');
+        if (firstInvalid) {
+            firstInvalid.scrollIntoView({ block: 'center', behavior: 'instant' });
+            firstInvalid.focus({ preventScroll: true });
+        }
+        researchProjectForm.reportValidity();
     } // -------------------------
 }

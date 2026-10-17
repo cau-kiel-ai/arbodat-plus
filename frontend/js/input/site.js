@@ -637,23 +637,27 @@ function create_update_site() {
         }
 
         // open Accordion, if invalid Field is in it
+        let openedAccordion = false;
         siteForm.querySelectorAll(":invalid").forEach(el => {
         const collapseParent = el.closest(".accordion-collapse");
-            if (collapseParent && collapseParent.classList.contains("collapse")) {
+            if (collapseParent && collapseParent.classList.contains("collapse") && !collapseParent.classList.contains("show")) {
+                openedAccordion = true;
                 const bsCollapse = bootstrap.Collapse.getOrCreateInstance(collapseParent);
                 bsCollapse.show();
             }
         });
 
-        if ( !(window.siteResearchProjectList.length > 0) ) {
-            siteResearchProjectDropdown.focus();
-        } else {
-            document.getElementById("site_label").focus();
-        }
-        
-        // wait until focus is set
-        setTimeout(() => {
+        // Bootstrap's `scroll-behavior: smooth` animates the browser's scroll to the
+        // invalid field; jump to it instantly, then report. If an accordion was just
+        // opened, wait for its transition so the layout is final before scrolling.
+        const report = () => {
+            const firstInvalid = siteForm.querySelector(':invalid');
+            if (firstInvalid) {
+                firstInvalid.scrollIntoView({ block: 'center', behavior: 'instant' });
+                firstInvalid.focus({ preventScroll: true });
+            }
             siteForm.reportValidity();
-        }, 750);
+        };
+        setTimeout(report, openedAccordion ? 400 : 0);
     } // -----------------------------------------------------
 }

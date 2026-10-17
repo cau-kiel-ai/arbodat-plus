@@ -170,13 +170,14 @@ function create_update_feature() {
         }
        
     } else { // Report ------------------
-        // Set focus on invalid field
-        featureSite_dropdown.focus();
-
-        // wait until focus is set
-        setTimeout(() => {
-            featureForm.reportValidity();
-        }, 350);
+        // Bootstrap's `scroll-behavior: smooth` animates the browser's scroll
+        // to the invalid field; jump to it instantly, then report.
+        const firstInvalid = featureForm.querySelector(':invalid');
+        if (firstInvalid) {
+            firstInvalid.scrollIntoView({ block: 'center', behavior: 'instant' });
+            firstInvalid.focus({ preventScroll: true });
+        }
+        featureForm.reportValidity();
     } // --------------------------------
 };
 

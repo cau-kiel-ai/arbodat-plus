@@ -157,10 +157,13 @@ function create_update_user() {
         };
 
     } else { // Report ----------------
-        lastNameInput.focus();
-        // wait until focus is set
-        setTimeout(() => {
-            userForm.reportValidity();
-        }, 300);
+        // Bootstrap's `scroll-behavior: smooth` animates the browser's scroll
+        // to the invalid field; jump to it instantly, then report.
+        const firstInvalid = userForm.querySelector(':invalid');
+        if (firstInvalid) {
+            firstInvalid.scrollIntoView({ block: 'center', behavior: 'instant' });
+            firstInvalid.focus({ preventScroll: true });
+        }
+        userForm.reportValidity();
     } // ------------------------------
 }
