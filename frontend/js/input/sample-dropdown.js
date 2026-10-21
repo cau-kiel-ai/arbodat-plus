@@ -139,6 +139,8 @@ document.addEventListener("DOMContentLoaded", () => {
             $('#chronozone').val(null).trigger('change');
             archaeological_dating_input.value = '';
             cultural_group_input.value        = '';
+            absolute_dating_from_input.value  = '';
+            absolute_dating_to_input.value    = '';
             remarks_textarea.value            = '';
             // -------------------------------------------
         }
@@ -246,6 +248,8 @@ document.addEventListener("DOMContentLoaded", () => {
         $('#chronozone').val(item.chronozone?.id ?? '').trigger('change');
         archaeological_dating_input.value = item.archaeologicalDating;
         cultural_group_input.value        = item.culturalGroup;
+        absolute_dating_from_input.value  = item.absoluteDatingFrom;
+        absolute_dating_to_input.value    = item.absoluteDatingTo;
         remarks_textarea.value            = item.remarksSample;
         // -------------------------------------------------------------------------
     }
@@ -307,6 +311,8 @@ document.addEventListener("DOMContentLoaded", () => {
         $('#chronozone').val(null).trigger('change');
         archaeological_dating_input.value = '';
         cultural_group_input.value        = '';
+        absolute_dating_from_input.value  = '';
+        absolute_dating_to_input.value    = '';
         remarks_textarea.value            = '';
         // ----------------------------------------
 

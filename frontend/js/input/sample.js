@@ -44,6 +44,8 @@ const volume_determination_wet_radio     = document.getElementById("wet");
 const chronozone_dropdown         = document.getElementById("chronozone");
 const archaeological_dating_input = document.getElementById("archaeologicalDating");
 const cultural_group_input        = document.getElementById("culturalGroup");
+const absolute_dating_from_input  = document.getElementById("absoluteDatingFrom");
+const absolute_dating_to_input    = document.getElementById("absoluteDatingTo");
 const remarks_textarea            = document.getElementById("sample_remarks");
 
 // Select2 reference site dropdown --------------------------------------------
@@ -395,6 +397,8 @@ function create_update_sample() {
             // Sample dating -------------------------------------
             archaeologicalDating: archaeological_dating_input.value || null,
             culturalGroup: cultural_group_input.value || null,
+            absoluteDatingFrom: absolute_dating_from_input.value || null,
+            absoluteDatingTo: absolute_dating_to_input.value || null,
             remarksSample: remarks_textarea.value || null,
         };
         // Coordinates -------------------------------------------

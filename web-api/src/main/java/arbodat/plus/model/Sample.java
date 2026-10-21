@@ -17,36 +17,14 @@ public class Sample implements Serializable {
     @GeneratedValue(strategy = GenerationType.UUID)
     private UUID id;
 
+    @ManyToOne
+    @JoinColumn(name = "feature_id")
+    private Feature feature;
+
     @Column(name = "sample_label")
     private String label;
 
-    @Column(name = "botanical_determination_year")
-    private String botanicalDeterminationYear;
-
-    @ManyToMany
-    @JoinTable(name = "botanical_determination_by",
-               joinColumns = @JoinColumn(name = "sample_id"),
-               inverseJoinColumns = @JoinColumn(name = "user_id")
-    )
-    private Set<User> botanicalDeterminationBy;
-
-    @Column(name = "sample_storage")
-    private Boolean sampleStorage;
-
-    @Column(name = "micro_remain_sample")
-    private Boolean microRemain;
-
-    @Column(name = "volume_determination")
-    private String volumeDetermination; // dryOrWet
-
-    @Column(name = "remarks_sample", columnDefinition = "TEXT")
-    private String remarksSample;
-
-    // liter
-    @Column(name = "sample_volume")
-    private Double sampleVolume;
-
-    // Sample Location -------------
+    // Sample Location --------------------------------------------------------
     @Column(name = "stratum")
     private String stratum;
 
@@ -64,67 +42,91 @@ public class Sample implements Serializable {
 
     @Column(name = "depth_to")
     private Double depthTo;
-    // -----------------------------
 
-    // central on Dante
-    @ManyToOne
-    @JoinColumn(name = "seeds_and_fruits")
-    private SampleInvestigated seedsAndFruits;
+    // Coordinates ------------------------------------------------------------
+    @OneToOne(cascade = CascadeType.ALL, orphanRemoval=true)
+    @JoinColumn(name = "coordinate")
+    private Coordinate coordinate;
 
-    // charcoal ---------------------------------
-    // central on Dante
-    @ManyToOne
-    @JoinColumn(name = "charcoal_investigated")
-    private SampleInvestigated charcoalInvestigated;
+    // Measurement details ----------------------------------------------------
+    @ManyToMany
+    @JoinTable(name = "botanical_determination_by",
+               joinColumns = @JoinColumn(name = "sample_id"),
+               inverseJoinColumns = @JoinColumn(name = "user_id")
+    )
+    private Set<User> botanicalDeterminationBy;
 
-    // central on Dante
-    @ManyToOne
-    @JoinColumn(name = "wood_subfossile")
-    private SampleInvestigated woodSubfossile;
+    @Column(name = "botanical_determination_year")
+    private String botanicalDeterminationYear;
 
-    @Column(name = "total_weight")
-    private Double totalWeight;
-
-    @Column(name = "weight_undetermined")
-    private Double weightUndetermined;
-    // ------------------------------------------
-
-    @ManyToOne
-    @JoinColumn(name = "feature_id")
-    private Feature feature;
-
-    @JsonIgnore
-    @OneToMany(mappedBy = "sample")
-    private Set<AbsoluteDating> absoluteDatingList;
-
-    // central on Dante
-    @ManyToOne
-    @JoinColumn(name = "chronozone")
-    private Chronozone chronozone;
-
-//    // central on Dante
-//    @ManyToOne
-//    @JoinColumn(name = "archaeological_dating")
-//    private ArchaeologicalDating archaeologicalDating;
-    private String archaeologicalDating;
-
-//    // central on Dante
-//    @ManyToOne
-//    @JoinColumn(name = "cultural_group")
-//    private CulturalGroup culturalGroup;
-    private String culturalGroup;
+    @OneToMany(mappedBy = "sample", cascade = CascadeType.ALL, orphanRemoval=true)
+    private Set<FractionAnalyzed> fractionAnalyzedList;
 
     // central on Dante
     @ManyToOne
     @JoinColumn(name = "sample_type")
     private SampleType sampleType;
 
-    @OneToOne(cascade = CascadeType.ALL, orphanRemoval=true)
-    @JoinColumn(name = "coordinate")
-    private Coordinate coordinate;
+    @Column(name = "sample_storage")
+    private Boolean sampleStorage;
 
-    @OneToMany(mappedBy = "sample", cascade = CascadeType.ALL, orphanRemoval=true)
-    private Set<FractionAnalyzed> fractionAnalyzedList;
+    @Column(name = "micro_remain_sample")
+    private Boolean microRemain;
+
+    // Inventory --------------------------------------------------------------
+    // central on Dante
+    @ManyToOne
+    @JoinColumn(name = "seeds_and_fruits")
+    private SampleInvestigated seedsAndFruits;
+
+    // central on Dante
+    @ManyToOne
+    @JoinColumn(name = "wood_subfossile")
+    private SampleInvestigated woodSubfossile;
+
+    // central on Dante
+    @ManyToOne
+    @JoinColumn(name = "charcoal_investigated")
+    private SampleInvestigated charcoalInvestigated;
+
+    @Column(name = "total_weight")
+    private Double totalWeight; // charcoal
+
+    @Column(name = "weight_undetermined")
+    private Double weightUndetermined; // charcoal
+
+    @Column(name = "sample_volume")
+    private Double sampleVolume; // liter
+
+    @Column(name = "volume_determination")
+    private String volumeDetermination; // dryOrWet
+
+    // Sample dating ----------------------------------------------------------
+    // central on Dante
+    @ManyToOne
+    @JoinColumn(name = "chronozone")
+    private Chronozone chronozone;
+
+    @Column(name = "archaeological_dating")
+    private String archaeologicalDating;
+
+    @Column(name = "cultural_group")
+    private String culturalGroup;
+
+    @Column(name = "absolute_dating_from")
+    private Integer absoluteDatingFrom;
+
+    @Column(name = "absolute_dating_to")
+    private Integer absoluteDatingTo;
+
+    // Remarks ----------------------------------------------------------------
+    @Column(name = "remarks_sample", columnDefinition = "TEXT")
+    private String remarksSample;
+
+    // ------------------------------------------------------------------------
+    @JsonIgnore
+    @OneToMany(mappedBy = "sample")
+    private Set<AbsoluteDating> absoluteDatingList;
 
     @JsonIgnore
     @OneToMany(mappedBy = "sample")

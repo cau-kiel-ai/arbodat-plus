@@ -142,6 +142,8 @@ public class SampleController {
         sample.setWeightUndetermined(transferredSample.getWeightUndetermined());
         sample.setArchaeologicalDating(transferredSample.getArchaeologicalDating());
         sample.setCulturalGroup(transferredSample.getCulturalGroup());
+        sample.setAbsoluteDatingFrom(transferredSample.getAbsoluteDatingFrom());
+        sample.setAbsoluteDatingTo(transferredSample.getAbsoluteDatingTo());
         sample.setCoordinate(transferredSample.getCoordinate());
 
         sample.setFeature(transferredSample.getFeature());

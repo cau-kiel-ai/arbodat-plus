@@ -568,6 +568,16 @@ async function buildSampleTable() {
             },
             {title:"archaeological dating", titleDownload:"archaeologicalDating", field:"archaeologicalDating", editor:"input", headerFilter:true, headerSortTristate:true},
             {title:"cultural group", titleDownload:"culturalGroup", field:"culturalGroup", editor:"input", headerFilter:true, headerSortTristate:true},
+            {title:"absolute dating from", titleDownload:"absoluteDatingFrom", field:"absoluteDatingFrom", headerFilter:"input", headerSortTristate:true,
+                editor:"number", editorParams:{
+                    step:1,
+                },
+            },
+            {title:"absolute dating to", titleDownload:"absoluteDatingTo", field:"absoluteDatingTo", headerFilter:"input", headerSortTristate:true,
+                editor:"number", editorParams:{
+                    step:1,
+                },
+            },
             {title:"remarks", field:"remarksSample", editor:"input", headerFilter:true, headerSort:false},
         ],
         initialSort: [
@@ -796,6 +806,8 @@ document.getElementById("download-json").addEventListener("click", function(){
                     : null,
                 archaeologicalDating: row.archaeologicalDating,
                 culturalGroup: row.culturalGroup,
+                absoluteDatingFrom: row.absoluteDatingFrom,
+                absoluteDatingTo: row.absoluteDatingTo,
                 remarks: row.remarksSample,
             };
         });

@@ -451,6 +451,14 @@ public class ExportService {
 
             gen.writeStringField("archaeologicalDating", sample.getArchaeologicalDating());
             gen.writeStringField("culturalGroup", sample.getCulturalGroup());
+            if (sample.getAbsoluteDatingFrom() != null)
+                gen.writeNumberField("absoluteDatingFrom", sample.getAbsoluteDatingFrom());
+            else
+                gen.writeNullField("absoluteDatingFrom");
+            if (sample.getAbsoluteDatingTo() != null)
+                gen.writeNumberField("absoluteDatingTo", sample.getAbsoluteDatingTo());
+            else
+                gen.writeNullField("absoluteDatingTo");
 
             // Remarks
             gen.writeStringField("remarksSample", sample.getRemarksSample());
