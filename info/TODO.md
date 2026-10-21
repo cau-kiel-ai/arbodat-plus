@@ -45,6 +45,11 @@ Each entry says what to do and why.
   candidate would mint a citable DOI snapshot for builds nobody should actually cite. Decide
   whether/when to automate it (e.g. only on stable, non-prerelease tags) once there's a real
   release cadence to look at.
+- [ ] **Move CI to Ubuntu 26.04 on purpose.** The workflows pin `ubuntu-24.04` because GitHub is
+  moving `ubuntu-latest` to 26.04 (from 2026-10-19). Try 26.04 in a branch (the `smoke` jobs rely on
+  the runner's Docker/Compose, and the Tauri job on the webkit packages), then switch the pins. Also
+  re-check the pinned action versions then: the Docker actions are pinned by commit SHA and need a
+  manual bump (`git ls-remote https://github.com/<action>.git refs/tags/<tag>` gives the SHA).
 
 ## Desktop app & release
 
