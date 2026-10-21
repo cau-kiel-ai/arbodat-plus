@@ -90,13 +90,24 @@ function fetchUsers() {
     })
     .then(data => {
         
+        // Drop dropdowns of rows that were already removed
+        userDropdowns = userDropdowns.filter(dropdown => dropdown.isConnected);
+
+        // Remember current selections
+        const selectedByDropdown = new Map(
+            userDropdowns.map(dropdown => [
+                dropdown,
+                Array.from(dropdown.selectedOptions).map(option => option.value)
+            ])
+        );
+
         // Empty user dropdowns
         userDropdowns.forEach(dropdown => {
             dropdown.options.length = 0;
         });
-        
+
         data.forEach(user => {
-            
+
             const userName = formatName(user);
 
             userDropdowns.forEach(dropdown => {
@@ -108,6 +119,15 @@ function fetchUsers() {
 
                 dropdown.appendChild(option);
             });
+        });
+
+        // Restore selections (users that no longer exist are dropped)
+        userDropdowns.forEach(dropdown => {
+            const selected = selectedByDropdown.get(dropdown);
+            Array.from(dropdown.options).forEach(option => {
+                option.selected = selected.includes(option.value);
+            });
+            $(dropdown).trigger('change.select2');
         });
     })
     .catch(error => {
