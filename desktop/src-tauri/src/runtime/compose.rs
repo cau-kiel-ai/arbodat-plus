@@ -53,10 +53,12 @@ pub async fn ps(cli: &DockerCli, runtime_dir: &Path) -> Result<Vec<ComposeContai
 mod tests {
     use super::*;
 
-    #[cfg(unix)] // path separators
     #[test]
     fn every_call_pins_project_directory_and_file() {
-        let a: Vec<String> = args(Path::new("/data/runtime"), &["ps", "--all"])
+        // Expected paths are built with Path, so the test holds on every OS (separators differ).
+        let dir = Path::new("data").join("runtime");
+        let file = dir.join("compose.yml");
+        let a: Vec<String> = args(&dir, &["ps", "--all"])
             .iter()
             .map(|s| s.to_string_lossy().into_owned())
             .collect();
@@ -69,9 +71,9 @@ mod tests {
                 "--project-name",
                 "arbodat-plus",
                 "--project-directory",
-                "/data/runtime",
+                dir.to_str().unwrap(),
                 "--file",
-                "/data/runtime/compose.yml",
+                file.to_str().unwrap(),
                 "ps",
                 "--all"
             ]
