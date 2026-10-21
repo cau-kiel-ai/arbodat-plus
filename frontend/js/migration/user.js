@@ -152,7 +152,7 @@ async function updateWithUser(type, id, userIds, userRole, row, triggerNext=true
     if (userIds && userIds !== "[]") {
         let url = null;        
         if (type == "site") {
-            url = `api/sites/${id}/updateEmployees/${userRole}`;
+            url = `api/sites/${id}/updateUsers/${userRole}`;
         } 
         else if (type == "sample") {
             url = `api/samples/${id}/updateBotanicalDeterminationBy`;

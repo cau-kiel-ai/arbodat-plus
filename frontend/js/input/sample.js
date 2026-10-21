@@ -470,14 +470,18 @@ function create_update_sample() {
         if (sampleId) { // Update (PUT) -----------------------------------
             payload.id = sampleId;
 
-            axios.put(`api/samples/${sampleId}`, payload)
-            .then(response => {
-                console.log(response.data);
-                toast.success("sample updated");
-            })
-            .catch(error => {
-                console.error('Error during PUT request to update sample:', error);
-                alert("action failed");
+            confirmUpdate("sample").then(confirmed => {
+                if (!confirmed) return;
+
+                axios.put(`api/samples/${sampleId}`, payload)
+                .then(response => {
+                    console.log(response.data);
+                    toast.success("sample updated");
+                })
+                .catch(error => {
+                    console.error('Error during PUT request to update sample:', error);
+                    alert("action failed");
+                });
             });
         } else { // Create (POST) -----------------------------------------
             axios.post('api/samples', payload)

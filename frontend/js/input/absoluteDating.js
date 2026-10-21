@@ -571,14 +571,18 @@ function create_update_absoulteDating() {
         }
         
         if (absoluteDatingId) { // Update (PUT) --------------------------------------------
-            axios.put(`api/absolute_datings/${absoluteDatingId}`, payload)
-            .then(response => {
-                console.log(response.data);
-                toast.success("dating updated");
-            })
-            .catch(error => {
-                console.error('Error during PUT request to update absolute dating:', error);
-                alert("action failed");
+            confirmUpdate("dating").then(confirmed => {
+                if (!confirmed) return;
+
+                axios.put(`api/absolute_datings/${absoluteDatingId}`, payload)
+                .then(response => {
+                    console.log(response.data);
+                    toast.success("dating updated");
+                })
+                .catch(error => {
+                    console.error('Error during PUT request to update absolute dating:', error);
+                    alert("action failed");
+                });
             });
 
         } else { // Create (POST) ----------------------------------------------------------

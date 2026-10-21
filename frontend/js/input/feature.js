@@ -142,14 +142,18 @@ function create_update_feature() {
         if (featureId) { // Update (PUT) --------------------------------------------
             payload.id = featureId;
 
-            axios.put(`api/features/${featureId}`, payload)
-            .then(response => {
-                console.log(response.data);
-                toast.success("feature updated");
-            })
-            .catch(error => {
-                console.error('Error during PUT request to update feature:', error);
-                alert("action failed");
+            confirmUpdate("feature").then(confirmed => {
+                if (!confirmed) return;
+
+                axios.put(`api/features/${featureId}`, payload)
+                .then(response => {
+                    console.log(response.data);
+                    toast.success("feature updated");
+                })
+                .catch(error => {
+                    console.error('Error during PUT request to update feature:', error);
+                    alert("action failed");
+                });
             });
         } else { // Create (POST) ---------------------------------------------------
             axios.post('api/features', payload)

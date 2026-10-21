@@ -103,24 +103,28 @@ function create_update_user() {
                 new Blob([JSON.stringify(payload)], { type: "application/json" })
             );
 
-            axios.put(`api/users/${userId}`, formData, {
-                headers: {
-                    'Content-Type': 'multipart/form-data'
-                }
-            })
-            .then(response => {
-                console.log(response.data);
-                toast.success("user updated");
+            confirmUpdate("user").then(confirmed => {
+                if (!confirmed) return;
 
-                // Update 'Select existing Users' selection in migration
-                try {
-                    fetchUsers();
-                } catch (error) {}
-                // -----------------------------------------------------
-            })
-            .catch((error) => {
-                console.error('Error during PUT request to update user:', error);
-                alert("action failed");
+                axios.put(`api/users/${userId}`, formData, {
+                    headers: {
+                        'Content-Type': 'multipart/form-data'
+                    }
+                })
+                .then(response => {
+                    console.log(response.data);
+                    toast.success("user updated");
+
+                    // Update 'Select existing Users' selection in migration
+                    try {
+                        fetchUsers();
+                    } catch (error) {}
+                    // -----------------------------------------------------
+                })
+                .catch((error) => {
+                    console.error('Error during PUT request to update user:', error);
+                    alert("action failed");
+                });
             });
         } else { // create (POST) -----------------------------------------------
 

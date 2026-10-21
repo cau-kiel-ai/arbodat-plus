@@ -120,19 +120,23 @@ function create_update_literature() {
         ); // -----------------------------------------
 
         if (literatureId) { // Update (PUT) --------------------------------------------
-            axios.put(`api/literature/${literatureId}`, payload)
-            .then(response => {
-                console.log(response.data);
-                toast.success("literature updated");
+            confirmUpdate("literature").then(confirmed => {
+                if (!confirmed) return;
 
-                // For migration: check literature row
-                if (siteId) {
-                    addGreenCheck();
-                }
-            })
-            .catch(error => {
-                console.error('Error during PUT request to update literature:', error);
-                alert("action failed");
+                axios.put(`api/literature/${literatureId}`, payload)
+                .then(response => {
+                    console.log(response.data);
+                    toast.success("literature updated");
+
+                    // For migration: check literature row
+                    if (siteId) {
+                        addGreenCheck();
+                    }
+                })
+                .catch(error => {
+                    console.error('Error during PUT request to update literature:', error);
+                    alert("action failed");
+                });
             });
         } else { // Create (POST) ------------------------------------------------------
             axios.post('api/literature', payload)

@@ -580,14 +580,18 @@ function create_update_site() {
             payload.id = siteId;
             payload.institutionList = window.siteInstitutionList;
 
-            axios.put(`api/sites/${siteId}`, payload)
-            .then(response => {
-                console.log(response.data);
-                toast.success("site updated");
-            })
-            .catch(error => {
-                console.error('Error during PUT request to update site:', error);
-                alert("action failed");
+            confirmUpdate("site").then(confirmed => {
+                if (!confirmed) return;
+
+                axios.put(`api/sites/${siteId}`, payload)
+                .then(response => {
+                    console.log(response.data);
+                    toast.success("site updated");
+                })
+                .catch(error => {
+                    console.error('Error during PUT request to update site:', error);
+                    alert("action failed");
+                });
             });
 
         } else { // Create (POST) -------------------------------------------------

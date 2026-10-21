@@ -27,14 +27,18 @@ function create_update_author() {
         if (authorId) { // Update (PUT) --------------------------------------------
             payload.id = authorId; // Add id to payload
 
-            axios.put(`api/authors/${authorId}`, payload)
-            .then(response => {
-                console.log(response.data);
-                toast.success("author updated");
-            })
-            .catch(error => {
-                console.error('Error during PUT request to update author:', error);
-                alert("action failed");
+            confirmUpdate("author").then(confirmed => {
+                if (!confirmed) return;
+
+                axios.put(`api/authors/${authorId}`, payload)
+                .then(response => {
+                    console.log(response.data);
+                    toast.success("author updated");
+                })
+                .catch(error => {
+                    console.error('Error during PUT request to update author:', error);
+                    alert("action failed");
+                });
             });
 
         } else { // Create (POST) --------------------------------------------------

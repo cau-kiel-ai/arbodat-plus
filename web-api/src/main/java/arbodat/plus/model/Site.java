@@ -47,7 +47,7 @@ public class Site implements Serializable {
     @JoinColumn(name = "coordinate")
     private Coordinate coordinate;
 
-    // Employees ----------------------------------------------------
+    // Team ----------------------------------------------------
     @ManyToMany
     @JoinTable(name = "site_directors",
             joinColumns = @JoinColumn(name = "site_id"),

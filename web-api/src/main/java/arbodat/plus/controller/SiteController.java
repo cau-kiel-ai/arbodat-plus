@@ -280,8 +280,8 @@ public class SiteController implements Serializable {
         return "site is updated with new naturalUnit";
     }
 
-    @PutMapping("/{siteId}/updateEmployees/{role}")
-    public String updateEmployees(@RequestBody  List<UUID> employeeIds,
+    @PutMapping("/{siteId}/updateUsers/{role}")
+    public String updateUsers(@RequestBody  List<UUID> employeeIds,
                                   @PathVariable UUID       siteId,
                                   @PathVariable String     role        ) {
 

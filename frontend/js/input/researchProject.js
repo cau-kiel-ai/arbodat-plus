@@ -41,14 +41,18 @@ function create_update_researchProject() {
         if (researchProjectId) { // Update (PUT) ---------------------------------------------
             payload.id = researchProjectId; // Add id to payload
             
-            axios.put(`api/research_projects/${researchProjectId}`, payload)
-            .then(response => {
-                console.log(response.data);
-                toast.success("research project updated");
-            })
-            .catch(error => {
-                console.error('Error during PUT request to update research project:', error);
-                alert("action failed");
+            confirmUpdate("research project").then(confirmed => {
+                if (!confirmed) return;
+
+                axios.put(`api/research_projects/${researchProjectId}`, payload)
+                .then(response => {
+                    console.log(response.data);
+                    toast.success("research project updated");
+                })
+                .catch(error => {
+                    console.error('Error during PUT request to update research project:', error);
+                    alert("action failed");
+                });
             });
 
         } else { // Create (POST) ------------------------------------------------------------
