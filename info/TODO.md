@@ -50,6 +50,19 @@ Each entry says what to do and why.
   the runner's Docker/Compose, and the Tauri job on the webkit packages), then switch the pins. Also
   re-check the pinned action versions then: the Docker actions are pinned by commit SHA and need a
   manual bump (`git ls-remote https://github.com/<action>.git refs/tags/<tag>` gives the SHA).
+- [ ] **Long-term maintenance (nobody can promise LTS for Actions/images).** Released images and
+  installers never expire; what decays is the ability to build a *new* release or ship a fix.
+  (1) `.github/dependabot.yml` for github-actions, docker, gradle, npm and cargo, plus auto-merge on
+  green CI and Dependabot security updates in the repo settings. (2) `docs/MAINTENANCE.md`: the support
+  horizons below, how to bump the SHA pins, and a local release path independent of GitHub Actions
+  (`buildx` multi-arch push, `pnpm tauri build` per OS). (3) **Before v5.0.0** (cheapest moment):
+  evaluate the baselines. Java 17 ends 2027-10-31 (21: 2029-12, 25: 2031-09). PostgreSQL 16 ends
+  2028-11-09 (17: 2029-11, 18: 2030-11); check the Docker image's data-directory layout (changed in
+  18, unverified) and Hibernate/JDBC compatibility; our import/update path is dump-based, so a major
+  jump is supported. Spring Boot 3.3 has been out of OSS support since 2025-06-30; each line gets only
+  about 13 months (3.5: 2026-06, 4.0: 2026-12, 4.1: 2027-07), so plan a yearly upgrade or commercial
+  support. Scheduled workflows are disabled after 60 days without repo activity (per GitHub docs), so
+  don't rely on a cron as the only early warning. Dates from endoflife.date, fetched 2026-10-21.
 
 ## Desktop app & release
 
