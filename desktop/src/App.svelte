@@ -1,9 +1,11 @@
 <script lang="ts">
   import { onMount } from "svelte";
-  import { getStatus } from "./lib/api";
+  import { getStatus, onCloseBlocked } from "./lib/api";
   import type { Status } from "./lib/bindings/Status";
   import DockerPanel from "./lib/components/DockerPanel.svelte";
+  import OperationPanel from "./lib/components/OperationPanel.svelte";
   import StackPanel from "./lib/components/StackPanel.svelte";
+  import { operation } from "./lib/operation.svelte";
 
   const POLL_MS = 15_000;
 
@@ -34,6 +36,12 @@
     return inFlight;
   }
 
+  /** After an operation: an automatic poll that is still running may predate the end of the operation, so wait for it and ask again. */
+  async function refreshAfterOperation() {
+    if (inFlight) await inFlight;
+    await refresh();
+  }
+
   async function checkAgain() {
     if (userChecking) return;
     userChecking = true;
@@ -44,8 +52,19 @@
     }
   }
 
+  /** Docker, Compose and the engine are all usable right now. */
+  const dockerReady = $derived(
+    status?.docker.cli.state === "found" &&
+      status.docker.compose.state === "found" &&
+      status.docker.engine.state === "running",
+  );
+
   // Poll while the window is visible; the next poll starts only after the last one ended.
   onMount(() => {
+    // The backend refuses to close the window while installing/starting/stopping; say why.
+    const unlisten = onCloseBlocked(() => {
+      operation.notice = "ArboDat+ is still working, so the window stays open. You can close it as soon as it has finished.";
+    });
     let timer: ReturnType<typeof setTimeout>;
     const loop = async () => {
       if (!document.hidden) await refresh();
@@ -55,6 +74,7 @@
     loop();
     document.addEventListener("visibilitychange", onVisible);
     return () => {
+      unlisten.then((stop) => stop());
       clearTimeout(timer);
       document.removeEventListener("visibilitychange", onVisible);
     };
@@ -67,13 +87,15 @@
     {#if status}<span class="muted">Version {status.appVersion}</span>{/if}
   </header>
 
+  <OperationPanel />
+
   {#if error}
     <section><div class="hint bad">Couldn't check the status: <pre>{error}</pre></div></section>
   {/if}
 
   {#if status}
     <DockerPanel docker={status.docker} />
-    <StackPanel stack={status.stack} appVersion={status.appVersion} />
+    <StackPanel stack={status.stack} appVersion={status.appVersion} {dockerReady} afterOperation={refreshAfterOperation} />
   {:else if !error}
     <section><p class="muted">Checking…</p></section>
   {/if}

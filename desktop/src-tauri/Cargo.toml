@@ -31,10 +31,14 @@ serde = { version = "1", features = ["derive"] }
 serde_json = "1"
 thiserror = "2"
 semver = "1"
-tokio = { version = "1.53", features = ["process", "time", "sync", "fs", "macros", "rt-multi-thread"] }
+# Operating-system randomness for the database password.
+getrandom = "0.4"
+tokio = { version = "1.53", features = ["process", "time", "sync", "fs", "io-util", "net", "macros", "rt-multi-thread"] }
 ts-rs = "12"
 
 [dev-dependencies]
+# The opener plugin matches URLs against the capability scope with this crate; we test our scope with it.
+glob = "0.3"
 tempfile = "3"
 yaml-rust2 = "0.13"
 

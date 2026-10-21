@@ -2,15 +2,30 @@
   "$schema": "../gen/schemas/desktop-schema.json",
   "identifier": "launcher",
   "description": "The launcher window: the only window allowed to call the app's commands.",
-  "windows": ["launcher"],
+  "windows": [
+    "launcher"
+  ],
   "permissions": [
     "core:default",
     "allow-get-status",
+    "allow-install",
+    "allow-start",
+    "allow-stop",
     {
       "identifier": "opener:allow-open-url",
       "allow": [
-        { "url": "https://docs.docker.com/*" },
-        { "url": "https://github.com/cau-kiel-ai/arbodat-plus/*" }
+        {
+          "url": "https://docs.docker.com/*"
+        },
+        {
+          "url": "https://github.com/cau-kiel-ai/arbodat-plus/*"
+        },
+        {
+          "url": "http://127.0.0.1:[0-9][0-9][0-9][0-9]/"
+        },
+        {
+          "url": "http://127.0.0.1:[0-9][0-9][0-9][0-9][0-9]/"
+        }
       ]
     }
   ]

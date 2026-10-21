@@ -5,8 +5,13 @@
 pub mod compose;
 pub mod discovery;
 pub mod docker;
+pub mod error;
+pub mod fsutil;
+pub mod lifecycle;
 pub mod model;
 pub mod parse;
+pub mod ports;
+pub mod probe;
 pub mod state;
 pub mod status;
 pub mod template;
@@ -19,7 +24,7 @@ use tokio::sync::Mutex;
 
 use discovery::Discovery;
 use docker::DockerCli;
-use model::{CliStatus, ComposeStatus, DockerStatus, EngineStatus, Status};
+use model::{CliStatus, ComposeStatus, DockerStatus, EngineStatus, Operation, Status};
 use parse::DockerErrorKind;
 
 /// NDJSON `compose ps` output and `up --wait` need at least this.
@@ -39,6 +44,8 @@ pub struct RuntimeManager {
     /// Discovered docker CLI with its resolved endpoint; rediscovered when it disappears or the
     /// engine becomes unreachable (the user may have installed Docker or switched context).
     docker: Mutex<Option<DockerCli>>,
+    /// The operation running right now (install/start/stop); see `lifecycle`.
+    op: std::sync::Mutex<Option<Operation>>,
 }
 
 impl RuntimeManager {
@@ -48,6 +55,7 @@ impl RuntimeManager {
             runtime_dir: data_dir.join("runtime"),
             docker_config_dir: data_dir.join("docker-config"),
             docker: Mutex::new(None),
+            op: std::sync::Mutex::new(None),
         })
     }
 
@@ -58,12 +66,14 @@ impl RuntimeManager {
     pub async fn status(&self) -> Status {
         let state = state::load(&self.runtime_dir).map_err(|e| e.to_string());
         let app_version = self.app_version.to_string();
+        let busy = self.current_operation();
 
         let cli = match self.docker_cli().await {
             Ok(cli) => cli,
             Err(cli_status) => {
                 let engine = EngineStatus::Unknown;
-                let stack = status::stack_status(&state, &engine, None, &self.app_version);
+                let stack =
+                    status::stack_status(&state, &engine, None, &self.app_version, None, busy);
                 let docker = DockerStatus {
                     cli: cli_status,
                     compose: ComposeStatus::Unknown,
@@ -86,7 +96,8 @@ impl RuntimeManager {
 
         let installed = matches!(state, Ok(Some(_)));
         let containers = match (&engine, &compose) {
-            _ if !installed => None,
+            // While we are changing the stack, its containers are a moving target: don't ask.
+            _ if !installed || busy.is_some() => None,
             (EngineStatus::Running { .. }, ComposeStatus::Found { .. }) => {
                 Some(compose::ps(&cli, &self.runtime_dir).await)
             }
@@ -95,7 +106,21 @@ impl RuntimeManager {
             ))),
             _ => None,
         };
-        let stack = status::stack_status(&state, &engine, containers.as_ref(), &self.app_version);
+        // An installed stack needs its database volume; ask once per refresh (cheap).
+        let volume_exists =
+            if installed && busy.is_none() && matches!(engine, EngineStatus::Running { .. }) {
+                cli.volume_exists(template::DATA_VOLUME).await.ok()
+            } else {
+                None
+            };
+        let stack = status::stack_status(
+            &state,
+            &engine,
+            containers.as_ref(),
+            &self.app_version,
+            volume_exists,
+            busy,
+        );
         let docker = DockerStatus {
             cli: CliStatus::Found {
                 path: cli.bin.display().to_string(),
@@ -113,7 +138,9 @@ impl RuntimeManager {
 
     async fn docker_cli(&self) -> Result<DockerCli, CliStatus> {
         let mut cached = self.docker.lock().await;
-        if let Some(cli) = cached.as_ref().filter(|cli| cli.bin.is_file()) {
+        // The binary and the app-owned settings must both still exist: a user who deletes the
+        // app's data folder while it runs would otherwise leave `docker compose` without plugins.
+        if let Some(cli) = cached.as_ref().filter(|cli| cli.is_usable()) {
             return Ok(cli.clone());
         }
         *cached = None;

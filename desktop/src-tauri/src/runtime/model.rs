@@ -96,8 +96,12 @@ impl EngineStatus {
 pub struct StackStatus {
     pub phase: StackPhase,
     pub installed_version: Option<String>,
+    /// Where the local installation answers (`http://127.0.0.1:<port>`); set once installed.
+    pub port: Option<u16>,
     /// The installed stack is older than this app (the app would offer to update it).
     pub update_available: bool,
+    /// What the app is doing to the stack right now (set together with `phase: busy`).
+    pub operation: Option<Operation>,
     /// One entry per expected service, in a fixed order; empty when not installed / unknown.
     pub services: Vec<ServiceStatus>,
     /// Why the phase is `unknown`, for the diagnostics view.
@@ -114,6 +118,9 @@ pub enum StackPhase {
     /// Installed against a different Docker engine than the current one (e.g. after a
     /// Docker Desktop reset or a context switch): the data volume isn't where it was.
     WrongEngine,
+    /// Installed, but the database volume isn't in this Docker any more (e.g. after a reset of
+    /// Docker Desktop). Starting is refused: it would create a new, empty database.
+    VolumeMissing,
     /// Installed by a newer version of this app: only open/stop are safe.
     NewerThanApp,
     Stopped,
@@ -121,6 +128,8 @@ pub enum StackPhase {
     Running,
     /// Some services up, some not (crashed, unhealthy, restarting, missing).
     Degraded,
+    /// The app is installing, starting or stopping the stack (see `operation`).
+    Busy,
     /// Couldn't be determined (corrupt state file, compose error); see `detail`.
     Unknown,
 }
@@ -132,6 +141,8 @@ pub struct ServiceStatus {
     pub name: String,
     pub state: ServiceState,
     pub health: Option<ServiceHealth>,
+    /// How a stopped container ended, **only if that indicates a problem**. A normal stop (exit
+    /// code 0, or 143 = SIGTERM, which a Java process reports when asked to stop) is `None`.
     pub exit_code: Option<i32>,
 }
 
@@ -158,4 +169,29 @@ pub enum ServiceHealth {
     Starting,
     Healthy,
     Unhealthy,
+}
+
+/// Something the app does to the stack that must not overlap with anything else.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, TS)]
+#[serde(rename_all = "camelCase")]
+#[ts(export)]
+pub enum Operation {
+    Install,
+    Start,
+    Stop,
+}
+
+/// Progress of a running operation, streamed to the launcher window.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, TS)]
+#[serde(tag = "kind", rename_all = "camelCase")]
+#[ts(export)]
+pub enum ProgressEvent {
+    /// A new step has begun (`index` counts from 1).
+    Step {
+        index: u32,
+        total: u32,
+        label: String,
+    },
+    /// One line of output from Docker.
+    Log { text: String },
 }

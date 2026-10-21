@@ -51,6 +51,8 @@ pub enum RunError {
 }
 
 const CONTEXT_TIMEOUT: Duration = Duration::from_secs(10);
+/// First installs download about 400 MB; slow connections need a long leash.
+const PULL_TIMEOUT: Duration = Duration::from_secs(45 * 60);
 
 impl DockerCli {
     /// Resolves the user's Docker endpoint and writes the app-owned docker config.
@@ -64,6 +66,11 @@ impl DockerCli {
             config_dir: config_dir.to_path_buf(),
             host,
         })
+    }
+
+    /// False once the docker binary or the app-owned config has been deleted from disk.
+    pub fn is_usable(&self) -> bool {
+        self.bin.is_file() && self.config_dir.join("config.json").is_file()
     }
 
     pub fn command<I, S>(&self, args: I) -> Command
@@ -136,6 +143,177 @@ impl DockerCli {
             .join(" ");
         execute(&mut cmd, &self.bin, &label, timeout).await
     }
+
+    /// Like `run_in`, but hands every line of output to `on_line` as it arrives (Docker prints its
+    /// progress there). The returned `Output` still has the full stdout and the tail of stderr, so
+    /// failures can be classified afterwards.
+    pub async fn run_streaming_in<I, S, F>(
+        &self,
+        dir: &Path,
+        args: I,
+        timeout: Duration,
+        mut on_line: F,
+    ) -> Result<Output, RunError>
+    where
+        I: IntoIterator<Item = S>,
+        S: AsRef<OsStr>,
+        F: FnMut(&str),
+    {
+        use tokio::io::{AsyncBufReadExt, BufReader};
+
+        let args: Vec<OsString> = args
+            .into_iter()
+            .map(|a| a.as_ref().to_os_string())
+            .collect();
+        let label = args
+            .iter()
+            .map(|a| a.to_string_lossy())
+            .collect::<Vec<_>>()
+            .join(" ");
+        let mut cmd = self.command(&args);
+        cmd.current_dir(dir);
+        let mut child = cmd.spawn().map_err(|source| RunError::Spawn {
+            program: self.bin.display().to_string(),
+            source,
+        })?;
+
+        let (tx, mut rx) = tokio::sync::mpsc::unbounded_channel::<(bool, String)>();
+        if let Some(out) = child.stdout.take() {
+            let tx = tx.clone();
+            tokio::spawn(async move {
+                let mut lines = BufReader::new(out).lines();
+                while let Ok(Some(line)) = lines.next_line().await {
+                    let _ = tx.send((false, line));
+                }
+            });
+        }
+        if let Some(err) = child.stderr.take() {
+            let tx = tx.clone();
+            tokio::spawn(async move {
+                let mut lines = BufReader::new(err).lines();
+                while let Ok(Some(line)) = lines.next_line().await {
+                    let _ = tx.send((true, line));
+                }
+            });
+        }
+        drop(tx); // the channel closes when both readers have hit end-of-file
+
+        let deadline = tokio::time::Instant::now() + timeout;
+        let timed_out = || RunError::Timeout {
+            args: label.clone(),
+            secs: timeout.as_secs(),
+        };
+        let (mut stdout, mut stderr) = (String::new(), String::new());
+        loop {
+            match tokio::time::timeout_at(deadline, rx.recv()).await {
+                Err(_) => {
+                    let _ = child.kill().await;
+                    return Err(timed_out());
+                }
+                Ok(None) => break,
+                Ok(Some((is_stderr, line))) => {
+                    on_line(&line);
+                    let sink = if is_stderr { &mut stderr } else { &mut stdout };
+                    sink.push_str(&line);
+                    sink.push('\n');
+                    keep_tail(sink, 64 * 1024);
+                }
+            }
+        }
+        let status = match tokio::time::timeout_at(deadline, child.wait()).await {
+            Ok(status) => status.map_err(|source| RunError::Spawn {
+                program: self.bin.display().to_string(),
+                source,
+            })?,
+            Err(_) => {
+                let _ = child.kill().await;
+                return Err(timed_out());
+            }
+        };
+        Ok(Output {
+            code: status.code(),
+            stdout,
+            stderr: stderr.trim().to_string(),
+        })
+    }
+
+    /// Downloads exactly one image (`docker pull`), streaming Docker's progress to `on_line`.
+    /// Deliberately not `docker compose pull`: that fetches *every* service's image, including
+    /// ones we already have (and, for development builds, ones that exist only locally).
+    pub async fn pull_image(
+        &self,
+        dir: &Path,
+        image: &str,
+        on_line: impl FnMut(&str),
+    ) -> Result<Output, RunError> {
+        self.run_streaming_in(dir, ["pull", image], PULL_TIMEOUT, on_line)
+            .await
+    }
+
+    /// Does the named volume exist? (`docker volume inspect`: exit 0, or "no such volume".)
+    pub async fn volume_exists(&self, name: &str) -> Result<bool, String> {
+        let out = self
+            .run(
+                ["volume", "inspect", "--format", "{{.Name}}", name],
+                CONTEXT_TIMEOUT,
+            )
+            .await
+            .map_err(|e| e.to_string())?;
+        if out.success() {
+            Ok(true)
+        } else if out.stderr.to_ascii_lowercase().contains("no such volume") {
+            Ok(false)
+        } else {
+            Err(out.stderr)
+        }
+    }
+
+    /// Creates a volume (a no-op if it already exists with the same name).
+    pub async fn volume_create(&self, name: &str, label: &str) -> Result<(), String> {
+        let out = self
+            .run(
+                ["volume", "create", "--label", label, name],
+                CONTEXT_TIMEOUT,
+            )
+            .await
+            .map_err(|e| e.to_string())?;
+        if out.success() {
+            Ok(())
+        } else {
+            Err(out.stderr)
+        }
+    }
+
+    /// Is this image already present locally? (Then there's nothing to download.)
+    pub async fn image_exists(&self, image: &str) -> Result<bool, String> {
+        let out = self
+            .run(
+                ["image", "inspect", "--format", "{{.Id}}", image],
+                CONTEXT_TIMEOUT,
+            )
+            .await
+            .map_err(|e| e.to_string())?;
+        if out.success() {
+            Ok(true)
+        } else if out.stderr.to_ascii_lowercase().contains("no such image") {
+            Ok(false)
+        } else {
+            Err(out.stderr)
+        }
+    }
+}
+
+/// Keeps only the last `max` bytes of `s` (cut at a character boundary), so a very chatty command
+/// can't grow our buffer without limit while its end, where errors are, stays available.
+fn keep_tail(s: &mut String, max: usize) {
+    if s.len() <= max {
+        return;
+    }
+    let mut cut = s.len() - max * 3 / 4;
+    while !s.is_char_boundary(cut) {
+        cut += 1;
+    }
+    s.drain(..cut);
 }
 
 fn base_command(bin: &Path, child_path: &OsStr) -> Command {
@@ -266,6 +444,25 @@ mod tests {
     use super::*;
 
     #[test]
+    fn a_cli_is_unusable_once_the_app_owned_config_is_deleted() {
+        let dir = tempfile::tempdir().unwrap();
+        let bin = dir.path().join("docker");
+        std::fs::write(&bin, "").unwrap();
+        let config_dir = dir.path().join("docker-config");
+        write_app_config(&config_dir, &json!({ "auths": {} })).unwrap();
+        let cli = DockerCli {
+            bin,
+            child_path: OsString::new(),
+            config_dir: config_dir.clone(),
+            host: None,
+        };
+        assert!(cli.is_usable());
+        // Without it `docker compose` has no plugin directories and reports "unknown flag".
+        std::fs::remove_dir_all(&config_dir).unwrap();
+        assert!(!cli.is_usable());
+    }
+
+    #[test]
     fn app_config_has_no_credential_store_but_keeps_plugins_and_proxies() {
         let user = tempfile::tempdir().unwrap();
         std::fs::create_dir(user.path().join("cli-plugins")).unwrap();
@@ -364,5 +561,69 @@ mod tests {
             .await
             .unwrap_err();
         assert!(matches!(err, RunError::Timeout { .. }), "{err}");
+    }
+
+    #[test]
+    fn keep_tail_trims_from_the_front_on_a_char_boundary() {
+        let mut s = "aé".repeat(100); // multi-byte characters
+        keep_tail(&mut s, 50);
+        assert!(s.len() <= 50 && !s.is_empty());
+        assert!(s.is_char_boundary(0));
+        let mut short = String::from("keep me");
+        keep_tail(&mut short, 50);
+        assert_eq!(short, "keep me");
+    }
+
+    #[cfg(unix)]
+    fn sh() -> DockerCli {
+        DockerCli {
+            bin: "/bin/sh".into(),
+            child_path: "/usr/bin:/bin".into(),
+            config_dir: "/tmp".into(),
+            host: None,
+        }
+    }
+
+    #[cfg(unix)]
+    #[tokio::test]
+    async fn streaming_delivers_lines_from_both_streams_in_order_and_keeps_the_output() {
+        let mut seen = Vec::new();
+        let out = sh()
+            .run_streaming_in(
+                Path::new("/tmp"),
+                [
+                    "-c",
+                    "echo one; echo two 1>&2; sleep 0.1; echo three; exit 3",
+                ],
+                Duration::from_secs(10),
+                |l| seen.push(l.to_string()),
+            )
+            .await
+            .unwrap();
+        assert_eq!(out.code, Some(3));
+        assert_eq!(out.stdout, "one\nthree\n");
+        assert_eq!(out.stderr, "two");
+        assert_eq!(seen.len(), 3);
+        assert_eq!(seen.last().unwrap(), "three");
+    }
+
+    #[cfg(unix)]
+    #[tokio::test]
+    async fn streaming_times_out_and_kills_the_command() {
+        let started = std::time::Instant::now();
+        let err = sh()
+            .run_streaming_in(
+                Path::new("/tmp"),
+                ["-c", "echo started; sleep 30"],
+                Duration::from_millis(500),
+                |_| {},
+            )
+            .await
+            .unwrap_err();
+        assert!(matches!(err, RunError::Timeout { .. }), "{err}");
+        assert!(
+            started.elapsed() < Duration::from_secs(5),
+            "must not wait for the sleep"
+        );
     }
 }

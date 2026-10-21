@@ -102,6 +102,8 @@ pub enum DockerErrorKind {
     PermissionDenied,
     ComposeMissing,
     PortInUse,
+    /// An `external` volume that compose expects doesn't exist in this Docker.
+    VolumeMissing,
     DiskFull,
     /// The credential helper couldn't be run. Note: when it isn't on PATH at all, docker
     /// silently pulls anonymously, so this then shows up as `RegistryUnauthorized` instead.
@@ -132,6 +134,8 @@ pub fn classify(stderr: &str) -> DockerErrorKind {
         || has("only one usage of each socket address")
     {
         DockerErrorKind::PortInUse
+    } else if (has("external volume") && has("not found")) || has("no such volume") {
+        DockerErrorKind::VolumeMissing
     } else if has("no space left on device") {
         DockerErrorKind::DiskFull
     } else if has("docker-credential-") || has("error getting credentials") {
@@ -148,6 +152,80 @@ pub fn classify(stderr: &str) -> DockerErrorKind {
     } else {
         DockerErrorKind::Other
     }
+}
+
+/// One running container, as far as the port check needs it.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct PsEntry {
+    pub name: String,
+    /// Host ports the container publishes (any address), sorted and de-duplicated.
+    pub host_ports: Vec<u16>,
+    /// The compose project it belongs to, if any.
+    pub project: Option<String>,
+}
+
+#[derive(Deserialize)]
+struct RawPs {
+    #[serde(rename = "Names", default)]
+    names: String,
+    #[serde(rename = "Ports", default)]
+    ports: String,
+    #[serde(rename = "Labels", default)]
+    labels: String,
+}
+
+/// `docker ps --format '{{json .}}'`: one JSON object per line.
+pub fn parse_docker_ps(stdout: &str) -> Result<Vec<PsEntry>, String> {
+    stdout
+        .lines()
+        .filter(|l| !l.trim().is_empty())
+        .map(|line| {
+            let raw: RawPs = serde_json::from_str(line)
+                .map_err(|e| format!("unexpected `docker ps` line ({e}): {line}"))?;
+            Ok(PsEntry {
+                name: raw.names,
+                host_ports: host_ports(&raw.ports),
+                project: compose_project(&raw.labels),
+            })
+        })
+        .collect()
+}
+
+/// The labels are one comma-separated string whose *values* may contain commas and even newlines
+/// (image descriptions), so don't split it: look for the one key we need. Project names can't
+/// contain commas.
+fn compose_project(labels: &str) -> Option<String> {
+    const KEY: &str = "com.docker.compose.project=";
+    labels
+        .split(',')
+        .find_map(|part| part.strip_prefix(KEY))
+        .map(str::to_string)
+}
+
+/// Host ports out of docker's `Ports` column, e.g.
+/// `0.0.0.0:18998->80/tcp, 127.0.0.1:18999->80/tcp, [::]:18998->80/tcp, 5432/tcp`.
+/// Entries without `->` are only *exposed*, not published, and are skipped; ranges are expanded.
+pub fn host_ports(ports: &str) -> Vec<u16> {
+    let mut out: Vec<u16> = Vec::new();
+    for entry in ports.split(", ") {
+        let Some((host, _container)) = entry.split_once("->") else {
+            continue;
+        };
+        let Some((_addr, host_ports)) = host.rsplit_once(':') else {
+            continue;
+        };
+        match host_ports.split_once('-') {
+            Some((a, b)) => {
+                if let (Ok(a), Ok(b)) = (a.parse::<u16>(), b.parse::<u16>()) {
+                    out.extend(a..=b.min(a.saturating_add(1023)));
+                }
+            }
+            None => out.extend(host_ports.parse::<u16>()),
+        }
+    }
+    out.sort_unstable();
+    out.dedup();
+    out
 }
 
 #[cfg(test)]
@@ -304,10 +382,71 @@ mod tests {
                 "Error response from daemon: Get \"https://registry-1.docker.io/v2/\": net/http: TLS handshake timeout",
                 Offline,
             ),
+            (
+                r#"external volume "arbodat-plus-database" not found"#,
+                VolumeMissing,
+            ),
+            (
+                "Error response from daemon: get arbodat-plus-database: no such volume",
+                VolumeMissing,
+            ),
             ("something entirely different", Other),
         ];
         for (stderr, expected) in cases {
             assert_eq!(classify(stderr), expected, "{stderr}");
         }
+    }
+
+    #[test]
+    fn host_ports_cover_every_docker_notation() {
+        assert_eq!(host_ports(""), Vec::<u16>::new());
+        assert_eq!(
+            host_ports("5432/tcp"),
+            Vec::<u16>::new(),
+            "exposed but not published"
+        );
+        assert_eq!(host_ports("127.0.0.1:8480->80/tcp"), [8480]);
+        assert_eq!(
+            host_ports("0.0.0.0:18998->80/tcp, 127.0.0.1:18999->80/tcp, [::]:18998->80/tcp"),
+            [18998, 18999],
+            "IPv4 + IPv6 duplicates collapse"
+        );
+        assert_eq!(
+            host_ports("0.0.0.0:9000-9002->80-82/tcp"),
+            [9000, 9001, 9002]
+        );
+        assert_eq!(host_ports("0.0.0.0:8080->8080/tcp, 5432/tcp"), [8080]);
+        assert_eq!(host_ports("0.0.0.0:53->53/udp"), [53]);
+    }
+
+    #[test]
+    fn docker_ps_real_output() {
+        let entries =
+            parse_docker_ps(include_str!("../../tests/fixtures/docker-ps.ndjson")).unwrap();
+        let by_name = |n: &str| entries.iter().find(|e| e.name == n).unwrap();
+        assert_eq!(by_name("arb-sample").host_ports, [18998, 18999]);
+        assert_eq!(by_name("arb-sample").project.as_deref(), Some("sampleproj"));
+        assert_eq!(by_name("arbodat-plus-frontend-1").host_ports, [8480]);
+        assert_eq!(
+            by_name("arbodat-plus-frontend-1").project.as_deref(),
+            Some("arbodat-plus")
+        );
+        assert_eq!(
+            by_name("arbodat-plus-database-1").host_ports,
+            Vec::<u16>::new()
+        );
+        assert_eq!(by_name("standalone").project, None);
+        assert_eq!(by_name("range-demo").host_ports, [9000, 9001, 9002]);
+        assert_eq!(
+            by_name("range-demo").project,
+            None,
+            "label values with commas must not confuse the project lookup"
+        );
+    }
+
+    #[test]
+    fn docker_ps_empty_and_garbage() {
+        assert_eq!(parse_docker_ps("").unwrap(), vec![]);
+        assert!(parse_docker_ps("not json").is_err());
     }
 }

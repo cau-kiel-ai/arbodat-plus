@@ -2,4 +2,9 @@
 import type { ServiceHealth } from "./ServiceHealth";
 import type { ServiceState } from "./ServiceState";
 
-export type ServiceStatus = { name: string, state: ServiceState, health: ServiceHealth | null, exitCode: number | null, };
+export type ServiceStatus = { name: string, state: ServiceState, health: ServiceHealth | null, 
+/**
+ * How a stopped container ended, **only if that indicates a problem**. A normal stop (exit
+ * code 0, or 143 = SIGTERM, which a Java process reports when asked to stop) is `None`.
+ */
+exitCode: number | null, };

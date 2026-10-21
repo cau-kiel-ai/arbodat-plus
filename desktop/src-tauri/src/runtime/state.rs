@@ -58,6 +58,12 @@ pub fn load(runtime_dir: &Path) -> Result<Option<InstallState>, StateError> {
         })
 }
 
+/// Writes `state.json` atomically (it either keeps the old content or has the complete new one).
+pub fn save(runtime_dir: &Path, state: &InstallState) -> std::io::Result<()> {
+    let json = serde_json::to_string_pretty(state).map_err(std::io::Error::other)? + "\n";
+    super::fsutil::write_atomic(&runtime_dir.join(STATE_FILE), json.as_bytes(), false)
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -86,5 +92,19 @@ mod tests {
         let dir = tempfile::tempdir().unwrap();
         std::fs::write(dir.path().join(STATE_FILE), "{ truncated").unwrap();
         assert!(matches!(load(dir.path()), Err(StateError::Corrupt { .. })));
+    }
+
+    #[test]
+    fn save_then_load_round_trips() {
+        let dir = tempfile::tempdir().unwrap();
+        let record = InstallState {
+            schema: SCHEMA,
+            installed_version: "5.0.0".into(),
+            port: 8480,
+            docker_host: Some("unix:///x.sock".into()),
+            engine_id: Some("abc".into()),
+        };
+        save(dir.path(), &record).unwrap();
+        assert_eq!(load(dir.path()).unwrap(), Some(record));
     }
 }

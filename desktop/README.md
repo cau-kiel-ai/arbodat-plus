@@ -26,6 +26,10 @@ cd src-tauri && cargo test
 - `cargo run --example status -- <dir>` prints the status JSON against your real Docker without
   the GUI, using `<dir>` as the app's data directory. Run it under
   `env -i HOME="$HOME" PATH=/usr/bin:/bin:/usr/sbin:/sbin` to see what a Finder-launched app sees.
+- `cargo run --example lifecycle -- <dir> install|start|stop|status` runs the real install/start/stop
+  against your Docker without the GUI (progress is printed). Careful: install creates the real data
+  volume `arbodat-plus-database` and uses port 8480, exactly like the app; use a scratch `<dir>`
+  and remove the volume afterwards.
 - Debug builds honour `ARBODAT_DATA_DIR=<dir>` to use a test data directory instead of the real
   one (release builds ignore it).
 - The app icon: `app-icon.png` (1024 px) is the source; regenerate everything with
@@ -61,3 +65,23 @@ All verified on macOS in the Phase 4a spike; see the plan for details.
   (`capabilities/launcher.json`, `build.rs`); the ArboDat+ web UI window will get none.
 - **`Info.plist`.** `NSAllowsArbitraryLoadsInWebContent`: without it, macOS silently blocks
   plain-http servers addressed by hostname (intranet servers in server mode).
+
+## What the app does to your Docker, and what it never does
+
+The launcher installs, starts and stops the stack with exactly three Compose commands: `pull`,
+`up -d --wait` and `stop`. It never runs `down`, `rm`, `-v` or `-y`
+(`runtime/compose.rs` has a test that fails if one appears).
+
+- **Install** checks, in this order: Docker is usable, nothing is installed yet, the port is free,
+  then writes `compose.yml`, `.env` and `state.json` and creates the data volume once. Images that are
+  already on the computer are not downloaded again.
+- **The database password** is generated once (32 random letters and digits from the operating
+  system) and kept in `.env`, readable by you only. PostgreSQL applies it only when the volume is
+  first created, so the app never replaces an existing `.env`.
+- **It refuses, and changes nothing,** when: the installation record is damaged; a database volume
+  exists but its `.env` doesn't (the password is unknown, so adopting it would lock you out); the port
+  is taken (the message names the Docker container or says it is another program); the installation
+  was made in a different Docker engine; or the database volume has disappeared (for example after a
+  Docker Desktop reset). In that last case it will not create a new, empty database on its own.
+- **An interrupted install resumes** with the same password instead of starting over.
+- The window can't be closed, and the app can't be quit, while one of these operations is running.

@@ -4,11 +4,18 @@
 use semver::Version;
 
 use super::model::{
-    EngineStatus, ServiceHealth, ServiceState, ServiceStatus, StackPhase, StackStatus,
+    EngineStatus, Operation, ServiceHealth, ServiceState, ServiceStatus, StackPhase, StackStatus,
 };
 use super::parse::ComposeContainer;
 use super::state::InstallState;
 use super::template::SERVICES;
+
+/// Exit codes that mean "stopped normally": 0, and 143 = 128 + SIGTERM, which is what a Java
+/// process (the web-api) or a shell reports when it was asked to stop, exactly what
+/// `docker compose stop` does. Anything else (e.g. 137 = SIGKILL, 1 = a crash) is a problem.
+fn is_normal_exit(code: i32) -> bool {
+    matches!(code, 0 | 143)
+}
 
 /// One entry per expected service, in `SERVICES` order; services without a container are `Missing`.
 pub fn service_statuses(containers: &[ComposeContainer]) -> Vec<ServiceStatus> {
@@ -41,7 +48,8 @@ pub fn service_statuses(containers: &[ComposeContainer]) -> Vec<ServiceStatus> {
                     };
                     let exit_code = matches!(state, ServiceState::Exited | ServiceState::Dead)
                         .then_some(c.exit_code)
-                        .flatten();
+                        .flatten()
+                        .filter(|code| !is_normal_exit(*code));
                     ServiceStatus {
                         name: name.into(),
                         state,
@@ -84,12 +92,31 @@ pub fn phase_of(services: &[ServiceStatus]) -> StackPhase {
     }
 }
 
-/// `containers` is `None` when they weren't (or couldn't be) queried.
+/// `containers` is `None` when they weren't (or couldn't be) queried; `busy` is the operation
+/// the app is running right now, if any (it overrides the phase).
 pub fn stack_status(
     state: &Result<Option<InstallState>, String>,
     engine: &EngineStatus,
     containers: Option<&Result<Vec<ComposeContainer>, String>>,
     app_version: &Version,
+    volume_exists: Option<bool>,
+    busy: Option<Operation>,
+) -> StackStatus {
+    let mut status = stack_status_inner(state, engine, containers, app_version, volume_exists);
+    if busy.is_some() {
+        status.phase = StackPhase::Busy;
+        status.operation = busy;
+        status.detail = None;
+    }
+    status
+}
+
+fn stack_status_inner(
+    state: &Result<Option<InstallState>, String>,
+    engine: &EngineStatus,
+    containers: Option<&Result<Vec<ComposeContainer>, String>>,
+    app_version: &Version,
+    volume_exists: Option<bool>,
 ) -> StackStatus {
     let state = match state {
         Err(e) => return unknown(None, e.clone()),
@@ -97,6 +124,8 @@ pub fn stack_status(
             return StackStatus {
                 phase: StackPhase::NotInstalled,
                 installed_version: None,
+                port: None,
+                operation: None,
                 update_available: false,
                 services: Vec::new(),
                 detail: None,
@@ -119,6 +148,8 @@ pub fn stack_status(
     let simple = |phase| StackStatus {
         phase,
         installed_version: installed_version.clone(),
+        port: Some(state.port),
+        operation: None,
         update_available,
         services: Vec::new(),
         detail: None,
@@ -133,6 +164,10 @@ pub fn stack_status(
         .is_some_and(|id| id != current_engine)
     {
         return simple(StackPhase::WrongEngine);
+    }
+    // After the engine check: in another engine the volume is naturally missing.
+    if volume_exists == Some(false) {
+        return simple(StackPhase::VolumeMissing);
     }
     let containers = match containers {
         None => {
@@ -153,6 +188,8 @@ pub fn stack_status(
     StackStatus {
         phase,
         installed_version,
+        port: Some(state.port),
+        operation: None,
         update_available,
         services,
         detail: None,
@@ -163,6 +200,8 @@ fn unknown(installed_version: Option<String>, detail: String) -> StackStatus {
     StackStatus {
         phase: StackPhase::Unknown,
         installed_version,
+        port: None,
+        operation: None,
         update_available: false,
         services: Vec::new(),
         detail: Some(detail),
@@ -173,6 +212,16 @@ fn unknown(installed_version: Option<String>, detail: String) -> StackStatus {
 mod tests {
     use super::*;
     use StackPhase as P;
+
+    /// The tests below predate the `busy` parameter: they run with nothing in progress.
+    fn stack_status(
+        state: &Result<Option<InstallState>, String>,
+        engine: &EngineStatus,
+        containers: Option<&Result<Vec<ComposeContainer>, String>>,
+        app_version: &Version,
+    ) -> StackStatus {
+        super::stack_status(state, engine, containers, app_version, Some(true), None)
+    }
 
     fn c(service: &str, state: &str, health: &str) -> ComposeContainer {
         ComposeContainer {
@@ -416,5 +465,147 @@ mod tests {
             &V5,
         );
         assert_eq!(bad_version.phase, P::Unknown);
+    }
+
+    #[test]
+    fn busy_overrides_the_phase_but_keeps_what_is_known() {
+        let all_up = Ok(vec![
+            c("database", "running", "healthy"),
+            c("web-api", "running", "healthy"),
+            c("frontend", "running", "healthy"),
+        ]);
+        let s = super::stack_status(
+            &installed("5.0.0", None),
+            &running_engine("e1"),
+            Some(&all_up),
+            &V5,
+            Some(true),
+            Some(Operation::Stop),
+        );
+        assert_eq!((s.phase, s.operation), (P::Busy, Some(Operation::Stop)));
+        assert_eq!(s.services.len(), 3);
+        assert_eq!(s.installed_version.as_deref(), Some("5.0.0"));
+        assert_eq!(s.port, Some(8480));
+    }
+
+    #[test]
+    fn installing_is_busy_even_though_nothing_is_installed_yet() {
+        let s = super::stack_status(
+            &Ok(None),
+            &running_engine("e1"),
+            None,
+            &V5,
+            Some(true),
+            Some(Operation::Install),
+        );
+        assert_eq!(
+            (s.phase, s.operation, s.port),
+            (P::Busy, Some(Operation::Install), None)
+        );
+    }
+
+    #[test]
+    fn busy_hides_stale_error_details() {
+        let s = super::stack_status(
+            &installed("5.0.0", None),
+            &running_engine("e1"),
+            Some(&Err("compose.yml: no such file".into())),
+            &V5,
+            Some(true),
+            Some(Operation::Install),
+        );
+        assert_eq!((s.phase, s.detail), (P::Busy, None));
+    }
+
+    #[test]
+    fn not_busy_reports_the_port_of_an_installation() {
+        let s = stack_status(
+            &installed("5.0.0", None),
+            &running_engine("e1"),
+            Some(&Ok(vec![])),
+            &V5,
+        );
+        assert_eq!(
+            (s.phase, s.port, s.operation),
+            (P::Stopped, Some(8480), None)
+        );
+        let n = stack_status(&Ok(None), &running_engine("e1"), None, &V5);
+        assert_eq!(n.port, None);
+    }
+
+    #[test]
+    fn a_vanished_volume_is_reported_instead_of_stopped() {
+        let none = Ok(vec![]);
+        let s = super::stack_status(
+            &installed("5.0.0", Some("e1")),
+            &running_engine("e1"),
+            Some(&none),
+            &V5,
+            Some(false),
+            None,
+        );
+        assert_eq!(s.phase, P::VolumeMissing);
+        assert_eq!(s.port, Some(8480));
+    }
+
+    #[test]
+    fn an_unknown_volume_state_does_not_invent_a_problem() {
+        let none = Ok(vec![]);
+        let s = super::stack_status(
+            &installed("5.0.0", Some("e1")),
+            &running_engine("e1"),
+            Some(&none),
+            &V5,
+            None,
+            None,
+        );
+        assert_eq!(s.phase, P::Stopped);
+    }
+
+    #[test]
+    fn another_engine_wins_over_a_missing_volume() {
+        let none = Ok(vec![]);
+        let s = super::stack_status(
+            &installed("5.0.0", Some("e1")),
+            &running_engine("e2"),
+            Some(&none),
+            &V5,
+            Some(false),
+            None,
+        );
+        assert_eq!(s.phase, P::WrongEngine);
+    }
+
+    #[test]
+    fn nothing_installed_means_not_installed_whatever_the_volume() {
+        let s = super::stack_status(
+            &Ok(None),
+            &running_engine("e1"),
+            None,
+            &V5,
+            Some(false),
+            None,
+        );
+        assert_eq!(s.phase, P::NotInstalled);
+    }
+
+    #[test]
+    fn a_normal_stop_is_not_reported_as_a_failure() {
+        // The web-api (a JVM) exits with 143 when `docker compose stop` sends SIGTERM: that is
+        // a clean shutdown (its shutdown hooks ran), not an error.
+        let with_code = |code| {
+            let mut container = c("web-api", "exited", "");
+            container.exit_code = Some(code);
+            service_statuses(&[container])[1].exit_code
+        };
+        assert_eq!(with_code(0), None);
+        assert_eq!(with_code(143), None);
+        assert_eq!(
+            with_code(137),
+            Some(137),
+            "SIGKILL means it did not stop in time"
+        );
+        assert_eq!(with_code(1), Some(1));
+        assert_eq!(with_code(139), Some(139), "SIGSEGV");
     }
 }

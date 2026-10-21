@@ -17,6 +17,41 @@ pub const COMPOSE_YML: &str = include_str!(concat!(
     "/../../deploy/compose.yml"
 ));
 
+/// Compose reads this file from the project directory automatically.
+pub const ENV_FILE: &str = ".env";
+/// Where ArboDat+ is reachable on this computer unless the user picks another port.
+pub const DEFAULT_PORT: u16 = 8480;
+/// Only this computer can reach a local installation.
+pub const BIND: &str = "127.0.0.1";
+pub const PASSWORD_LEN: usize = 32;
+
+/// The `.env` of a local installation. The version is the stack (image) version.
+pub fn render_env(version: &str, password: &str, port: u16) -> String {
+    format!(
+        "# Written by the ArboDat+ desktop app. Don't change DATABASE_PASSWORD: PostgreSQL only applies it\n\
+         # when the database volume is first created, so a different value locks the app out of its data.\n\
+         ARBODAT_VERSION={version}\n\
+         DATABASE_PASSWORD={password}\n\
+         ARBODAT_PORT={port}\n\
+         ARBODAT_BIND={BIND}\n"
+    )
+}
+
+/// `KEY=VALUE` lines; comments, blank lines and anything else are ignored. Values are taken
+/// literally (no quotes or interpolation: we only ever write plain values ourselves).
+pub fn parse_env(text: &str) -> std::collections::HashMap<String, String> {
+    text.lines()
+        .filter_map(|line| {
+            let line = line.trim();
+            if line.starts_with('#') {
+                return None;
+            }
+            let (key, value) = line.split_once('=')?;
+            Some((key.trim().to_string(), value.trim().to_string()))
+        })
+        .collect()
+}
+
 #[cfg(test)]
 mod tests {
     //! These guard the data-safety invariants of the stack definition: a careless edit to
@@ -104,5 +139,62 @@ mod tests {
             let image = d["services"][service]["image"].as_str().unwrap();
             assert!(image.contains("${ARBODAT_VERSION"), "{service}: {image}");
         }
+    }
+
+    #[test]
+    fn env_round_trips() {
+        let env = parse_env(&render_env("5.0.0", "s3cretPASS", 8480));
+        assert_eq!(env["ARBODAT_VERSION"], "5.0.0");
+        assert_eq!(env["DATABASE_PASSWORD"], "s3cretPASS");
+        assert_eq!(env["ARBODAT_PORT"], "8480");
+        assert_eq!(env["ARBODAT_BIND"], "127.0.0.1");
+        assert_eq!(env.len(), 4, "comments must not become entries");
+    }
+
+    #[test]
+    fn parse_env_ignores_comments_blank_and_malformed_lines() {
+        let env = parse_env("# c\n\nA=1\n  B = two \nnot a pair\n#C=3\nD=\n");
+        assert_eq!(env.len(), 3);
+        assert_eq!(
+            (env["A"].as_str(), env["B"].as_str(), env["D"].as_str()),
+            ("1", "two", "")
+        );
+    }
+
+    #[test]
+    fn rendered_env_satisfies_every_required_variable_in_compose_yml() {
+        // `${NAME:?message}` means compose refuses to start without NAME.
+        let env = parse_env(&render_env("5.0.0", "pw", DEFAULT_PORT));
+        let mut required = Vec::new();
+        let mut rest = COMPOSE_YML;
+        while let Some(start) = rest.find("${") {
+            let inner = &rest[start + 2..];
+            let end = inner.find('}').expect("unterminated ${");
+            let expr = &inner[..end];
+            if let Some((name, _)) = expr.split_once(":?") {
+                required.push(name.to_string());
+            }
+            rest = &inner[end..];
+        }
+        assert!(
+            required.contains(&"DATABASE_PASSWORD".to_string()),
+            "{required:?}"
+        );
+        assert!(
+            required.contains(&"ARBODAT_VERSION".to_string()),
+            "{required:?}"
+        );
+        for name in required {
+            assert!(
+                env.contains_key(&name),
+                "the app's .env doesn't define {name}, which compose.yml requires"
+            );
+        }
+    }
+
+    #[test]
+    fn default_port_and_bind_match_the_compose_defaults() {
+        assert!(COMPOSE_YML.contains(&format!("${{ARBODAT_BIND:-{BIND}}}")));
+        assert!(COMPOSE_YML.contains(&format!("${{ARBODAT_PORT:-{DEFAULT_PORT}}}")));
     }
 }

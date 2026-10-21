@@ -1,7 +1,7 @@
 mod commands;
 pub mod runtime;
 
-use tauri::Manager;
+use tauri::{Emitter, Manager};
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
@@ -34,7 +34,39 @@ pub fn run() {
             app.manage(runtime::RuntimeManager::new(&version, &data_dir)?);
             Ok(())
         })
-        .invoke_handler(tauri::generate_handler![commands::get_status])
-        .run(tauri::generate_context!())
-        .expect("error while running ArboDat+");
+        .invoke_handler(tauri::generate_handler![
+            commands::get_status,
+            commands::install,
+            commands::start,
+            commands::stop
+        ])
+        // Closing the window (or quitting) while the stack is being installed, started or stopped
+        // would kill the Docker command halfway: refuse, and tell the window why.
+        .on_window_event(|window, event| {
+            if let tauri::WindowEvent::CloseRequested { api, .. } = event
+                && window
+                    .app_handle()
+                    .state::<runtime::RuntimeManager>()
+                    .current_operation()
+                    .is_some()
+            {
+                api.prevent_close();
+                let _ = window.emit("close-blocked", ());
+            }
+        })
+        .build(tauri::generate_context!())
+        .expect("error while building ArboDat+")
+        .run(|app, event| {
+            // `code` is None when the user asked to quit (⌘Q, last window closed).
+            if let tauri::RunEvent::ExitRequested {
+                api, code: None, ..
+            } = event
+                && app
+                    .state::<runtime::RuntimeManager>()
+                    .current_operation()
+                    .is_some()
+            {
+                api.prevent_exit();
+            }
+        });
 }
