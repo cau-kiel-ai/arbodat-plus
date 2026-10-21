@@ -29,6 +29,7 @@ tauri-plugin-opener = "2.7.2"
 log = "0.4"
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"
+base64 = "0.22"
 thiserror = "2"
 semver = "1"
 # Operating-system randomness for the database password.

@@ -14,11 +14,12 @@
     "windows": [
       {
         "label": "launcher",
-        "title": "ArboDat+",
+        "title": "ArboDat+ Control Center",
         "width": 760,
         "height": 640,
         "minWidth": 560,
-        "minHeight": 480
+        "minHeight": 480,
+        "visible": false
       }
     ],
     "security": {

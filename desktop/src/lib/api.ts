@@ -25,6 +25,9 @@ export function asAppError(e: unknown): AppError {
   return { code: "dockerFailed", message: "Something unexpected went wrong.", detail: String(e) };
 }
 
+/** Opens the ArboDat+ window (rejects with an `AppError` if ArboDat+ doesn't answer). */
+export const openArbodat = () => invoke<void>("open_arbodat");
+
 /** The window can't be closed while an operation runs; the backend then sends this. */
 export const onCloseBlocked = (callback: () => void) => listen("close-blocked", callback);
 

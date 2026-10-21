@@ -62,7 +62,22 @@ All verified on macOS in the Phase 4a spike; see the plan for details.
   data volume is `external` in compose.yml, so compose can never create, recreate or delete it.
   Tests in `runtime/template.rs` fail the build if compose.yml breaks these invariants.
 - **Permissions.** Only the launcher window may call the app's commands
-  (`capabilities/launcher.json`, `build.rs`); the ArboDat+ web UI window will get none.
+  (`capabilities/launcher.json`, `build.rs`); the ArboDat+ window gets none, so a web page loaded
+  there (later possibly someone else's server) cannot reach the app. A test fails if a second
+  capability file or a window other than the launcher appears.
+- **The ArboDat+ window** (`src-tauri/src/windows/`). Links within ArboDat+ stay in the window;
+  every other web or mail link opens in the system's browser or mail program; `file:`,
+  `javascript:` and other schemes are dropped. Downloads go to the Downloads folder under a name
+  that never overwrites a file (`export (1).csv`), and a message in the page says where. Three
+  gaps of the macOS webview are patched by `windows/scripts/shims.js`: left-clicks on
+  `target="_blank"` links, `alert()` (a silent no-op there) and the download message.
+- **Windows and quitting.** Opening ArboDat+ hides the launcher; the menu's *Window → Control
+  Center* brings it back. Closing the ArboDat+ window quits the app, the stack keeps running.
+  Starting the app while ArboDat+ is running goes straight to the ArboDat+ window. If the stack is
+  stopped from the Control Center while that window is open, the window shows "ArboDat+ is stopped"
+  (`windows/stopped.html`, in the layout of the web app's license page) and returns to ArboDat+
+  when the stack is started again. Nothing can be
+  closed or quit while the stack is being installed, started or stopped.
 - **`Info.plist`.** `NSAllowsArbitraryLoadsInWebContent`: without it, macOS silently blocks
   plain-http servers addressed by hostname (intranet servers in server mode).
 

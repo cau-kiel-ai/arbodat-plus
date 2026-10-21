@@ -3,7 +3,7 @@
   import type { ServiceStatus } from "../bindings/ServiceStatus";
   import type { StackPhase } from "../bindings/StackPhase";
   import type { StackStatus } from "../bindings/StackStatus";
-  import { openLink } from "../api";
+  import { asAppError, openArbodat, openLink } from "../api";
   import { operation } from "../operation.svelte";
 
   let {
@@ -61,6 +61,14 @@
   const url = $derived(stack.port ? `http://127.0.0.1:${stack.port}/` : null);
 
   const run = (op: Operation) => operation.run(op, afterOperation);
+
+  async function openWindow() {
+    try {
+      await openArbodat();
+    } catch (e) {
+      operation.notice = asAppError(e).message;
+    }
+  }
 
   async function openInBrowser() {
     if (!url) return;
@@ -126,7 +134,8 @@
       <button class="primary" disabled={busy || !dockerReady} onclick={() => run("start")}>Start</button>
     {/if}
     {#if stack.phase === "running" && url}
-      <button class="primary" onclick={openInBrowser}>Open ArboDat+ in the browser</button>
+      <button class="primary" onclick={openWindow}>Open ArboDat+</button>
+      <button onclick={openInBrowser}>Open in Browser</button>
     {/if}
     {#if canStop}
       <button disabled={busy || !dockerReady} onclick={() => run("stop")}>Stop</button>

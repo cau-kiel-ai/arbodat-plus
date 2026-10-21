@@ -11,6 +11,7 @@
     "allow-install",
     "allow-start",
     "allow-stop",
+    "allow-open-arbodat",
     {
       "identifier": "opener:allow-open-url",
       "allow": [

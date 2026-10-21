@@ -1,10 +1,12 @@
 //! Commands callable from the launcher window (see capabilities/launcher.json and build.rs).
 
 use tauri::ipc::Channel;
+use tauri::{AppHandle, Url};
 
-use crate::runtime::RuntimeManager;
-use crate::runtime::error::AppError;
+use crate::runtime::error::{AppError, ErrorCode};
 use crate::runtime::model::{ProgressEvent, Status};
+use crate::runtime::{RuntimeManager, probe, state};
+use crate::windows;
 
 /// Never fails: problems (no Docker, engine down, damaged state...) are part of the `Status`.
 /// (The `Result` is only there because async commands that borrow state must return one.)
@@ -16,28 +18,91 @@ pub async fn get_status(runtime: tauri::State<'_, RuntimeManager>) -> Result<Sta
 /// Installs ArboDat+ on this computer and starts it. Progress streams through `on_event`.
 #[tauri::command]
 pub async fn install(
+    app: AppHandle,
     runtime: tauri::State<'_, RuntimeManager>,
     on_event: Channel<ProgressEvent>,
 ) -> Result<(), AppError> {
-    runtime.install(&|event| drop(on_event.send(event))).await
+    runtime.install(&|event| drop(on_event.send(event))).await?;
+    windows::arbodat::resume(&app);
+    Ok(())
 }
 
 /// Starts the installed stack (downloading anything missing first).
 #[tauri::command]
 pub async fn start(
+    app: AppHandle,
     runtime: tauri::State<'_, RuntimeManager>,
     on_event: Channel<ProgressEvent>,
 ) -> Result<(), AppError> {
-    runtime.start(&|event| drop(on_event.send(event))).await
+    runtime.start(&|event| drop(on_event.send(event))).await?;
+    windows::arbodat::resume(&app);
+    Ok(())
 }
 
-/// Stops the stack. Containers, network and data stay.
+/// Stops the stack. Containers, network and data stay. An open ArboDat+ window says so.
 #[tauri::command]
 pub async fn stop(
+    app: AppHandle,
     runtime: tauri::State<'_, RuntimeManager>,
     on_event: Channel<ProgressEvent>,
 ) -> Result<(), AppError> {
-    runtime.stop(&|event| drop(on_event.send(event))).await
+    runtime.stop(&|event| drop(on_event.send(event))).await?;
+    windows::arbodat::show_stopped(&app);
+    Ok(())
+}
+
+/// Opens the ArboDat+ window on the local installation (or brings it forward). The launcher
+/// can't choose the address: it always comes from the installation record.
+#[tauri::command]
+pub async fn open_arbodat(
+    app: AppHandle,
+    runtime: tauri::State<'_, RuntimeManager>,
+) -> Result<(), AppError> {
+    let port = match state::load(runtime.runtime_dir()) {
+        Ok(Some(installed)) => installed.port,
+        Ok(None) => {
+            return Err(AppError::new(
+                ErrorCode::NotInstalled,
+                "ArboDat+ isn't installed on this computer yet.",
+            ));
+        }
+        Err(e) => {
+            return Err(AppError::new(
+                ErrorCode::StateDamaged,
+                "ArboDat+'s installation record can't be read.",
+            )
+            .with_detail(e.to_string()));
+        }
+    };
+    // An empty window with a connection error is no answer to "Open".
+    if probe::status_of(port, "/healthz").await != Ok(200) {
+        return Err(AppError::new(
+            ErrorCode::NotReady,
+            "ArboDat+ isn't answering. Start it first, or wait a moment if it is still starting.",
+        ));
+    }
+    let url = Url::parse(&format!("http://127.0.0.1:{port}/")).expect("a valid local address");
+    // Creating windows from a worker thread is unreliable on some platforms.
+    let handle = app.clone();
+    let (done, result) = tokio::sync::oneshot::channel();
+    app.run_on_main_thread(move || {
+        let _ = done.send(windows::arbodat::open(&handle, url));
+    })
+    .map_err(|e| {
+        AppError::new(ErrorCode::Io, "The ArboDat+ window couldn't be opened.")
+            .with_detail(e.to_string())
+    })?;
+    match result.await {
+        Ok(Ok(())) => Ok(()),
+        Ok(Err(e)) => Err(
+            AppError::new(ErrorCode::Io, "The ArboDat+ window couldn't be opened.")
+                .with_detail(e.to_string()),
+        ),
+        Err(_) => Err(AppError::new(
+            ErrorCode::Io,
+            "The ArboDat+ window couldn't be opened.",
+        )),
+    }
 }
 
 /// Tests of `capabilities/launcher.json`: a command or URL missing there doesn't fail loudly, it just
@@ -49,7 +114,7 @@ mod capability_tests {
     const LAUNCHER: &str = include_str!("../capabilities/launcher.json");
     const BUILD_RS: &str = include_str!("../build.rs");
     /// Every `#[tauri::command]` of this file.
-    const COMMANDS: [&str; 4] = ["get_status", "install", "start", "stop"];
+    const COMMANDS: [&str; 5] = ["get_status", "install", "start", "stop", "open_arbodat"];
 
     fn launcher() -> Value {
         serde_json::from_str(LAUNCHER).expect("launcher.json is valid JSON")
@@ -88,6 +153,41 @@ mod capability_tests {
             source.matches("#[tauri::command]").count(),
             COMMANDS.len(),
             "a command was added without updating COMMANDS"
+        );
+    }
+
+    /// The ArboDat+ window loads a web page (and in server mode, someone else's server): it must
+    /// not be able to call anything of ours. Capabilities are matched by window label, so the only
+    /// capability file there is must name the launcher alone, with no wildcard and no `remote`
+    /// access (which is what would let a web page use the commands).
+    #[test]
+    fn the_arbodat_window_is_granted_nothing() {
+        let dir = std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("capabilities");
+        let files: Vec<_> = std::fs::read_dir(&dir)
+            .unwrap()
+            .map(|e| e.unwrap().file_name().to_string_lossy().into_owned())
+            .collect();
+        assert_eq!(
+            files,
+            ["launcher.json"],
+            "a new capability file needs a review"
+        );
+        let capability = launcher();
+        assert!(
+            capability.get("remote").is_none(),
+            "remote origins must have no access"
+        );
+        assert!(capability.get("webviews").is_none());
+        let windows: Vec<&str> = capability["windows"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .filter_map(Value::as_str)
+            .collect();
+        assert_eq!(
+            windows,
+            ["launcher"],
+            "only the launcher window, no wildcard"
         );
     }
 
