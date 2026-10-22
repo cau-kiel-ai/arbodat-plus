@@ -470,6 +470,7 @@ function submitResult() {
             // Reset select2 dropown 
             $('#cf').val(null).trigger('change');
             $('#taxCode').val(null).trigger('change');
+            $('#result_datings').val(null).trigger('change');
             $('#restType').val(null).trigger('change'); 
             // ---------------------------------------------------------
 

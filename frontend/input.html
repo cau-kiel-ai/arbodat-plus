@@ -2490,34 +2490,6 @@
                     </div>
                   </div>
 
-                  <!-- reference absolute datings -->
-                  <div class="row">
-                    <div class="col-25">
-                      <label
-                        for="result_datings"
-                        data-tooltip="Multiple subsamples can be selected from the list of,
-                        previously entered in the DATING section."
-                      >
-                        related datings:
-                      </label>
-                    </div>
-                    <div class="col-75">
-                      <select id="result_datings" multiple style="width: 100%"></select>
-                      <!-- Select2 Multi-select boxes (pillbox) -->
-                      <script>
-                        $(document).ready(function() {
-                            $('#result_datings').select2({
-                              placeholder: '',
-                              allowClear: true,
-                              templateSelection: function(item) {
-                                return (item.text || '').trim();
-                              }
-                            });
-                        });
-                      </script>
-                    </div>
-                  </div>
-
                 </fieldset>
 
                 <br>
@@ -2742,6 +2714,34 @@
                     </div>
                     <div class="col-75">
                       <textarea id="remarks_taxonomy" rows="3"></textarea>
+                    </div>
+                  </div>
+
+                  <!-- reference absolute datings -->
+                  <div class="row">
+                    <div class="col-25">
+                      <label
+                        for="result_datings"
+                        data-tooltip="Multiple subsamples can be selected from the list of,
+                        previously entered in the DATING section."
+                      >
+                        related datings:
+                      </label>
+                    </div>
+                    <div class="col-75">
+                      <select id="result_datings" multiple style="width: 100%"></select>
+                      <!-- Select2 Multi-select boxes (pillbox) -->
+                      <script>
+                        $(document).ready(function() {
+                            $('#result_datings').select2({
+                              placeholder: '',
+                              allowClear: true,
+                              templateSelection: function(item) {
+                                return (item.text || '').trim();
+                              }
+                            });
+                        });
+                      </script>
                     </div>
                   </div>
 
