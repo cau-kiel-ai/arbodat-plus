@@ -126,102 +126,13 @@
     
     <header class="header">
       <h1> <img src="img/logo_arbodat_plus.png" alt="logo_arbodat_plus"> </h1>
-    </header> 
+    </header>
 
     <!-- Accordion -->
     <div class="container-md" style="margin-top: 120px;">
       <div class="accordion" id="accordionPanels">
-        
-        <!-- Research Project -->
-        <div class="accordion-item">
 
-          <h2 class="accordion-header">
-            <button class="accordion-button" type="button" data-bs-toggle="collapse" data-bs-target="#panelsStayOpen-collapseOne" aria-expanded="false" aria-controls="panelsStayOpen-collapseOne">
-              RESEARCH PROJECT
-            </button>
-          </h2>
-
-          <div id="panelsStayOpen-collapseOne" class="accordion-collapse collapse">
-            <div class="accordion-body">
-
-              <form id="researchProjectForm">
-                <fieldset>
-
-                  <input type="hidden" id="researchProjectId">
-
-                  <div class="row">
-                    <div class="col-25">
-                      <label for="projectName" title="Identification of the Project. Select from the list or enter a new project." >project name: *</label>
-                    </div>
-                    <div class="col-75">
-                      <input type="text" placeholder="" id="projectName" required>
-                      <span class="clear-icon" id="clearIcon" style="position: absolute; right: 25px; top: 50%; transform: translateY(-50%); cursor: pointer; color: black; font-size: 16px;">&#10005;</span>
-                      <ul id="projectDropdown" class="dropdown hidden"></ul>
-                    </div>
-                  </div>
-
-                  <div class="row">
-                    <div class="col-25">
-                      <label  for="funder" data-tooltip="Who funded the project? e.g. German Research Foundation." >funder name:</label>
-                    </div>
-                    <div class="col-75">
-                      <input type="text" id="funder">
-                    </div>
-                  </div>
-
-                  <div class="row">
-                    <div class="col-25">
-                      <label for="authorisationNumber" data-tooltip="Grant or funding reference number.">authorisation number:</label>
-                    </div>
-                    <div class="col-75">
-                      <input type="text" id="authorisationNumber">
-                    </div>
-                  </div>
-
-                  <div class="row">
-                    <div class="col-25">
-                      <label for="licenseDropdown" data-tooltip="Please choose from the list.">license: </label>
-                    </div>
-                    <div class="col-75">
-                      <select id="licenseDropdown" style="width: 100%;">
-                        <option value=""></option>
-                      </select>
-                      <!-- Select2 dropdown -->
-                      <script>
-                        $(document).ready(function() {
-                            $('#licenseDropdown').select2({
-                              placeholder: '',
-                              allowClear: true
-                            });
-
-                            // remove arrow
-                            $('#licenseDropdown')
-                              .next('.select2-container')
-                              .find('.select2-selection__arrow')
-                              .remove();
-                        });
-                      </script>
-                    </div>
-                  </div>
-
-                  <div class="row">
-                    <div class="col-25">
-                      <label for="exportFileName">export file name:</label>
-                    </div>
-                    <div class="col-75">
-                      <input type="text" id="exportFileName">
-                    </div>
-                  </div>
-
-                  <button type="button" id="custom_rp_button" onclick="create_update_researchProject()" class="MySubmitButton" style="width: unset; padding-left: 10px; padding-right: 10px;">create</button>
-
-                </fieldset>
-              </form>
-            </div>
-          </div>
-        </div>
-
-        <!-- User and Institution -->
+        <!-- Institution and Team -->
         <div class="accordion-item">
 
           <h2 class="accordion-header">
@@ -518,6 +429,95 @@
 
                   <button type="button" id="literatureSubmitButton" class="MySubmitButton" onclick="create_update_literature()" style="width: unset; padding-left: 10px; padding-right: 10px;">create</button> 
                   
+                </fieldset>
+              </form>
+            </div>
+          </div>
+        </div>
+
+        <!-- Research Project -->
+        <div class="accordion-item" style="margin-top: 52px; border-top: var(--bs-accordion-border-width) solid var(--bs-accordion-border-color);">
+
+          <h2 class="accordion-header">
+            <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#panelsStayOpen-collapseOne" aria-expanded="false" aria-controls="panelsStayOpen-collapseOne">
+              RESEARCH PROJECT
+            </button>
+          </h2>
+
+          <div id="panelsStayOpen-collapseOne" class="accordion-collapse collapse">
+            <div class="accordion-body">
+
+              <form id="researchProjectForm">
+                <fieldset>
+
+                  <input type="hidden" id="researchProjectId">
+
+                  <div class="row">
+                    <div class="col-25">
+                      <label for="projectName" title="Identification of the Project. Select from the list or enter a new project." >project name: *</label>
+                    </div>
+                    <div class="col-75">
+                      <input type="text" placeholder="" id="projectName" required>
+                      <span class="clear-icon" id="clearIcon" style="position: absolute; right: 25px; top: 50%; transform: translateY(-50%); cursor: pointer; color: black; font-size: 16px;">&#10005;</span>
+                      <ul id="projectDropdown" class="dropdown hidden"></ul>
+                    </div>
+                  </div>
+
+                  <div class="row">
+                    <div class="col-25">
+                      <label  for="funder" data-tooltip="Who funded the project? e.g. German Research Foundation." >funder name:</label>
+                    </div>
+                    <div class="col-75">
+                      <input type="text" id="funder">
+                    </div>
+                  </div>
+
+                  <div class="row">
+                    <div class="col-25">
+                      <label for="authorisationNumber" data-tooltip="Grant or funding reference number.">authorisation number:</label>
+                    </div>
+                    <div class="col-75">
+                      <input type="text" id="authorisationNumber">
+                    </div>
+                  </div>
+
+                  <div class="row">
+                    <div class="col-25">
+                      <label for="licenseDropdown" data-tooltip="Please choose from the list.">license: </label>
+                    </div>
+                    <div class="col-75">
+                      <select id="licenseDropdown" style="width: 100%;">
+                        <option value=""></option>
+                      </select>
+                      <!-- Select2 dropdown -->
+                      <script>
+                        $(document).ready(function() {
+                            $('#licenseDropdown').select2({
+                              placeholder: '',
+                              allowClear: true
+                            });
+
+                            // remove arrow
+                            $('#licenseDropdown')
+                              .next('.select2-container')
+                              .find('.select2-selection__arrow')
+                              .remove();
+                        });
+                      </script>
+                    </div>
+                  </div>
+
+                  <div class="row">
+                    <div class="col-25">
+                      <label for="exportFileName">export file name:</label>
+                    </div>
+                    <div class="col-75">
+                      <input type="text" id="exportFileName">
+                    </div>
+                  </div>
+
+                  <button type="button" id="custom_rp_button" onclick="create_update_researchProject()" class="MySubmitButton" style="width: unset; padding-left: 10px; padding-right: 10px;">create</button>
+
                 </fieldset>
               </form>
             </div>
@@ -2833,52 +2833,6 @@
             </div>
           </div>
         </div>
-
-        <!-- additional information -->
-        <!-- <div class="accordion-item">
-          <h2 class="accordion-header">
-            <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#panelsStayOpen-collapseEight" aria-expanded="false" aria-controls="panelsStayOpen-collapseNine">
-              ADDITIONAL INFORMATION
-            </button>
-          </h2>
-          <div id="panelsStayOpen-collapseEight" class="accordion-collapse collapse">
-            <div class="accordion-body">
-              Please enter additional, individual information here. 
-              A quick intro into the usage details can be found   
-              <a href="manual.html" target="_blank">here</a>.
-              <br><br>
-              <fieldset>
-                <div class="row">
-                  <div class="col-25">
-                    <label for="which_project">reference project(s):</label>
-                  </div>
-                  <div class="col-75">
-                    <select class="selectpicker" id="which_project" required multiple>
-                      <option value="project 1">project 1, from local</option>
-                      <option value="project 2">project 2, from local</option>
-                      <option value="project 3">project 3, from local</option>
-                      <option value="project 4">project 4, from local</option>
-                      <option value="project 5">project 5, from local</option>
-                      <option value="project 6">project 6, from local</option>
-                    </select>
-                  </div>
-                </div>
-              </fieldset>
-              <br>
-              <fieldset>
-                <div class="row">
-                  <div class="col-25">
-                    <label for="add_info">additional information:</label>
-                  </div>
-                  <div class="col-75">
-                    <textarea name="add_info" id="add_info" rows="10" placeholder=""></textarea>
-                  </div>
-                </div>
-                <button type="submit" class="MySubmitButton" onclick="mySubmitButton()" > submit </button>
-              </fieldset>
-            </div>
-          </div>
-        </div> -->
 
       </div>
     </div>
