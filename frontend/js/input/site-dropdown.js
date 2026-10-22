@@ -14,7 +14,6 @@ document.addEventListener("DOMContentLoaded", () => {
     const literature_container = document.getElementById("siteLiteratureContainer");
 
     // General information
-    const activityNumber_input = document.getElementById("activity_number");
     const siteLabelAbbreviation_input = document.getElementById("site_label_abbreviation");
     const siteNumber_input = document.getElementById("site_number");
     const taxonomy_dropdown = document.getElementById("taxonomy");
@@ -130,7 +129,7 @@ document.addEventListener("DOMContentLoaded", () => {
             siteLiteratureList = [];
 
             // General information
-            activityNumber_input.value = '';
+            $('#activityNumbers').empty().val(null).trigger('change');
             siteLabelAbbreviation_input.value = '';
             siteNumber_input.value = '';
             $('#taxonomy').val(null).trigger('change');
@@ -222,7 +221,11 @@ document.addEventListener("DOMContentLoaded", () => {
         }); // ------------------------------------------
 
         // General information
-        activityNumber_input.value                = item.activityNumber;
+        $('#activityNumbers').empty();
+        (item.activityNumbers ?? []).forEach(activityNumber => {
+            $('#activityNumbers').append(new Option(activityNumber, activityNumber, true, true));
+        });
+        $('#activityNumbers').trigger('change');
         siteLabelAbbreviation_input.value         = item.labelAbbreviation;
         siteNumber_input.value                    = item.siteNumber;
         $('#taxonomy').val(item.taxonomy?.id ?? '').trigger('change');
@@ -326,7 +329,7 @@ document.addEventListener("DOMContentLoaded", () => {
         siteLiteratureList = [];
 
         // General information
-        activityNumber_input.value = '';
+        $('#activityNumbers').empty().val(null).trigger('change');
         siteLabelAbbreviation_input.value = '';
         siteNumber_input.value = '';
         $('#taxonomy').val(null).trigger('change');

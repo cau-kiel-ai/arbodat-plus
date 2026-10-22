@@ -165,7 +165,13 @@ public class ExportService {
         // Site fields -------------------------------------------------------------
         gen.writeStringField("id", site.getId().toString());
         gen.writeStringField("label", site.getLabel());
-        gen.writeStringField("activityNumber", site.getActivityNumber());
+        gen.writeArrayFieldStart("activityNumbers");
+        if (site.getActivityNumbers() != null) {
+            for (String activityNumber : site.getActivityNumbers()) {
+                gen.writeString(activityNumber);
+            }
+        }
+        gen.writeEndArray();
         gen.writeStringField("labelAbbreviation", site.getLabelAbbreviation());
         gen.writeStringField("siteNumber", site.getSiteNumber());
         // Taxonomy

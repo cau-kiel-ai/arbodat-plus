@@ -140,7 +140,7 @@ public class SiteController implements Serializable {
 
         // update attributes
         site.setLabel(transferredSite.getLabel());
-        site.setActivityNumber(transferredSite.getActivityNumber());
+        site.setActivityNumbers(transferredSite.getActivityNumbers());
         site.setLabel(transferredSite.getLabel());
         site.setLabelAbbreviation(transferredSite.getLabelAbbreviation());
         site.setSiteNumber(transferredSite.getSiteNumber());

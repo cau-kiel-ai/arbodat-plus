@@ -77,16 +77,13 @@ $('#result_site_dropdown').on('select2:opening', async function (e) {
         // Update data
         sites.forEach(item => {
             // Determine item name --------------------------------
-            let itemName;
-            if (item.activityNumber) {
-                itemName = `${item.label}, ${item.activityNumber}`;
-            } else {
-                itemName = item.label;
-            }
+            const activityNumbers = item.activityNumbers?.length
+                ? `activity numbers: ${item.activityNumbers.join(', ')}; `
+                : '';
             const projectNames = item.researchProjectList
                 .map(rp => rp.projectName)
                 .join(', ');
-            itemName += ` (research projects: ${projectNames})`;
+            const itemName = `${item.label} (${activityNumbers}research projects: ${projectNames})`;
             // ----------------------------------------------------
             $('#result_site_dropdown').append(
                 new Option(itemName, item.id)

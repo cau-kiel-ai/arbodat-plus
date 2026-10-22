@@ -49,24 +49,6 @@ public class Feature implements Serializable {
     @JoinColumn(name = "feature_type")
     private FeatureType featureType;
 
-//    // central on Dante
-//    @JsonIgnore
-//    @ManyToMany
-//    @JoinTable(name = "feature_archaeological_dating_relation",
-//            joinColumns = @JoinColumn(name = "feature_id"),
-//            inverseJoinColumns = @JoinColumn(name = "archaeological_dating_id")
-//    )
-//    private Set<ArchaeologicalDating> archaeologicalDatingList;
-//
-//    // central on Dante
-//    @JsonIgnore
-//    @ManyToMany
-//    @JoinTable(name = "feature_cultural_group_relation",
-//            joinColumns = @JoinColumn(name = "feature_id"),
-//            inverseJoinColumns = @JoinColumn(name = "cultural_group_id")
-//    )
-//    private Set<CulturalGroup> culturalGroupList;
-
     @JsonIgnore
     @OneToMany(mappedBy = "feature")
     private Set<Sample> sampleList;
@@ -75,7 +57,6 @@ public class Feature implements Serializable {
     @JoinColumn(name = "site")
     @JsonIgnoreProperties("literatureList")
     private Site site;
-
 
     @Override
     public boolean equals(Object obj) {

@@ -8,6 +8,7 @@ import jakarta.persistence.*;
 import lombok.Data;
 import java.io.Serializable;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Objects;
 import java.util.Set;
 import java.util.UUID;
@@ -21,8 +22,10 @@ public class Site implements Serializable {
     @GeneratedValue(strategy = GenerationType.UUID)
     private UUID id;
 
+    @ElementCollection
+    @CollectionTable(name = "activity_numbers", joinColumns = @JoinColumn(name = "site_id"))
     @Column(name = "activity_number")
-    private String activityNumber;
+    private List<String> activityNumbers;
 
     @Column (name = "site_label")
     private String label;

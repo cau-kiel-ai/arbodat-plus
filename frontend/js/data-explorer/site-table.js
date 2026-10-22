@@ -127,7 +127,55 @@ async function buildSiteTable() {
             {title:"id", field:"id", headerFilter:true, headerSort:false},
             {title:"*label", titleDownload:"label", field:"label", validator: ["required"], editor:"input", headerFilter:true, headerSortTristate:true},
             {title:"label abbreviation", titleDownload:"labelAbbreviation", field:"labelAbbreviation", editor:"input", headerFilter:true, headerSortTristate:true},
-            {title:"activity number", titleDownload:"activityNumber", field:"activityNumber", editor:"input", headerFilter:true, headerSortTristate:true},
+            {title:"activity numbers", titleDownload:"activityNumbers", field:"activityNumbers", headerSortTristate:true,
+                mutator: value => Array.isArray(value) ? value : [],
+                // HTML download passes the accessorDownload result (a string) to the formatter
+                formatter: cell => {
+                    const value = cell.getValue();
+                    return Array.isArray(value) ? value.join(", ") : (value ?? "");
+                },
+                accessorDownload: value => (value || []).join("; "),
+                // Free-text values are entered as a ';'-separated string
+                editor: function(cell, onRendered, success, cancel){
+                    const input = document.createElement("input");
+                    input.type = "text";
+                    input.style.width = "100%";
+                    input.style.boxSizing = "border-box";
+                    input.placeholder = "separate with ;";
+                    input.value = (cell.getValue() || []).join("; ");
+
+                    onRendered(() => {
+                        input.focus();
+                        input.style.height = "100%";
+                    });
+
+                    function commit(){
+                        const values = input.value
+                            .split(";")
+                            .map(value => value.trim())
+                            .filter((value, index, all) => value !== "" && all.indexOf(value) === index);
+                        success(values);
+                    }
+
+                    input.addEventListener("blur", commit);
+                    input.addEventListener("keydown", e => {
+                        if (e.key === "Enter") commit();
+                        else if (e.key === "Escape") cancel();
+                    });
+
+                    return input;
+                },
+                headerFilter: "list", headerFilterParams: {
+                    valuesLookup: true, // all existing activity numbers
+                    multiselect: true,
+                    sort: "asc",
+                },
+                headerFilterFunc: function(headerValue, rowValue){
+                    if (!headerValue || headerValue.length === 0) return true;
+                    return headerValue.every(val => (rowValue || []).includes(val));
+                },
+                sorter: (a, b) => (a || []).join("; ").localeCompare((b || []).join("; ")),
+            },
             {title:"site number", titleDownload:"siteNumber", field:"siteNumber", editor:"input", headerFilter:true, headerSortTristate:true},
             {title:"research project list (multiple selection)", titleDownload:"researchProjectList", field: "researchProjectList", headerSortTristate:true,
                 mutator: function(value) {
@@ -738,7 +786,7 @@ document.getElementById("download-json").addEventListener("click", function(){
                 id: row.id,
                 label: row.label,
                 labelAbbreviation: row.labelAbbreviation,
-                activityNumber: row.activityNumber,
+                activityNumbers: row.activityNumbers,
                 siteNumber: row.siteNumber,
                 researchProjectList: (row.researchProjectList || []).map(researchProjectId => {
                     const researchProjectValues = siteTable.getColumn("researchProjectList").getDefinition().editorParams.values;

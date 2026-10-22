@@ -107,16 +107,13 @@ $('#researchProjectDropdown').on('change', async function () {
             const option = document.createElement('option');
 
             // Determine item name --------------------------------
-            let itemName;
-            if (item.activityNumber) {
-                itemName = `${item.label}, ${item.activityNumber}`;
-            } else {
-                itemName = item.label;
-            }
+            const activityNumbers = item.activityNumbers?.length
+                ? `activity numbers: ${item.activityNumbers.join(', ')}; `
+                : '';
             const projectNames = item.researchProjectList
                 .map(rp => rp.projectName)
                 .join(', ');
-            itemName += ` (research projects: ${projectNames})`;
+            const itemName = `${item.label} (${activityNumbers}research projects: ${projectNames})`;
             // ----------------------------------------------------
             
             option.value = item.id;

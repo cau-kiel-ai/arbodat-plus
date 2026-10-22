@@ -495,7 +495,6 @@ function create_update_site() {
     if ( siteForm.checkValidity() && window.siteResearchProjectList.length > 0 ) {
     
         // text
-        const activity_number = document.getElementById("activity_number");
         const site_label = document.getElementById("site_label");
         const site_label_abbrev = document.getElementById("site_label_abbreviation");
         const site_number = document.getElementById("site_number");
@@ -538,7 +537,7 @@ function create_update_site() {
         var payload = {
             researchProjectList: siteResearchProjectList,
             literatureList: siteLiteratureList,
-            activityNumber: activity_number.value.trim(),
+            activityNumbers: ($('#activityNumbers').val() || []).map(value => value.trim()).filter(Boolean),
             label: site_label.value.trim(),
             labelAbbreviation: site_label_abbrev.value.trim(),
             siteNumber: site_number.value.trim(),
@@ -613,6 +612,7 @@ function create_update_site() {
 
                 // Reset form -----------------------------------------------------
                 siteForm.reset();
+                $('#activityNumbers').empty().val(null).trigger('change');
                 siteLiteratureList.length = [];
                 document.getElementById("siteLiteratureContainer").innerHTML = '';
                 siteInstitutionList.length = [];
