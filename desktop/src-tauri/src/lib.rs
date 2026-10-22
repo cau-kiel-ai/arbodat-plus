@@ -33,6 +33,8 @@ pub fn run() {
             app.manage(runtime::RuntimeManager::new(&version, &data_dir)?);
             app.manage(windows::arbodat::Home::default());
             windows::menu::install(app.handle())?;
+            #[cfg(target_os = "macos")]
+            windows::install_mouse_navigation(app.handle());
             // The launcher starts hidden: if ArboDat+ is already running, it goes straight to
             // the ArboDat+ window instead of flashing the launcher first.
             tauri::async_runtime::spawn(route_on_startup(app.handle().clone()));

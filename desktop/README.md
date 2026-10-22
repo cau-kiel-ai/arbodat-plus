@@ -71,6 +71,9 @@ All verified on macOS in the Phase 4a spike; see the plan for details.
   that never overwrites a file (`export (1).csv`), and a message in the page says where. Three
   gaps of the macOS webview are patched by `windows/scripts/shims.js`: left-clicks on
   `target="_blank"` links, `alert()` (a silent no-op there) and the download message.
+  The mouse's back and forward buttons never reach a macOS web page either, so
+  `windows/mouse_nav.rs` picks them up as AppKit events (Windows and Linux handle them natively). It
+  understands the buttons themselves and horizontal swipe events, which is what trackpad gestures.
 - **Windows and quitting.** Opening ArboDat+ hides the launcher; the menu's *Window → Control
   Center* brings it back. Closing the ArboDat+ window quits the app, the stack keeps running.
   Starting the app while ArboDat+ is running goes straight to the ArboDat+ window. If the stack is

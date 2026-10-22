@@ -158,14 +158,11 @@ pub fn notify_busy(app: &AppHandle) {
 pub fn handle(app: &AppHandle, id: &str) {
     let window = app.get_webview_window(arbodat::LABEL);
     match id {
-        BACK | FORWARD | RELOAD => {
-            let script = match id {
-                BACK => "history.back()",
-                FORWARD => "history.forward()",
-                _ => "location.reload()",
-            };
+        BACK => arbodat::step(app, arbodat::Step::Back),
+        FORWARD => arbodat::step(app, arbodat::Step::Forward),
+        RELOAD => {
             if let Some(window) = window {
-                let _ = window.eval(script);
+                let _ = window.eval("location.reload()");
             }
         }
         HOME => {

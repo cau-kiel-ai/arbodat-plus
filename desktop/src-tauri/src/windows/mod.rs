@@ -4,6 +4,8 @@
 pub mod arbodat;
 pub mod download;
 pub mod menu;
+#[cfg(target_os = "macos")]
+mod mouse_nav;
 pub mod stopped;
 
 use tauri::{AppHandle, Manager, Url};
@@ -41,4 +43,9 @@ pub fn open_external(app: &AppHandle, url: &Url) {
     if let Err(e) = app.opener().open_url(url.as_str(), None::<&str>) {
         log::warn!("could not open {url}: {e}");
     }
+}
+
+#[cfg(target_os = "macos")]
+pub fn install_mouse_navigation(app: &AppHandle) {
+    mouse_nav::install(app);
 }

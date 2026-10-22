@@ -114,6 +114,22 @@ pub fn open(app: &AppHandle, home: Url) -> tauri::Result<()> {
     Ok(())
 }
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum Step {
+    Back,
+    Forward,
+}
+
+/// Back or forward in the ArboDat+ window's history (menu, mouse buttons).
+pub fn step(app: &AppHandle, step: Step) {
+    if let Some(window) = app.get_webview_window(LABEL) {
+        let _ = window.eval(match step {
+            Step::Back => "history.back()",
+            Step::Forward => "history.forward()",
+        });
+    }
+}
+
 /// The stack was stopped from the Control Center: tell the window instead of leaving a dead page.
 pub fn show_stopped(app: &AppHandle) {
     if let Some(window) = app.get_webview_window(LABEL)
