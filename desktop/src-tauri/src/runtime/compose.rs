@@ -113,6 +113,23 @@ pub async fn stop(
     .await
 }
 
+/// `docker compose down` with nothing else: removes the containers and the network, nothing
+/// more. Not `-v` (volumes) and not `--rmi` (images): the data volume is `external` and
+/// would survive anyway, and the flags are kept out of this module altogether (see the test).
+pub async fn down(
+    cli: &DockerCli,
+    runtime_dir: &Path,
+    on_line: impl FnMut(&str),
+) -> Result<Output, RunError> {
+    cli.run_streaming_in(
+        runtime_dir,
+        args(runtime_dir, &["down"]),
+        STOP_TIMEOUT,
+        on_line,
+    )
+    .await
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -146,15 +163,16 @@ mod tests {
 
     #[test]
     fn this_module_never_builds_a_destructive_command() {
-        // The source of the non-test code must not contain `down`, `rm`, `--volumes` or `-v`
-        // (data safety invariant: the app never removes containers' data).
+        // The source of the non-test code must not contain `rm`, `--volumes`, `-v` or `--rmi`
+        // (data safety invariant: the app never removes a container's data or images), and
+        // `down` is spelled out exactly once: in `down()`, which passes nothing else.
         let src = include_str!("compose.rs");
         let code = src.split("#[cfg(test)]").next().unwrap();
         for forbidden in [
-            "\"down\"",
             "\"rm\"",
             "\"--volumes\"",
             "\"-v\"",
+            "\"--rmi\"",
             "\"-y\"",
             "\"--yes\"",
         ] {
@@ -163,5 +181,7 @@ mod tests {
                 "compose.rs must not use {forbidden}"
             );
         }
+        assert_eq!(code.matches("&[\"down\"]").count(), 1);
+        assert_eq!(code.matches("\"down\"").count(), 1);
     }
 }

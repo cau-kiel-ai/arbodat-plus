@@ -4,20 +4,39 @@ import { openUrl } from "@tauri-apps/plugin-opener";
 import type { AppError } from "./bindings/AppError";
 import type { Operation } from "./bindings/Operation";
 import type { ProgressEvent } from "./bindings/ProgressEvent";
+import type { SettingsView } from "./bindings/SettingsView";
 import type { Status } from "./bindings/Status";
 
 /** Never rejects for Docker/stack problems: those are part of the returned status. */
 export const getStatus = () => invoke<Status>("get_status");
 
+const commands: Record<Operation, string> = {
+  install: "install",
+  start: "start",
+  stop: "stop",
+  changePort: "change_port",
+  remove: "remove_installation",
+};
+
 /**
- * Runs install / start / stop. Progress arrives through `onEvent`; the promise rejects with an
+ * Runs install / start / stop / ... Progress arrives through `onEvent`; the promise rejects with an
  * `AppError` (see `asAppError`) when the operation fails.
  */
-export function runOperation(operation: Operation, onEvent: (event: ProgressEvent) => void): Promise<void> {
+export function runOperation(
+  operation: Operation,
+  onEvent: (event: ProgressEvent) => void,
+  args: Record<string, unknown> = {},
+): Promise<void> {
   const channel = new Channel<ProgressEvent>();
   channel.onmessage = onEvent;
-  return invoke<void>(operation, { onEvent: channel });
+  return invoke<void>(commands[operation], { ...args, onEvent: channel });
 }
+
+export const getSettings = () => invoke<SettingsView>("get_settings");
+export const setAutoStart = (enabled: boolean) => invoke<SettingsView>("set_auto_start", { enabled });
+/** Opens the system's folder picker; resolves to `null` if the user cancelled. */
+export const chooseBackupFolder = () => invoke<SettingsView | null>("choose_backup_folder");
+export const resetBackupFolder = () => invoke<SettingsView>("reset_backup_folder");
 
 /** Rejections from our commands are `AppError`s; anything else (a bug, IPC trouble) gets wrapped. */
 export function asAppError(e: unknown): AppError {

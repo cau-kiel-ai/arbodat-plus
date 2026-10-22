@@ -11,7 +11,9 @@
 //! - an existing data volume without its `.env` is never "adopted": its password is unknown;
 //! - if the data volume is gone (e.g. Docker Desktop was reset) we refuse to start rather than
 //!   silently create a new, empty database;
-//! - only `pull`, `up -d --wait` and `stop` are ever run: never `down`, never `-v`.
+//! - only `pull`, `up -d --wait`, `stop` and, to remove an installation, a plain `down` are ever
+//!   run: never `-v`, never `--rmi`. Removing keeps `.env` (the password), `compose.yml`, the data
+//!   volume and the images, so installing again picks the same data up.
 
 use std::time::Duration;
 
@@ -24,8 +26,8 @@ use super::parse;
 use super::ports::{self, PortCheck};
 use super::state::{self, InstallState};
 use super::template::{
-    COMPOSE_FILE, COMPOSE_YML, DATA_VOLUME, DEFAULT_PORT, ENV_FILE, PASSWORD_LEN, PROJECT,
-    parse_env, render_env,
+    COMPOSE_FILE, COMPOSE_YML, DATA_VOLUME, DEFAULT_PORT, ENV_FILE, MIN_PORT, PASSWORD_LEN,
+    PROJECT, env_with_port, parse_env, port_of, render_env,
 };
 use super::{RuntimeManager, compose, compose_status, engine_status, fsutil, probe};
 
@@ -73,14 +75,12 @@ pub fn plan_install(
     }
 }
 
-/// May we start the installed stack? Returns the installation record to use.
-pub fn plan_start(
+/// The installation record, if there is a usable one that this app may manage.
+fn managed_record(
     state: &Result<Option<InstallState>, String>,
-    engine: &EngineStatus,
     app_version: &Version,
-    volume_exists: bool,
 ) -> Result<InstallState, AppError> {
-    let state = match state {
+    let record = match state {
         Err(e) => {
             return Err(AppError::new(
                 ErrorCode::StateDamaged,
@@ -94,29 +94,61 @@ pub fn plan_start(
                 "ArboDat+ is not installed yet.",
             ));
         }
-        Ok(Some(state)) => state,
+        Ok(Some(record)) => record,
     };
-    match Version::parse(&state.installed_version) {
-        Ok(installed) if installed > *app_version => {
-            return Err(AppError::new(
-                ErrorCode::NewerThanApp,
-                format!(
-                    "This installation was last updated by a newer version of ArboDat+ ({installed}) than this app ({app_version}). \
-                     Please install the newest app."
-                ),
-            ));
-        }
-        Ok(_) => {}
-        Err(_) => {
-            return Err(AppError::new(
-                ErrorCode::StateDamaged,
-                format!(
-                    "The installation record has an invalid version: {:?}.",
-                    state.installed_version
-                ),
-            ));
-        }
+    match Version::parse(&record.installed_version) {
+        Ok(installed) if installed > *app_version => Err(AppError::new(
+            ErrorCode::NewerThanApp,
+            format!(
+                "This installation was last updated by a newer version of ArboDat+ ({installed}) than this app ({app_version}). \
+                 Please install the newest app."
+            ),
+        )),
+        Ok(_) => Ok(record.clone()),
+        Err(_) => Err(AppError::new(
+            ErrorCode::StateDamaged,
+            format!(
+                "The installation record has an invalid version: {:?}.",
+                record.installed_version
+            ),
+        )),
     }
+}
+
+/// May the installation be removed from Docker? (It may, in nearly every state, even when Docker
+/// was reset: that is how the user gets out of "database not found". Not when a newer app made it.)
+pub fn plan_remove(
+    state: &Result<Option<InstallState>, String>,
+    app_version: &Version,
+) -> Result<InstallState, AppError> {
+    managed_record(state, app_version)
+}
+
+/// Is `requested` a port the stack may be moved to?
+pub fn validate_port(requested: u16, current: u16) -> Result<(), AppError> {
+    if requested < MIN_PORT {
+        return Err(AppError::new(
+            ErrorCode::InvalidInput,
+            format!("Please choose a port between {MIN_PORT} and 65535."),
+        ));
+    }
+    if requested == current {
+        return Err(AppError::new(
+            ErrorCode::InvalidInput,
+            format!("ArboDat+ already uses port {current}."),
+        ));
+    }
+    Ok(())
+}
+
+/// May we start the installed stack? Returns the installation record to use.
+pub fn plan_start(
+    state: &Result<Option<InstallState>, String>,
+    engine: &EngineStatus,
+    app_version: &Version,
+    volume_exists: bool,
+) -> Result<InstallState, AppError> {
+    let state = managed_record(state, app_version)?;
     if let (Some(then), Some(now)) = (state.engine_id.as_deref(), engine.running_id())
         && then != now
     {
@@ -133,7 +165,7 @@ pub fn plan_start(
              because that would look like data loss.",
         ));
     }
-    Ok(state.clone())
+    Ok(state)
 }
 
 /// A failed or timed-out Docker command, as the user should see it.
@@ -306,26 +338,42 @@ impl RuntimeManager {
             .map_err(|e| command_failure("Checking the database volume", &e))?;
         let plan = plan_install(&loaded, env_path.exists(), volume_exists)?;
 
+        // An earlier installation's settings (an interrupted install, or one that was removed)
+        // keep their database password and port.
+        let existing_env = match plan {
+            InstallPlan::Fresh => None,
+            InstallPlan::Resume => {
+                let text = std::fs::read_to_string(&env_path)
+                    .map_err(|e| AppError::io("Couldn't read the existing .env file", &e))?;
+                Some(parse_env(&text))
+            }
+        };
+        let port = existing_env
+            .as_ref()
+            .and_then(port_of)
+            .unwrap_or(DEFAULT_PORT);
+
         steps.next("Checking the port");
-        let port = DEFAULT_PORT;
         self.require_port_free(&cli, port, None).await?;
 
         steps.next("Preparing the files");
         std::fs::create_dir_all(dir)
             .map_err(|e| AppError::io("Couldn't create ArboDat+'s data folder", &e))?;
         let version = self.app_version.to_string();
-        let password = match plan {
-            InstallPlan::Fresh => fsutil::random_password(PASSWORD_LEN)
+        let password = match existing_env {
+            None => fsutil::random_password(PASSWORD_LEN)
                 .map_err(|e| AppError::io("Couldn't generate a password", &e))?,
-            InstallPlan::Resume => {
-                steps.log("Resuming an interrupted installation (keeping its database password).");
-                let text = std::fs::read_to_string(&env_path)
-                    .map_err(|e| AppError::io("Couldn't read the existing .env file", &e))?;
-                parse_env(&text)
-                    .remove("DATABASE_PASSWORD")
+            Some(mut env) => {
+                steps.log(
+                    "Found the settings of an earlier installation: keeping its database password.",
+                );
+                env.remove("DATABASE_PASSWORD")
                     .filter(|p| !p.is_empty())
                     .ok_or_else(|| {
-                        AppError::new(ErrorCode::StateDamaged, "The .env file of an interrupted installation has no database password.")
+                        AppError::new(
+                            ErrorCode::StateDamaged,
+                            "The .env file of an earlier installation has no database password.",
+                        )
                     })?
             }
         };
@@ -431,6 +479,117 @@ impl RuntimeManager {
         } else {
             Err(command_failure("Stopping ArboDat+", &out.stderr))
         }
+    }
+
+    /// Moves the stack to another port: rewrites `.env` and the record, and, if ArboDat+ is
+    /// running, restarts it on the new port. If that fails, everything goes back to the old port.
+    pub async fn change_port(&self, port: u16, emit: Emit<'_>) -> Result<(), AppError> {
+        let _guard = self.begin(Operation::ChangePort)?;
+        let mut steps = Steps::new(emit, 5);
+        let dir = self.runtime_dir.as_path();
+
+        steps.next("Checking Docker");
+        let (cli, engine) = self.ready_docker().await?;
+
+        steps.next("Checking the installation");
+        let loaded = state::load(dir).map_err(|e| e.to_string());
+        let volume_exists = cli
+            .volume_exists(DATA_VOLUME)
+            .await
+            .map_err(|e| command_failure("Checking the database volume", &e))?;
+        let record = plan_start(&loaded, &engine, &self.app_version, volume_exists)?;
+        validate_port(port, record.port)?;
+        let was_running = compose::ps(&cli, dir)
+            .await
+            .map_err(|e| command_failure("Checking the containers", &e))?
+            .iter()
+            .any(|c| c.state == "running");
+
+        steps.next("Checking the port");
+        self.require_port_free(&cli, port, Some(PROJECT)).await?;
+
+        steps.next("Saving the new port");
+        let env_path = dir.join(ENV_FILE);
+        let old_env = std::fs::read(&env_path)
+            .map_err(|e| AppError::io("Couldn't read the settings file", &e))?;
+        let new_env = env_with_port(&String::from_utf8_lossy(&old_env), port).map_err(|e| {
+            AppError::new(
+                ErrorCode::StateDamaged,
+                "ArboDat+'s settings file is incomplete, so its port was not changed. Your data is untouched.",
+            )
+            .with_detail(e)
+        })?;
+        fsutil::write_atomic(&env_path, new_env.as_bytes(), true)
+            .map_err(|e| AppError::io("Couldn't write the settings file", &e))?;
+        let restore = || {
+            let _ = fsutil::write_atomic(&env_path, &old_env, true);
+            let _ = state::save(dir, &record);
+        };
+        let moved = InstallState {
+            port,
+            ..record.clone()
+        };
+        if let Err(e) = state::save(dir, &moved) {
+            restore();
+            return Err(AppError::io("Couldn't save the installation record", &e));
+        }
+
+        steps.next("Applying the new port");
+        if !was_running {
+            steps.log("ArboDat+ is stopped: the new port applies the next time it starts.");
+            return Ok(());
+        }
+        let applied = async {
+            self.bring_up(&cli, port, emit).await?;
+            wait_until_ready(port, emit).await
+        }
+        .await;
+        if let Err(e) = applied {
+            steps.log(format!(
+                "That didn't work: going back to port {}.",
+                record.port
+            ));
+            restore();
+            let _ = self.bring_up(&cli, record.port, emit).await;
+            return Err(e);
+        }
+        Ok(())
+    }
+
+    /// Removes ArboDat+'s containers from Docker and forgets the installation. The data volume,
+    /// the database password (`.env`), the stack definition and the images are kept, so installing
+    /// again picks the same data up.
+    pub async fn remove(&self, emit: Emit<'_>) -> Result<(), AppError> {
+        let _guard = self.begin(Operation::Remove)?;
+        let mut steps = Steps::new(emit, 3);
+        let dir = self.runtime_dir.as_path();
+
+        steps.next("Checking Docker");
+        let (cli, _engine) = self.ready_docker().await?;
+
+        steps.next("Checking the installation");
+        plan_remove(
+            &state::load(dir).map_err(|e| e.to_string()),
+            &self.app_version,
+        )?;
+
+        steps.next("Removing ArboDat+ from Docker");
+        // `down` needs the stack definition; it is the same text the install wrote.
+        fsutil::write_atomic(&dir.join(COMPOSE_FILE), COMPOSE_YML.as_bytes(), false)
+            .map_err(|e| AppError::io("Couldn't write the stack definition", &e))?;
+        let out = compose::down(&cli, dir, |line| {
+            emit(ProgressEvent::Log {
+                text: line.to_string(),
+            })
+        })
+        .await
+        .map_err(|e| run_failure("Removing ArboDat+", e))?;
+        if !out.success() {
+            return Err(command_failure("Removing ArboDat+", &out.stderr));
+        }
+        state::delete(dir).map_err(|e| AppError::io("Couldn't forget the installation", &e))?;
+        steps.log("Your data, your backups and the database password file were kept.");
+        Ok(())
     }
 
     async fn require_port_free(
@@ -583,6 +742,41 @@ mod tests {
         assert_eq!(
             code(plan_install(&Ok(None), false, true)),
             ErrorCode::ExistingData
+        );
+    }
+
+    #[test]
+    fn removing_needs_a_usable_record_from_this_or_an_older_app() {
+        let app = Version::parse("5.0.0").unwrap();
+        assert!(plan_remove(&Ok(Some(record("5.0.0", Some("abc")))), &app).is_ok());
+        assert!(plan_remove(&Ok(Some(record("4.9.0", None))), &app).is_ok());
+        assert_eq!(
+            code(plan_remove(&Ok(Some(record("5.1.0", None))), &app)),
+            ErrorCode::NewerThanApp
+        );
+        assert_eq!(code(plan_remove(&Ok(None), &app)), ErrorCode::NotInstalled);
+        assert_eq!(
+            code(plan_remove(&Err("truncated".into()), &app)),
+            ErrorCode::StateDamaged
+        );
+    }
+
+    #[test]
+    fn only_unprivileged_new_ports_are_accepted() {
+        assert!(validate_port(9000, 8480).is_ok());
+        assert!(validate_port(1024, 8480).is_ok());
+        assert!(validate_port(65535, 8480).is_ok());
+        for bad in [0, 80, 1023] {
+            assert_eq!(
+                code(validate_port(bad, 8480)),
+                ErrorCode::InvalidInput,
+                "{bad}"
+            );
+        }
+        assert_eq!(
+            code(validate_port(8480, 8480)),
+            ErrorCode::InvalidInput,
+            "the current port"
         );
     }
 

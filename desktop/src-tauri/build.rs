@@ -9,6 +9,12 @@ fn main() {
             "start",
             "stop",
             "open_arbodat",
+            "change_port",
+            "remove_installation",
+            "get_settings",
+            "set_auto_start",
+            "choose_backup_folder",
+            "reset_backup_folder",
         ]),
     ))
     .expect("failed to run tauri-build");

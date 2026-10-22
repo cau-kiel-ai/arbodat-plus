@@ -1,5 +1,6 @@
 mod commands;
 pub mod runtime;
+mod settings;
 mod windows;
 
 use std::time::Duration;
@@ -19,6 +20,7 @@ pub fn run() {
                 .build(),
         )
         .plugin(tauri_plugin_opener::init())
+        .plugin(tauri_plugin_dialog::init())
         .setup(|app| {
             #[allow(unused_mut)]
             let mut data_dir = app.path().app_local_data_dir()?;
@@ -32,6 +34,14 @@ pub fn run() {
             log::info!("ArboDat+ {version}, data directory {}", data_dir.display());
             app.manage(runtime::RuntimeManager::new(&version, &data_dir)?);
             app.manage(windows::arbodat::Home::default());
+            let documents = app
+                .path()
+                .document_dir()
+                .or_else(|_| app.path().home_dir())?;
+            app.manage(settings::SettingsStore::new(
+                &data_dir,
+                settings::default_backup_folder(&documents),
+            ));
             windows::menu::install(app.handle())?;
             #[cfg(target_os = "macos")]
             windows::install_mouse_navigation(app.handle());
@@ -46,7 +56,13 @@ pub fn run() {
             commands::install,
             commands::start,
             commands::stop,
-            commands::open_arbodat
+            commands::open_arbodat,
+            commands::change_port,
+            commands::remove_installation,
+            commands::get_settings,
+            commands::set_auto_start,
+            commands::choose_backup_folder,
+            commands::reset_backup_folder
         ])
         .on_window_event(|window, event| {
             let app = window.app_handle();

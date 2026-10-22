@@ -28,6 +28,8 @@ pub enum ErrorCode {
     /// Installed, but the data volume isn't in this Docker any more.
     VolumeMissing,
     PortInUse,
+    /// The user's input can't be used (e.g. a port outside the allowed range).
+    InvalidInput,
     Offline,
     RegistryDenied,
     DiskFull,
@@ -78,6 +80,8 @@ impl AppError {
             Operation::Install => "being installed",
             Operation::Start => "starting",
             Operation::Stop => "stopping",
+            Operation::ChangePort => "changing its port",
+            Operation::Remove => "being removed",
         };
         Self::new(
             ErrorCode::Busy,

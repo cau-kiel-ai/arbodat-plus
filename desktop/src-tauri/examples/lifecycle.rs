@@ -1,6 +1,7 @@
 //! Drives install / start / stop against the real local Docker, without the GUI:
 //!
-//!     cargo run --example lifecycle -- <data-dir> install|start|stop|status
+//!     cargo run --example lifecycle -- <data-dir> install|start|stop|remove|status
+//!     cargo run --example lifecycle -- <data-dir> port <new-port>
 //!
 //! `<data-dir>` plays the role of the app's data directory. Progress and the final result are
 //! printed. WARNING: install creates the real data volume `arbodat-plus-database` and uses the
@@ -16,10 +17,10 @@ async fn main() {
     let mut args = std::env::args().skip(1);
     let dir = args
         .next()
-        .expect("usage: lifecycle <data-dir> install|start|stop|status");
+        .expect("usage: lifecycle <data-dir> install|start|stop|remove|status|port <n>");
     let action = args
         .next()
-        .expect("usage: lifecycle <data-dir> install|start|stop|status");
+        .expect("usage: lifecycle <data-dir> install|start|stop|remove|status|port <n>");
     let runtime = RuntimeManager::new(env!("CARGO_PKG_VERSION"), Path::new(&dir))
         .expect("valid package version");
 
@@ -39,6 +40,14 @@ async fn main() {
         "install" => runtime.install(&emit).await,
         "start" => runtime.start(&emit).await,
         "stop" => runtime.stop(&emit).await,
+        "remove" => runtime.remove(&emit).await,
+        "port" => {
+            let port = args
+                .next()
+                .and_then(|p| p.parse().ok())
+                .expect("usage: lifecycle <data-dir> port <number>");
+            runtime.change_port(port, &emit).await
+        }
         "status" => {
             let status = runtime.status().await;
             println!(

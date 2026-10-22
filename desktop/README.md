@@ -86,9 +86,10 @@ All verified on macOS in the Phase 4a spike; see the plan for details.
 
 ## What the app does to your Docker, and what it never does
 
-The launcher installs, starts and stops the stack with exactly three Compose commands: `pull`,
-`up -d --wait` and `stop`. It never runs `down`, `rm`, `-v` or `-y`
-(`runtime/compose.rs` has a test that fails if one appears).
+The launcher installs, starts, stops and reconfigures the stack with a handful of Compose commands:
+`pull`, `up -d --wait`, `stop` and, only for *Remove ArboDat+ from Docker*, a plain `down`. It never
+runs `rm`, `-v`/`--volumes`, `--rmi` or `-y` (`runtime/compose.rs` has a test that fails if one
+appears).
 
 - **Install** checks, in this order: Docker is usable, nothing is installed yet, the port is free,
   then writes `compose.yml`, `.env` and `state.json` and creates the data volume once. Images that are
@@ -102,4 +103,13 @@ The launcher installs, starts and stops the stack with exactly three Compose com
   was made in a different Docker engine; or the database volume has disappeared (for example after a
   Docker Desktop reset). In that last case it will not create a new, empty database on its own.
 - **An interrupted install resumes** with the same password instead of starting over.
+- **Settings.** *Port*: rewrites `.env` and the installation record and, if ArboDat+ is running,
+  restarts it on the new port; if that fails, everything goes back to the old port. *Start when
+  this app opens*: starts a stopped installation once, when Docker is ready. *Backup folder*:
+  where backups will be written. All of it is stored in `settings.json` in the data directory.
+- **Remove ArboDat+ from Docker** runs `down` and forgets `state.json`, nothing else: the database
+  volume, `.env` (the password), `compose.yml`, the downloaded images and your backups stay, so
+  *Install* afterwards finds and keeps the same data and the same port. If Docker no longer has the
+  database (a Docker Desktop reset), removing is how you get out of that state; the next install
+  then starts with a new, empty database, and the button says so before it does anything.
 - The window can't be closed, and the app can't be quit, while one of these operations is running.

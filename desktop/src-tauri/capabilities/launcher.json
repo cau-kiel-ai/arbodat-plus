@@ -12,6 +12,12 @@
     "allow-start",
     "allow-stop",
     "allow-open-arbodat",
+    "allow-change-port",
+    "allow-remove-installation",
+    "allow-get-settings",
+    "allow-set-auto-start",
+    "allow-choose-backup-folder",
+    "allow-reset-backup-folder",
     {
       "identifier": "opener:allow-open-url",
       "allow": [

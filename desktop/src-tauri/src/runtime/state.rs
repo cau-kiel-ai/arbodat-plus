@@ -64,6 +64,15 @@ pub fn save(runtime_dir: &Path, state: &InstallState) -> std::io::Result<()> {
     super::fsutil::write_atomic(&runtime_dir.join(STATE_FILE), json.as_bytes(), false)
 }
 
+/// Forgets the installation (`state.json` only). `.env`, `compose.yml` and the data volume are
+/// never touched here: they are what lets a later install pick the same data up again.
+pub fn delete(runtime_dir: &Path) -> std::io::Result<()> {
+    match std::fs::remove_file(runtime_dir.join(STATE_FILE)) {
+        Err(e) if e.kind() == std::io::ErrorKind::NotFound => Ok(()),
+        other => other,
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -92,6 +101,27 @@ mod tests {
         let dir = tempfile::tempdir().unwrap();
         std::fs::write(dir.path().join(STATE_FILE), "{ truncated").unwrap();
         assert!(matches!(load(dir.path()), Err(StateError::Corrupt { .. })));
+    }
+
+    #[test]
+    fn delete_forgets_only_the_record() {
+        let dir = tempfile::tempdir().unwrap();
+        std::fs::write(dir.path().join(".env"), "DATABASE_PASSWORD=x\n").unwrap();
+        save(
+            dir.path(),
+            &InstallState {
+                schema: SCHEMA,
+                installed_version: "5.0.0".into(),
+                port: 8480,
+                docker_host: None,
+                engine_id: None,
+            },
+        )
+        .unwrap();
+        delete(dir.path()).unwrap();
+        assert_eq!(load(dir.path()).unwrap(), None);
+        assert!(dir.path().join(".env").exists());
+        delete(dir.path()).unwrap(); // already gone: fine
     }
 
     #[test]

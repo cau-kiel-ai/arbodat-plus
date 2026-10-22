@@ -11,6 +11,8 @@ export const operationTitles: Record<Operation, string> = {
   install: "Installing ArboDat+",
   start: "Starting ArboDat+",
   stop: "Stopping ArboDat+",
+  changePort: "Changing the port",
+  remove: "Removing ArboDat+",
 };
 
 /** The operation the user started in this window, with its progress and outcome. */
@@ -44,7 +46,7 @@ class OperationState {
   };
 
   /** Runs `operation`; `afterwards` (refreshing the status) runs on success and on failure and must not throw. */
-  async run(operation: Operation, afterwards: () => Promise<void>) {
+  async run(operation: Operation, afterwards: () => Promise<void>, args: Record<string, unknown> = {}) {
     if (this.running) return;
     this.running = operation;
     this.step = null;
@@ -54,7 +56,7 @@ class OperationState {
     this.notice = null;
     let failure: AppError | null = null;
     try {
-      await runOperation(operation, this.#onEvent);
+      await runOperation(operation, this.#onEvent, args);
     } catch (e) {
       failure = asAppError(e);
     }

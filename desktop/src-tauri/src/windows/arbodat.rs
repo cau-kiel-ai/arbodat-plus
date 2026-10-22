@@ -114,6 +114,20 @@ pub fn open(app: &AppHandle, home: Url) -> tauri::Result<()> {
     Ok(())
 }
 
+/// The address of ArboDat+ changed (another port): remember it, and move the window along if it
+/// shows ArboDat+ right now. (A window showing the stopped page goes there when ArboDat+ starts.)
+pub fn follow(app: &AppHandle, home: Url) {
+    app.state::<Home>().set(home.clone());
+    if let Some(window) = app.get_webview_window(LABEL)
+        && let Ok(shown) = window.url()
+        && matches!(shown.scheme(), "http" | "https")
+        && shown.origin() != home.origin()
+        && let Err(e) = window.navigate(home)
+    {
+        log::warn!("could not follow ArboDat+ to its new address: {e}");
+    }
+}
+
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum Step {
     Back,

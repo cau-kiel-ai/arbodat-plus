@@ -34,7 +34,13 @@
     busy: { label: "Working…", tone: "warn" },
     unknown: { label: "Status unknown", tone: "bad" },
   };
-  const busyLabels: Record<Operation, string> = { install: "Installing…", start: "Starting…", stop: "Stopping…" };
+  const busyLabels: Record<Operation, string> = {
+    install: "Installing…",
+    start: "Starting…",
+    stop: "Stopping…",
+    changePort: "Changing the port…",
+    remove: "Removing…",
+  };
 
   const serviceNames: Record<string, string> = { database: "Database", "web-api": "Web API", frontend: "Web interface" };
 

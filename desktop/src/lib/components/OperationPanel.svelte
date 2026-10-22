@@ -6,6 +6,8 @@
     install: "ArboDat+ is installed and running.",
     start: "ArboDat+ is running.",
     stop: "ArboDat+ is stopped. Your data is kept.",
+    changePort: "ArboDat+ now uses the new port.",
+    remove: "ArboDat+ was removed from Docker. Your data is kept.",
   };
 
   let logElement = $state<HTMLPreElement>();

@@ -179,6 +179,8 @@ pub enum Operation {
     Install,
     Start,
     Stop,
+    ChangePort,
+    Remove,
 }
 
 /// Progress of a running operation, streamed to the launcher window.

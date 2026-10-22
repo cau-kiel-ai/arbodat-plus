@@ -1,11 +1,13 @@
 //! Commands callable from the launcher window (see capabilities/launcher.json and build.rs).
 
 use tauri::ipc::Channel;
-use tauri::{AppHandle, Url};
+use tauri::{AppHandle, Manager, Url};
+use tauri_plugin_dialog::DialogExt;
 
 use crate::runtime::error::{AppError, ErrorCode};
 use crate::runtime::model::{ProgressEvent, Status};
 use crate::runtime::{RuntimeManager, probe, state};
+use crate::settings::{self, SettingsStore, SettingsView};
 use crate::windows;
 
 /// Never fails: problems (no Docker, engine down, damaged state...) are part of the `Status`.
@@ -51,6 +53,102 @@ pub async fn stop(
     Ok(())
 }
 
+/// Moves ArboDat+ to another port. An open ArboDat+ window follows.
+#[tauri::command]
+pub async fn change_port(
+    app: AppHandle,
+    runtime: tauri::State<'_, RuntimeManager>,
+    port: u16,
+    on_event: Channel<ProgressEvent>,
+) -> Result<(), AppError> {
+    runtime
+        .change_port(port, &|event| drop(on_event.send(event)))
+        .await?;
+    windows::arbodat::follow(&app, local_url(port));
+    Ok(())
+}
+
+/// Removes ArboDat+'s containers from Docker. The database, the password file, backups and
+/// downloaded images are kept, so installing again picks the same data up.
+#[tauri::command]
+pub async fn remove_installation(
+    app: AppHandle,
+    runtime: tauri::State<'_, RuntimeManager>,
+    on_event: Channel<ProgressEvent>,
+) -> Result<(), AppError> {
+    runtime.remove(&|event| drop(on_event.send(event))).await?;
+    windows::arbodat::show_stopped(&app);
+    Ok(())
+}
+
+#[tauri::command]
+pub fn get_settings(store: tauri::State<'_, SettingsStore>) -> SettingsView {
+    store.view()
+}
+
+fn save_failed(e: &std::io::Error) -> AppError {
+    AppError::io("Couldn't save the settings", e)
+}
+
+#[tauri::command]
+pub fn set_auto_start(
+    store: tauri::State<'_, SettingsStore>,
+    enabled: bool,
+) -> Result<SettingsView, AppError> {
+    store
+        .update(|s| s.auto_start = enabled)
+        .map_err(|e| save_failed(&e))
+}
+
+/// Lets the user pick the backup folder. `None` if they cancelled.
+#[tauri::command]
+pub async fn choose_backup_folder(
+    app: AppHandle,
+    store: tauri::State<'_, SettingsStore>,
+) -> Result<Option<SettingsView>, AppError> {
+    let mut dialog = app
+        .dialog()
+        .file()
+        .set_title("Choose the folder for ArboDat+ backups");
+    let current = store.backup_folder();
+    if current.is_dir() {
+        dialog = dialog.set_directory(current);
+    }
+    if let Some(launcher) = app.get_webview_window(windows::LAUNCHER) {
+        dialog = dialog.set_parent(&launcher);
+    }
+    let Some(picked) = dialog.blocking_pick_folder() else {
+        return Ok(None);
+    };
+    let folder = picked.into_path().map_err(|e| {
+        AppError::new(ErrorCode::Io, "That folder can't be used.").with_detail(e.to_string())
+    })?;
+    settings::check_writable(&folder).map_err(|e| {
+        AppError::new(
+            ErrorCode::Io,
+            "ArboDat+ can't write to that folder. Please choose another one.",
+        )
+        .with_detail(e.to_string())
+    })?;
+    store
+        .update(|s| s.backup_folder = Some(folder))
+        .map(Some)
+        .map_err(|e| save_failed(&e))
+}
+
+#[tauri::command]
+pub fn reset_backup_folder(
+    store: tauri::State<'_, SettingsStore>,
+) -> Result<SettingsView, AppError> {
+    store
+        .update(|s| s.backup_folder = None)
+        .map_err(|e| save_failed(&e))
+}
+
+fn local_url(port: u16) -> Url {
+    Url::parse(&format!("http://127.0.0.1:{port}/")).expect("a valid local address")
+}
+
 /// Opens the ArboDat+ window on the local installation (or brings it forward). The launcher
 /// can't choose the address: it always comes from the installation record.
 #[tauri::command]
@@ -81,7 +179,7 @@ pub async fn open_arbodat(
             "ArboDat+ isn't answering. Start it first, or wait a moment if it is still starting.",
         ));
     }
-    let url = Url::parse(&format!("http://127.0.0.1:{port}/")).expect("a valid local address");
+    let url = local_url(port);
     // Creating windows from a worker thread is unreliable on some platforms.
     let handle = app.clone();
     let (done, result) = tokio::sync::oneshot::channel();
@@ -114,7 +212,19 @@ mod capability_tests {
     const LAUNCHER: &str = include_str!("../capabilities/launcher.json");
     const BUILD_RS: &str = include_str!("../build.rs");
     /// Every `#[tauri::command]` of this file.
-    const COMMANDS: [&str; 5] = ["get_status", "install", "start", "stop", "open_arbodat"];
+    const COMMANDS: [&str; 11] = [
+        "get_status",
+        "install",
+        "start",
+        "stop",
+        "open_arbodat",
+        "change_port",
+        "remove_installation",
+        "get_settings",
+        "set_auto_start",
+        "choose_backup_folder",
+        "reset_backup_folder",
+    ];
 
     fn launcher() -> Value {
         serde_json::from_str(LAUNCHER).expect("launcher.json is valid JSON")
