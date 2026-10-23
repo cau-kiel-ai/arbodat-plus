@@ -12,7 +12,7 @@ below) — opening an `.html` file directly from disk will not work.
 | `index.html` | Landing page |
 | `input.html` | Data Input |
 | `migration.html` | Data Migration (import from legacy MS Access ArboDat) |
-| `data-explorer.html` | Data Explorer (query/filter/edit/export) |
+| `explorer.html` | Data Explorer (query/filter/edit/export) |
 | `export.html` | Data Export |
 | `report.html` | Data Report (placeholder) |
 | `contact.html`, `license.html` | Static pages |

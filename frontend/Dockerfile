@@ -40,6 +40,6 @@ COPY js ./js
 COPY --from=build-stage /app/css ./css
 COPY --from=build-stage /app/*.html /app/version.json ./
 COPY img/favicon.png img/banner.png img/logo_arbodat_plus.png \
-     img/cau-norm-de-lilagrey-rgb-0720.png img/nfdi4objects_logo_volltitel_digital_USE.png \
-     img/Logo_NIhK_Homepage_ausdemNetz_CKN.png \
+     img/logo_cau.png.png img/logo_nfdi4objects.png.png \
+     img/logo_nihk.png \
      ./img/
