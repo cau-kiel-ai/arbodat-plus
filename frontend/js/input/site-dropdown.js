@@ -150,6 +150,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
             // Coordinates and address
             $('#site_coordinate_system').val(null).trigger('change');
+            applyDefaults("site");
             longitude_input.value       = '';
             latitude_input.value        = '';
             altitude_input.value        = '';
@@ -350,6 +351,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
         // Coordinates and address
         $('#site_coordinate_system').val(null).trigger('change');
+        applyDefaults("site");
         longitude_input.value       = '';
         latitude_input.value        = '';
         altitude_input.value        = '';

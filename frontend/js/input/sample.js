@@ -202,6 +202,7 @@ document.addEventListener('DOMContentLoaded', async function () {
 
     await fetchDanteAttribute("coordinateSystem");
     populateDanteDropdown ("coordinateSystem", coordinate_system_dropdown);
+    await applyDefaults("sample", ["sample_coordinate_system"]);
     
     // // Init map when accordion is opened
     // Accordion.addEventListener('shown.bs.collapse', () => {
@@ -358,6 +359,8 @@ document.addEventListener("DOMContentLoaded", async () => {
 
     await fetchDanteAttribute("chronozone");
     populateDanteDropdown ("chronozone", chronozone_dropdown);
+
+    await applyDefaults("sample");
 });
 
 // Submit/Update sample -------------------------------------------------------
@@ -521,6 +524,7 @@ function resetSampleForm() {
     $('#woodSubfossile').val(null).trigger('change');
     $('#charcoalInvestigated').val(null).trigger('change');
     $('#chronozone').val(null).trigger('change');
+    applyDefaults("sample");
 
     sampleBotanicalDeterminationByList = [];
     document.getElementById("botanicalDeterminationByContainer").innerHTML = "";

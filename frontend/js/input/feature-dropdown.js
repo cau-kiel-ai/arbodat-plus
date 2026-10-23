@@ -103,6 +103,7 @@ document.addEventListener("DOMContentLoaded", () => {
             feature_condition_checkbox.checked = false;
             $('#preservation_condition').val(null).trigger('change');
             $('#feature_type').val(null).trigger('change');
+            applyDefaults("feature");
             excavation_years_selectpicker.value = '';
             building_context_checkbox.checked = false;
             remarks_textarea.value = '';
@@ -159,6 +160,7 @@ document.addEventListener("DOMContentLoaded", () => {
         feature_condition_checkbox.checked = false;
         $('#preservation_condition').val(null).trigger('change');
         $('#feature_type').val(null).trigger('change');
+        applyDefaults("feature");
         excavation_years_selectpicker.value = '';
         building_context_checkbox.checked = false;
         remarks_textarea.value = '';

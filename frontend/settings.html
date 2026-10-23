@@ -1,0 +1,108 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+      <meta charset="UTF-8">
+      <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+      <title>ArboDat+ Settings</title>
+
+      <link href="img/favicon.png" rel="icon">
+      <link href="css/input.min.css" rel="stylesheet">
+
+      <!-- bootstrap -->
+      <script
+        src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"
+        integrity="sha384-YvpcrYf0tY3lHB60NNkmXc5s9fDVZLESaAA55NDzOxhy9GkcIdslK1eN7N6jIeHz"
+        crossorigin="anonymous"
+        >
+      </script>
+      <!-- axios -->
+      <script src="https://unpkg.com/axios@1.8.4/dist/axios.min.js"></script>
+      <!-- jquery -->
+      <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.7.1/jquery.min.js"></script>
+      <!-- Select2 -->
+      <link
+        href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css"
+        rel="stylesheet"
+      />
+      <script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
+
+      <!-- select2 -->
+      <style>
+        .select2-container .select2-selection--single {
+          display: flex;
+          align-items: center;
+          height: 52px !important;
+          border: 2px solid #ccc;
+          border-radius: 4px;
+        }
+        .select2-container .select2-selection--multiple {
+          border: 2px solid #ccc;
+          min-height: 52px;
+        }
+        .select2-container .select2-selection--single .select2-selection__rendered {
+          order: 1;
+          padding: 12px;
+          font-size: 16px;
+          color: #000000;
+        }
+        .select2-container .select2-selection--single .select2-selection__clear {
+          order: 2;
+          margin-left: auto;
+          transform: translateX(50%);
+          font-size: 24px;
+          font-weight: 200;
+          line-height: 24px;
+        }
+        .select2-container .select2-selection--multiple .select2-selection__clear {
+          font-size: 24px;
+          font-weight: 200;
+          line-height: 24px;
+        }
+        .col-75 {
+          position: relative;
+        }
+      </style>
+  </head>
+
+  <body>
+
+    <header class="header">
+      <h1> <img src="img/logo_arbodat_plus.png" alt="logo_arbodat_plus"> </h1>
+    </header>
+
+    <div class="container-md" style="margin-top: 120px;">
+      <h2 style="margin-bottom: 8px;">Default values</h2>
+      <p style="margin-bottom: 24px;">
+        These values are preselected in the select fields of the create forms in 'Data Input'.
+        They apply to the whole installation. Empty fields have no default.
+      </p>
+
+      <!-- Accordion, filled by js/settings.js -->
+      <div class="accordion" id="settingsAccordion"></div>
+
+      <button type="button" id="saveDefaultValuesButton" class="MySubmitButton" style="width: unset; padding-left: 10px; padding-right: 10px; float: right; margin-top: 20px; height: 42px; cursor: pointer; border-radius: 5px; background-color: #2510c1; color: #fff;">save</button>
+    </div>
+
+    <!------------------------------- Scripts -------------------------------->
+    <!-- DANTE attributes -->
+    <script src="js/danteAttributes/fetchDanteAttribute.js"></script>
+    <script src="js/danteAttributes/populateDanteDropdown.js"></script>
+    <script src="js/danteAttributes/updateBackendDanteAttributes.js"></script>
+    <script>updateBackendDanteAttributes()</script>
+
+    <script src="js/toast.js"></script>
+    <script src="js/defaultValues.js"></script>
+    <script src="js/settings.js"></script>
+    <!------------------------------------------------------------------------>
+
+    <footer style="margin-top: 60px;">
+      <ul>
+        <li><a href="license.html" target="_blank">License</a></li>
+        <li>Version __APP_VERSION__</li>
+        <li><a href="contact.html" target="_blank">Contact<strong> ☏ </strong></a></li>
+      </ul>
+    </footer>
+
+  </body>
+</html>

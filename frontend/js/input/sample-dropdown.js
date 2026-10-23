@@ -137,6 +137,7 @@ document.addEventListener("DOMContentLoaded", () => {
             volume_determination_wet_radio.checked   = false;
             // Sample dating            
             $('#chronozone').val(null).trigger('change');
+            applyDefaults("sample");
             archaeological_dating_input.value = '';
             cultural_group_input.value        = '';
             absolute_dating_from_input.value  = '';
@@ -309,6 +310,7 @@ document.addEventListener("DOMContentLoaded", () => {
         volume_determination_wet_radio.checked   = false;
         // Sample dating
         $('#chronozone').val(null).trigger('change');
+        applyDefaults("sample");
         archaeological_dating_input.value = '';
         cultural_group_input.value        = '';
         absolute_dating_from_input.value  = '';

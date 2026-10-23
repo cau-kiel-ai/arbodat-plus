@@ -24,7 +24,9 @@ function resetResultForm() {
     // Reset cf
     $('#cf').val(null).trigger('change');
     // Reset rType
-    $('#restType').val(null).trigger('change');    
+    $('#restType').val(null).trigger('change');
+
+    applyDefaults("result");
 }
 
 const result_site_dropdown    = document.getElementById("result_site_dropdown");
@@ -472,6 +474,7 @@ function submitResult() {
             $('#taxCode').val(null).trigger('change');
             $('#result_datings').val(null).trigger('change');
             $('#restType').val(null).trigger('change'); 
+            applyDefaults("result", ["cf", "restType"]);
             // ---------------------------------------------------------
 
             classificationConferDropdown.focus();
@@ -503,4 +506,6 @@ document.addEventListener("DOMContentLoaded", async () => {
 
     await fetchDanteAttribute("restType");
     populateDanteDropdown("restType", restTypeDropdown);
+
+    await applyDefaults("result");
 });

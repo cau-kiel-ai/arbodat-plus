@@ -18,6 +18,7 @@ const exportFileNameInput      = document.getElementById("exportFileName");
 document.addEventListener("DOMContentLoaded", async () => {
     await fetchDanteAttribute("license");
     populateDanteDropdown("license", licenseDropdown);
+    await applyDefaults("project");
 }); // ----------------------------------------------------
 
 function create_update_researchProject() {
@@ -64,6 +65,7 @@ function create_update_researchProject() {
                 // Reset form ------------------------------------
                 researchProjectForm.reset();
                 $('#licenseDropdown').val(null).trigger('change');
+                applyDefaults("project");
                 // -----------------------------------------------
             })
             .catch((error) => {

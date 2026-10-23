@@ -82,6 +82,7 @@ document.addEventListener("DOMContentLoaded", () => {
             funderNameInput.value          = "";
             authorisationNumberInput.value = "";
             $('#licenseDropdown').val(null).trigger('change');
+            applyDefaults("project");
             exportFileNameInput.value      = "";
             // -----------------------------------------------
         }
@@ -124,6 +125,7 @@ document.addEventListener("DOMContentLoaded", () => {
         // Customise here --------------------------------
         researchProjectForm.reset();
         $('#licenseDropdown').val(null).trigger('change');
+        applyDefaults("project");
         // -----------------------------------------------
         inputField.focus();
     });

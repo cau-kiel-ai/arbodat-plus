@@ -99,6 +99,8 @@ document.addEventListener("DOMContentLoaded", async () => {
 
     await fetchDanteAttribute("preservationCondition");
     populateDanteDropdown("preservationCondition", preservationConditionDropdown);
+
+    await applyDefaults("feature");
 });
 
 const featureForm = document.getElementById('feature');
@@ -186,4 +188,5 @@ function resetFeatureForm() {
     featureForm.reset();
     $('#preservation_condition').val(null).trigger('change');
     $('#feature_type').val(null).trigger('change');
+    applyDefaults("feature");
 }

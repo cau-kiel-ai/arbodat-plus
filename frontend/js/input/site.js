@@ -131,6 +131,8 @@ document.addEventListener("DOMContentLoaded", async () => {
 
     await fetchDanteAttribute("naturalUnit");
     populateDanteDropdown("naturalUnit", naturalUnitDropdown);
+
+    await applyDefaults("site");
 });
 
 // Select2 instituitions dropdown -------------------------------------------------
@@ -376,6 +378,7 @@ document.addEventListener('DOMContentLoaded', async function () {
     
     await fetchDanteAttribute("coordinateSystem");
     populateDanteDropdown ("coordinateSystem", coordinate_system_dropdown);
+    await applyDefaults("site", ["site_coordinate_system"]);
     
     // Init map when accordion is opened
     Accordion.addEventListener('shown.bs.collapse', () => {
@@ -613,6 +616,7 @@ function create_update_site() {
                 // Reset form -----------------------------------------------------
                 siteForm.reset();
                 $('#activityNumbers').empty().val(null).trigger('change');
+                applyDefaults("site");
                 siteLiteratureList.length = [];
                 document.getElementById("siteLiteratureContainer").innerHTML = '';
                 siteInstitutionList.length = [];

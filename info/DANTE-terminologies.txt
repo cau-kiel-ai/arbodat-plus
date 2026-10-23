@@ -1,63 +1,74 @@
-       Project:
-         - License
+Project:
+    - License
 
-       Site:
-	 - Taxonomy
-         - SiteType    (hierarchical to SiteTypeGroup)
-         - NaturalUnit (hierarchical to NaturalMainGroup)
-	
-       Coordinate
-         - CoordinateSystem
+Site:
+    - Taxonomy
+    - SiteType    (hierarchical to SiteTypeGroup)
+    - NaturalUnit (hierarchical to NaturalMainGroup)
 
-       Feature:
-         - FeatureType
-	 - PreservationCondition ('feature not or only slightly disturbed',
-                                  'medium feature disturbance',
-                                  'feature heavily disturbed')
+  Coordinate
+    - CoordinateSystem
 
-       Sample:
-         - Chronozone
-         - SampleType
-         - SampleInvestigated (No extension in ArboDat2018 possible,
-                               for Attributes: seedsAndFruits, charcoalInvestigated, woodSubfossile)
+Feature:
+    - FeatureType
+    - PreservationCondition ('feature not or only slightly disturbed',
+                             'medium feature disturbance',
+                             'feature heavily disturbed')
 
-       AbsoluteDating:
-         - DatingMethod
-         - Material
+Sample:
+    - Chronozone
+    - SampleType
+    - SampleInvestigated (no extension in ArboDat2018 possible;
+                          for Attributes: seedsAndFruits,
+                                          charcoalInvestigated,
+                                          woodSubfossile)
 
-       C14Dating:
-         - C14Laboratory
+AbsoluteDating:
+    - DatingMethod
+    - Material
 
-       Results:
-         - TaxCode 		(hierarchical to Taxonomy,
-                                 mapping for: 'ArboDat PCODE')
-         - RestType
-         - StateOfPreservation  ('resultCondition' at Dante)
-	 - ClassificationConfer (No extension in ArboDat2018 possible)
+  C14Dating:
+    - C14Laboratory
+
+Results:
+    - TaxCode (hierarchical to Taxonomy; mapping for: 'ArboDat PCODE')
+    - RestType
+    - StateOfPreservation  ('resultCondition' at Dante)
+    - ClassificationConfer (No extension in ArboDat2018 possible)
 
 
 ----------------------------------------------------------------------
 local entries:
 
-       Site:
-	 - NaturalUnit:		'not chosen', 'unknown'
-	 - SiteType:		'not chosen', 'unknown',
-				'other anthropogenic deposit', 'other natural deposit',
-				'other rural setting', 'other settlement'
-				'other place of cult'
+Site:
+    - NaturalUnit: 'not chosen',
+                   'unknown'
+    - SiteType: 'not chosen',
+                'unknown',
+                'other anthropogenic deposit',
+                'other natural deposit',
+                'other rural setting',
+                'other settlement',
+                'other place of cult'
 
-       Feature:
-	 - FeatureType:		'not chosen', 'unknown',
-				'other type of feature', 'other ritual feature'
+Feature:
+    - FeatureType: 'not chosen', 'unknown',
+                   'other type of feature',
+                   'other ritual feature'
 
-       Sample:
-	 - Chronozone: 		'not chosen', 'unknown'
-	 - SampleType: 		'unknown', 'other'
-	 - SampleInvestigated:	'unknown'
+Sample:
+    - Chronozone: 'not chosen',
+                  'unknown'
+    - SampleType: 'unknown',
+                  'other'
+    - SampleInvestigated: 'unknown'
 
-       AbsoluteDating:
-	- DatingMethod:		'unknown', 'other'
+AbsoluteDating:
+    - DatingMethod: 'unknown',
+                    'other'
 
-       Results:
-         - RestType:		'not chosen', 'unknown'
-         - StateOfPreservation: 'not chosen', 'unknown'
+Results:
+    - RestType: 'not chosen',
+                'unknown'
+    - StateOfPreservation: 'not chosen',
+                           'unknown'

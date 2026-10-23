@@ -311,6 +311,8 @@ document.addEventListener("DOMContentLoaded", async () => {
 
     await fetchDanteAttribute("c14Laboratory");
     populateDanteDropdown("c14Laboratory", c14LabDropdown);
+
+    await applyDefaults("absoluteDating");
 });
 
 // Manage dating accordions ---------------------------------------------------
@@ -625,4 +627,5 @@ function resetAbsoluteDatingForm() {
     $('#material').val(null).trigger('change');
     $('#dating_method').val(null).trigger('change');
     $('#c14_lab').val(null).trigger('change');
+    applyDefaults("absoluteDating");
 }
