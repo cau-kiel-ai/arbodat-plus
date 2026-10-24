@@ -42,7 +42,7 @@
     remove: "Removing…",
   };
 
-  const serviceNames: Record<string, string> = { database: "Database", "web-api": "Web API", frontend: "Web interface" };
+  const serviceNames: Record<string, string> = { database: "Database", "web-api": "Web API", frontend: "Frontend" };
 
   function describe(s: ServiceStatus): { text: string; tone: string } {
     if (s.state === "running") {
@@ -93,7 +93,7 @@
   <p class="phase {shown.tone}">{shown.label}</p>
 
   {#if stack.installedVersion}
-    <p class="muted">Installed version {stack.installedVersion}</p>
+    <p class="muted">Version: <span class="mono">{stack.installedVersion}</span></p>
   {/if}
 
   {#if stack.phase === "notInstalled"}
@@ -144,7 +144,7 @@
       <button onclick={openInBrowser}>Open in Browser</button>
     {/if}
     {#if canStop}
-      <button disabled={busy || !dockerReady} onclick={() => run("stop")}>Stop</button>
+      <button class="danger-hover stop" disabled={busy || !dockerReady} onclick={() => run("stop")}>Stop</button>
     {/if}
     {#if stack.phase === "notInstalled" && !dockerReady}
       <span class="muted small">Docker has to be running first.</span>
@@ -153,6 +153,7 @@
 </section>
 
 <style>
+  .stop { margin-left: auto; }
   .phase { font-size: 18px; font-weight: 600; margin: 0 0 4px; }
   .phase.muted { color: var(--text); }
   p { margin: 4px 0; }

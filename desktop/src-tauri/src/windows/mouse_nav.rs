@@ -14,9 +14,10 @@ use block2::RcBlock;
 use objc2::MainThreadMarker;
 use objc2::rc::Retained;
 use objc2_app_kit::{NSEvent, NSEventMask, NSEventType};
-use tauri::{AppHandle, Manager};
+use tauri::AppHandle;
 
 use super::arbodat::{self, Step};
+use super::main_window;
 
 /// `NSEvent.buttonNumber`: 0 left, 1 right, 2 middle, 3 the button for "back", 4 for "forward".
 fn step_for(button_number: isize) -> Option<Step> {
@@ -39,9 +40,9 @@ fn step_for_swipe(delta_x: f64) -> Option<Step> {
     }
 }
 
-/// Whether the event happened in the ArboDat+ window (not in the launcher).
+/// Whether the event happened in the app's window.
 fn in_arbodat_window(app: &AppHandle, event: &NSEvent, mtm: MainThreadMarker) -> bool {
-    let Some(window) = app.get_webview_window(arbodat::LABEL) else {
+    let Some(window) = main_window(app) else {
         return false;
     };
     let Ok(ns_window) = window.ns_window() else {

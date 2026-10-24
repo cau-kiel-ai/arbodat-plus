@@ -119,8 +119,8 @@
         <p class="small bad">Please enter a number between {MIN_PORT} and {MAX_PORT}.</p>
       {:else}
         <p class="muted small">
-          ArboDat+ answers at <code>http://127.0.0.1:{stack.port}/</code> on this computer only. If it is
-          running, it restarts briefly on the new port.
+          ArboDat+ answers at <code>http://127.0.0.1:{stack.port}/</code> on this computer.<br />
+          If it is running, it restarts briefly on the new port.
         </p>
       {/if}
     </div>
@@ -130,7 +130,7 @@
     <span class="label">Backup folder</span>
     <p class="path"><code>{settings.backupFolder}</code></p>
     <div class="inline">
-      <button disabled={busy} onclick={pickBackupFolder}>Choose…</button>
+      <button disabled={busy} onclick={pickBackupFolder}>Change folder</button>
       {#if !settings.backupFolderIsDefault}
         <button disabled={busy} onclick={useDefaultBackupFolder}>Use the default folder</button>
       {/if}
@@ -143,13 +143,13 @@
       <span class="label">Remove ArboDat+</span>
       {#if !confirmingRemove}
         <div class="inline">
-          <button disabled={busy || !dockerReady} onclick={() => (confirmingRemove = true)}>
-            Remove ArboDat+ from Docker…
+          <button class="danger-hover" disabled={busy || !dockerReady} onclick={() => (confirmingRemove = true)}>
+            Remove ArboDat+ from Docker
           </button>
         </div>
         <p class="muted small">
-          Removes ArboDat+'s containers. Your data, your backups and the downloaded program parts are
-          kept, and installing again picks your data up.
+          Removes ArboDat+'s docker containers. Your data (docker volumes), your backups and the
+          downloaded program parts are kept, and installing again picks your data up.
         </p>
       {:else}
         <div class="hint {databaseGone ? 'bad' : ''}">
@@ -158,8 +158,9 @@
             it again, which creates a <strong>new, empty database</strong>. Backups on your computer stay
             untouched.
           {:else}
-            <strong>Remove ArboDat+ from Docker?</strong> ArboDat+ stops working until you install it
-            again. Your data, backups and the database password file are kept.
+            <strong>Remove ArboDat+ from Docker?</strong><br />
+            ArboDat+ stops working until you install it again.<br />
+            Your data, backups and the database password file are kept.
           {/if}
         </div>
         <div class="actions">

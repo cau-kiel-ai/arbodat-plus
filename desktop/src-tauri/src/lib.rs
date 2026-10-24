@@ -1,5 +1,6 @@
 mod commands;
 pub mod runtime;
+mod server;
 mod settings;
 mod windows;
 
@@ -34,6 +35,8 @@ pub fn run() {
             log::info!("ArboDat+ {version}, data directory {}", data_dir.display());
             app.manage(runtime::RuntimeManager::new(&version, &data_dir)?);
             app.manage(windows::arbodat::Home::default());
+            app.manage(windows::arbodat::LastPage::default());
+            app.manage(windows::arbodat::RevealWhenLoaded::default());
             let documents = app
                 .path()
                 .document_dir()
@@ -43,11 +46,13 @@ pub fn run() {
                 settings::default_backup_folder(&documents),
             ));
             windows::menu::install(app.handle())?;
+            windows::arbodat::create_main(app.handle())?;
             #[cfg(target_os = "macos")]
             windows::install_mouse_navigation(app.handle());
-            // The launcher starts hidden: if ArboDat+ is already running, it goes straight to
-            // the ArboDat+ window instead of flashing the launcher first.
+            // The window starts hidden: if ArboDat+ is already running, it shows ArboDat+ right
+            // away instead of flashing the Control Center first.
             tauri::async_runtime::spawn(route_on_startup(app.handle().clone()));
+            tauri::async_runtime::spawn(windows::watch::run(app.handle().clone()));
             Ok(())
         })
         .on_menu_event(|app, event| windows::menu::handle(app, event.id().as_ref()))
@@ -62,37 +67,26 @@ pub fn run() {
             commands::get_settings,
             commands::set_auto_start,
             commands::choose_backup_folder,
-            commands::reset_backup_folder
+            commands::reset_backup_folder,
+            commands::connect_server,
+            commands::use_local_mode,
+            commands::server_status,
+            commands::open_server_in_browser
         ])
         .on_window_event(|window, event| {
-            let app = window.app_handle();
-            match event {
-                // Closing a window (or quitting) while the stack is being installed, started or
-                // stopped would kill the Docker command halfway: refuse, and say why.
-                tauri::WindowEvent::CloseRequested { api, .. }
-                    if app
-                        .state::<runtime::RuntimeManager>()
-                        .current_operation()
-                        .is_some() =>
+            // Closing the window (or quitting) while the stack is being installed, started or
+            // stopped would kill the Docker command halfway: refuse, and say why. Otherwise
+            // closing the window ends the app; the stack keeps running.
+            if let tauri::WindowEvent::CloseRequested { api, .. } = event {
+                let app = window.app_handle();
+                if app
+                    .state::<runtime::RuntimeManager>()
+                    .current_operation()
+                    .is_some()
                 {
                     api.prevent_close();
                     windows::menu::notify_busy(app);
                 }
-                // While the ArboDat+ window is open the launcher is only hidden, so the menu's
-                // "Control Center" can bring it back.
-                tauri::WindowEvent::CloseRequested { api, .. }
-                    if window.label() == windows::LAUNCHER
-                        && app.get_webview_window(windows::arbodat::LABEL).is_some() =>
-                {
-                    api.prevent_close();
-                    let _ = window.hide();
-                }
-                // Closing the ArboDat+ window ends the app; the stack keeps running.
-                tauri::WindowEvent::Destroyed if window.label() == windows::arbodat::LABEL => {
-                    app.exit(0);
-                }
-                tauri::WindowEvent::Focused(true) => windows::menu::on_focus(window),
-                _ => {}
             }
         })
         .build(tauri::generate_context!())
@@ -119,35 +113,55 @@ pub fn run() {
         });
 }
 
-/// How long the launcher may stay hidden while we find out whether ArboDat+ is already running.
+/// How long the window may stay hidden while we find out whether ArboDat+ is already running.
 const ROUTING_DEADLINE: Duration = Duration::from_secs(4);
 
-/// Running stack: open the ArboDat+ window. Anything else (or an answer that takes too long):
-/// show the launcher, which explains the state.
+/// Server mode: the server answers, show it. Local mode: a running stack is shown. Anything else
+/// (or an answer that takes too long): show the Control Center, which explains the state (and is
+/// where a first setup happens).
 async fn route_on_startup(app: tauri::AppHandle) {
-    let runtime = app.state::<runtime::RuntimeManager>();
-    let status = tokio::time::timeout(ROUTING_DEADLINE, runtime.status()).await;
-    let running_at = match status {
-        Ok(status) if status.stack.phase == runtime::model::StackPhase::Running => status
-            .stack
-            .port
-            .and_then(|port| Url::parse(&format!("http://127.0.0.1:{port}/")).ok()),
-        _ => None,
+    let target = match app.state::<settings::SettingsStore>().get() {
+        settings::Settings {
+            mode: settings::Mode::Server,
+            server_url: Some(server),
+            ..
+        } => match server::normalize_url(&server) {
+            Ok(base) => tokio::time::timeout(ROUTING_DEADLINE, server::check(&base))
+                .await
+                .ok()
+                .and_then(Result::ok),
+            Err(_) => None,
+        },
+        settings::Settings {
+            mode: settings::Mode::Server,
+            ..
+        } => None,
+        _ => {
+            let runtime = app.state::<runtime::RuntimeManager>();
+            match tokio::time::timeout(ROUTING_DEADLINE, runtime.status()).await {
+                Ok(status) if status.stack.phase == runtime::model::StackPhase::Running => status
+                    .stack
+                    .port
+                    .and_then(|port| Url::parse(&format!("http://127.0.0.1:{port}/")).ok()),
+                _ => None,
+            }
+        }
     };
-    if let Some(url) = running_at {
-        log::info!("ArboDat+ is running: opening it at {url}");
+    if let Some(url) = target {
+        log::info!("ArboDat+ is available: opening it at {url}");
         // Window creation belongs on the main thread.
         let handle = app.clone();
         let opened = app.run_on_main_thread(move || {
-            if let Err(e) = windows::arbodat::open(&handle, url) {
-                log::error!("could not open the ArboDat+ window: {e}");
-                windows::show_launcher(&handle);
+            if let Err(e) = windows::arbodat::open_when_ready(&handle, url) {
+                log::error!("could not show ArboDat+: {e}");
+                windows::arbodat::show_control_center(&handle);
             }
         });
         if opened.is_ok() {
             return;
         }
     }
-    log::info!("ArboDat+ isn't running (or didn't answer in time): showing the launcher");
-    windows::show_launcher(&app);
+    log::info!("ArboDat+ isn't available (or didn't answer in time): showing the Control Center");
+    let handle = app.clone();
+    let _ = app.run_on_main_thread(move || windows::arbodat::show_control_center(&handle));
 }

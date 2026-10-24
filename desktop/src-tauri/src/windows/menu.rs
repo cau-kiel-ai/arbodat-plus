@@ -1,11 +1,11 @@
-//! Menus. The ArboDat+ window needs an Edit menu (macOS only copies and pastes through it) and
-//! a few browser-like Navigate commands; the launcher gets the same without Navigate.
+//! The menu. The window needs an Edit menu (macOS only copies and pastes through it) and a few
+//! browser-like Navigate commands, which act on the ArboDat+ page.
 
 use tauri::menu::{Menu, MenuBuilder, MenuItemBuilder, SubmenuBuilder};
-use tauri::{AppHandle, Emitter, Manager, Window, Wry};
+use tauri::{AppHandle, Emitter, Manager, Wry};
 
 use super::arbodat::{self, Home};
-use super::{LAUNCHER, open_external, show_launcher};
+use super::{MAIN, main_window, open_external};
 
 const BACK: &str = "nav-back";
 const FORWARD: &str = "nav-forward";
@@ -16,12 +16,12 @@ const OPEN_IN_BROWSER: &str = "open-in-browser";
 #[cfg(not(target_os = "macos"))]
 const QUIT: &str = "quit";
 
-pub struct Menus {
-    pub launcher: Menu<Wry>,
-    pub arbodat: Menu<Wry>,
-}
+/// The menu bar, kept so a window created later can carry it (Windows and Linux; macOS has one
+/// menu bar for the whole app).
+#[cfg_attr(target_os = "macos", allow(dead_code))]
+pub struct AppMenu(pub Menu<Wry>);
 
-fn build(app: &AppHandle, with_navigation: bool) -> tauri::Result<Menu<Wry>> {
+fn build(app: &AppHandle) -> tauri::Result<Menu<Wry>> {
     let mut menu = MenuBuilder::new(app);
 
     #[cfg(target_os = "macos")]
@@ -61,7 +61,7 @@ fn build(app: &AppHandle, with_navigation: bool) -> tauri::Result<Menu<Wry>> {
             .build()?,
     );
 
-    if with_navigation {
+    {
         menu = menu.item(
             &SubmenuBuilder::new(app, "Navigate")
                 .item(
@@ -96,46 +96,22 @@ fn build(app: &AppHandle, with_navigation: bool) -> tauri::Result<Menu<Wry>> {
     window_menu = window_menu
         .separator()
         .item(&MenuItemBuilder::with_id(CONTROL_CENTER, "Control Center").build(app)?);
-    if with_navigation {
-        window_menu = window_menu.item(
-            &MenuItemBuilder::with_id(OPEN_IN_BROWSER, "Open in Browser")
-                .accelerator("CmdOrCtrl+Shift+B")
-                .build(app)?,
-        );
-    }
+    window_menu = window_menu.item(
+        &MenuItemBuilder::with_id(OPEN_IN_BROWSER, "Open in Browser")
+            .accelerator("CmdOrCtrl+Shift+B")
+            .build(app)?,
+    );
     menu.item(&window_menu.build()?).build()
 }
 
-/// Builds both menus and gives the launcher its own.
+/// Builds the menu. On macOS it is the app's menu bar right away; elsewhere the window created
+/// afterwards carries it.
 pub fn install(app: &AppHandle) -> tauri::Result<()> {
-    let menus = Menus {
-        launcher: build(app, false)?,
-        arbodat: build(app, true)?,
-    };
+    let menu = build(app)?;
     #[cfg(target_os = "macos")]
-    app.set_menu(menus.launcher.clone())?;
-    #[cfg(not(target_os = "macos"))]
-    if let Some(window) = app.get_webview_window(LAUNCHER) {
-        window.set_menu(menus.launcher.clone())?;
-    }
-    app.manage(menus);
+    app.set_menu(menu.clone())?;
+    app.manage(AppMenu(menu));
     Ok(())
-}
-
-/// macOS has one menu bar for the whole app: show the menu of the window that has the focus.
-#[cfg_attr(not(target_os = "macos"), allow(unused_variables))]
-pub fn on_focus(window: &Window) {
-    #[cfg(target_os = "macos")]
-    {
-        let app = window.app_handle();
-        let menus = app.state::<Menus>();
-        let menu = if window.label() == arbodat::LABEL {
-            &menus.arbodat
-        } else {
-            &menus.launcher
-        };
-        let _ = app.set_menu(menu.clone());
-    }
 }
 
 /// Quitting while installing, starting or stopping would kill the Docker command halfway.
@@ -149,14 +125,14 @@ fn quit(app: &AppHandle) {
     }
 }
 
-/// Shows the launcher and tells it why the window can't be closed right now.
+/// Shows the Control Center and tells it why the window can't be closed right now.
 pub fn notify_busy(app: &AppHandle) {
-    show_launcher(app);
-    let _ = app.emit_to(LAUNCHER, "close-blocked", ());
+    arbodat::show_control_center(app);
+    let _ = app.emit_to(MAIN, "close-blocked", ());
 }
 
 pub fn handle(app: &AppHandle, id: &str) {
-    let window = app.get_webview_window(arbodat::LABEL);
+    let window = main_window(app);
     match id {
         BACK => arbodat::step(app, arbodat::Step::Back),
         FORWARD => arbodat::step(app, arbodat::Step::Forward),
@@ -166,11 +142,14 @@ pub fn handle(app: &AppHandle, id: &str) {
             }
         }
         HOME => {
-            if let (Some(window), Some(home)) = (window, app.state::<Home>().get()) {
+            // On the Control Center there is no "home" to go to; its own x does that.
+            if arbodat::shows_arbodat(app)
+                && let (Some(window), Some(home)) = (window, app.state::<Home>().get())
+            {
                 let _ = window.navigate(home);
             }
         }
-        CONTROL_CENTER => show_launcher(app),
+        CONTROL_CENTER => arbodat::request_control_center(app),
         OPEN_IN_BROWSER => {
             // The page being looked at, or the start page if the window shows something internal.
             let url = window

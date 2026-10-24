@@ -1,9 +1,9 @@
 {
   "$schema": "../gen/schemas/desktop-schema.json",
   "identifier": "launcher",
-  "description": "The launcher window: the only window allowed to call the app's commands.",
+  "description": "The Control Center: the app's own page, the only one allowed to call the app's commands. It is shown in the app's one window, which also shows ArboDat+ itself (a web page from a URL); a capability without a `remote` entry applies to the app's own pages only, never to that web page.",
   "windows": [
-    "launcher"
+    "main"
   ],
   "permissions": [
     "core:default",
@@ -18,6 +18,10 @@
     "allow-set-auto-start",
     "allow-choose-backup-folder",
     "allow-reset-backup-folder",
+    "allow-connect-server",
+    "allow-use-local-mode",
+    "allow-server-status",
+    "allow-open-server-in-browser",
     {
       "identifier": "opener:allow-open-url",
       "allow": [

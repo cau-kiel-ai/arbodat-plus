@@ -61,11 +61,14 @@ All verified on macOS in the Phase 4a spike; see the plan for details.
 - **Pinned project.** Every compose call passes project name, directory and file explicitly; the
   data volume is `external` in compose.yml, so compose can never create, recreate or delete it.
   Tests in `runtime/template.rs` fail the build if compose.yml breaks these invariants.
-- **Permissions.** Only the launcher window may call the app's commands
-  (`capabilities/launcher.json`, `build.rs`); the ArboDat+ window gets none, so a web page loaded
-  there (later possibly someone else's server) cannot reach the app. A test fails if a second
-  capability file or a window other than the launcher appears.
-- **The ArboDat+ window** (`src-tauri/src/windows/`). Links within ArboDat+ stay in the window;
+- **Permissions.** The app has one window. It shows either the Control Center (the app's own page)
+  or ArboDat+ (a web page, from this computer or someone else's server), and switches by
+  navigating. Only the Control Center may call the app's commands: the capability
+  (`capabilities/launcher.json`, `build.rs`) names the window but has no `remote` entry, so it
+  applies to the app's own pages only and never to the web page. Tests check the file, and the
+  behaviour was checked for real: a command called from the web page is refused
+  (`… not allowed on window "main"`), from the Control Center it works.
+- **ArboDat+ in the window** (`src-tauri/src/windows/`). Links within ArboDat+ stay in the window;
   every other web or mail link opens in the system's browser or mail program; `file:`,
   `javascript:` and other schemes are dropped. Downloads go to the Downloads folder under a name
   that never overwrites a file (`export (1).csv`), and a message in the page says where. Three
@@ -74,13 +77,28 @@ All verified on macOS in the Phase 4a spike; see the plan for details.
   The mouse's back and forward buttons never reach a macOS web page either, so
   `windows/mouse_nav.rs` picks them up as AppKit events (Windows and Linux handle them natively). It
   understands the buttons themselves and horizontal swipe events, which is what trackpad gestures.
-- **Windows and quitting.** Opening ArboDat+ hides the launcher; the menu's *Window → Control
-  Center* brings it back. Closing the ArboDat+ window quits the app, the stack keeps running.
-  Starting the app while ArboDat+ is running goes straight to the ArboDat+ window. If the stack is
-  stopped from the Control Center while that window is open, the window shows "ArboDat+ is stopped"
-  (`windows/stopped.html`, in the layout of the web app's license page) and returns to ArboDat+
-  when the stack is started again. Nothing can be
-  closed or quit while the stack is being installed, started or stopped.
+- **One window, two pages.** The Control Center is a card that slides in from the right edge; a cog
+  in the top right corner of every ArboDat+ page (injected, `windows/scripts/shims.js`; it keeps its
+  place whether or not the page has a scrollbar) opens
+  it and turns into an "x" that closes it again, back to the page you left. The "x" is only there
+  while there is something to go back to: a server, or a running local ArboDat+. The cog can't call the app: it
+  "navigates" to `arbodat-desktop://control-center`, which the window recognises and cancels. The
+  ArboDat+ page is not kept alive behind the Control Center, so opening it unloads that page. If
+  something was typed and not saved since the page loaded (Data Input, Explorer, Export; a
+  successful create/update clears it), or, on the migration page, anything was chosen or sent
+  (that page holds the whole migration state), a dialog asks first. Until ArboDat+ or a server is
+  set up the Control Center is all there is and has no "x"; it also opens by itself when ArboDat+
+  isn't available at startup, and can't be left while an operation runs.
+- **Title bar.** "ArboDat+" on the start page and in the Control Center; "ArboDat+  Data Input" (a wide gap, no dash)
+  (and Data Migration, Data Explorer, Data Report, Data Export, License, Contact) on the other pages,
+  named by file so it also works under a server's sub-path (`window_title` in `windows/arbodat.rs`).
+- **Quitting.** Closing the window quits the app, the stack keeps running. Starting the app while
+  ArboDat+ is running goes straight to it: the window stays hidden until the ArboDat+ page has
+  loaded (at the latest after 6 seconds), so the Control Center never flashes by. The window checks its address every 10 seconds: if it
+  stops answering (the server, or ArboDat+ stopped outside the app) a message appears in its corner
+  ("ArboDat+ Server is not answering" / "ArboDat+ is not answering") and disappears when it answers
+  again. Choosing another server shows that server in the same window. Nothing can be closed or
+  quit while the stack is being installed, started or stopped.
 - **`Info.plist`.** `NSAllowsArbitraryLoadsInWebContent`: without it, macOS silently blocks
   plain-http servers addressed by hostname (intranet servers in server mode).
 
@@ -107,6 +125,15 @@ appears).
   restarts it on the new port; if that fails, everything goes back to the old port. *Start when
   this app opens*: starts a stopped installation once, when Docker is ready. *Backup folder*:
   where backups will be written. All of it is stored in `settings.json` in the data directory.
+- **Server mode.** Instead of running ArboDat+ in Docker, the app can be a window onto an ArboDat+
+  server of your institute. *Use a server instead* takes an address (`https://` is assumed if none
+  is given; no user name or password in it; a sub-path is fine), asks the server's `/healthz`
+  (certificates and proxy settings of the operating system apply, like in a browser; redirects, say
+  from http to https, are followed and the window starts from where they lead) and, if it answers,
+  switches to server mode and shows it in the window. If it doesn't answer, the error says why and the
+  address can still be saved on request (Open then waits until the server answers). In server mode the app does not touch Docker at all; the
+  local installation stays as it is and *Use ArboDat+ on this computer instead* goes back to it.
+  Backups, updates and access are the server administrator's business.
 - **Remove ArboDat+ from Docker** runs `down` and forgets `state.json`, nothing else: the database
   volume, `.env` (the password), `compose.yml`, the downloaded images and your backups stay, so
   *Install* afterwards finds and keeps the same data and the same port. If Docker no longer has the

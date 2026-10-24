@@ -12,9 +12,24 @@ use crate::runtime::fsutil;
 const FILE: &str = "settings.json";
 const BACKUP_FOLDER_NAME: &str = "ArboDat+ Backups";
 
+/// Where ArboDat+ runs.
+#[derive(Debug, Clone, Copy, Default, PartialEq, Eq, Serialize, Deserialize, TS)]
+#[serde(rename_all = "camelCase")]
+#[ts(export)]
+pub enum Mode {
+    /// On this computer, in Docker.
+    #[default]
+    Local,
+    /// On a server of the institute; this app is only a window onto it.
+    Server,
+}
+
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase", default)]
 pub struct Settings {
+    pub mode: Mode,
+    /// The server of server mode. Kept when switching back to local mode, to offer it again.
+    pub server_url: Option<String>,
     /// Start ArboDat+ (if it is installed and stopped) when the app opens.
     pub auto_start: bool,
     /// Where backups go; `None` = the default folder.
@@ -24,6 +39,8 @@ pub struct Settings {
 impl Default for Settings {
     fn default() -> Self {
         Self {
+            mode: Mode::Local,
+            server_url: None,
             auto_start: true,
             backup_folder: None,
         }
@@ -35,6 +52,8 @@ impl Default for Settings {
 #[serde(rename_all = "camelCase")]
 #[ts(export)]
 pub struct SettingsView {
+    pub mode: Mode,
+    pub server_url: Option<String>,
     pub auto_start: bool,
     /// The folder backups go to: the chosen one, or the default.
     pub backup_folder: String,
@@ -123,6 +142,8 @@ impl SettingsStore {
 fn view_of(settings: &Settings, default_folder: &Path) -> SettingsView {
     let folder = settings.backup_folder.as_deref().unwrap_or(default_folder);
     SettingsView {
+        mode: settings.mode,
+        server_url: settings.server_url.clone(),
         auto_start: settings.auto_start,
         backup_folder: folder.display().to_string(),
         backup_folder_is_default: settings.backup_folder.is_none(),
@@ -159,6 +180,26 @@ mod tests {
         assert!(!view.auto_start);
         assert!(!view.backup_folder_is_default);
         assert_eq!(view.backup_folder, "backups");
+    }
+
+    #[test]
+    fn local_mode_is_the_default_and_the_server_is_remembered_when_switching_back() {
+        let dir = tempfile::tempdir().unwrap();
+        let store = store(dir.path());
+        assert_eq!(store.view().mode, Mode::Local);
+        store
+            .update(|s| {
+                s.mode = Mode::Server;
+                s.server_url = Some("https://arbodat.example.org/".into());
+            })
+            .unwrap();
+        store.update(|s| s.mode = Mode::Local).unwrap();
+        let view = SettingsStore::new(dir.path(), PathBuf::from("d")).view();
+        assert_eq!(view.mode, Mode::Local);
+        assert_eq!(
+            view.server_url.as_deref(),
+            Some("https://arbodat.example.org/")
+        );
     }
 
     #[test]

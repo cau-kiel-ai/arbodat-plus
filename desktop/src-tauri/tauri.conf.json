@@ -13,13 +13,14 @@
     "withGlobalTauri": false,
     "windows": [
       {
-        "label": "launcher",
-        "title": "ArboDat+ Control Center",
-        "width": 760,
-        "height": 640,
-        "minWidth": 560,
-        "minHeight": 480,
-        "visible": false
+        "label": "main",
+        "title": "ArboDat+",
+        "width": 1280,
+        "height": 860,
+        "minWidth": 800,
+        "minHeight": 560,
+        "visible": false,
+        "create": false
       }
     ],
     "security": {

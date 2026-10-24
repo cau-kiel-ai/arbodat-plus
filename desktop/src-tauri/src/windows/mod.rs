@@ -1,29 +1,27 @@
-//! The app's two windows: the launcher (our own UI, may call the app's commands) and the
-//! ArboDat+ window (the web app itself, loaded from a URL; no capability, so no IPC).
+//! The app's one window. It shows either the Control Center (our own page, which may call the
+//! app's commands) or ArboDat+ itself (a web page from a URL, which may not), and switches between
+//! the two by navigating. See `arbodat.rs`.
 
 pub mod arbodat;
 pub mod download;
 pub mod menu;
 #[cfg(target_os = "macos")]
 mod mouse_nav;
-pub mod stopped;
+pub mod watch;
 
 use tauri::{AppHandle, Manager, Url};
 use tauri_plugin_opener::OpenerExt;
 
-pub const LAUNCHER: &str = "launcher";
+pub const MAIN: &str = "main";
 
-pub fn show_launcher(app: &AppHandle) {
-    if let Some(window) = app.get_webview_window(LAUNCHER) {
-        bring_forward(&window);
-    }
+pub fn main_window(app: &AppHandle) -> Option<tauri::WebviewWindow> {
+    app.get_webview_window(MAIN)
 }
 
-/// Brings the window the user is working in forward: the ArboDat+ window if there is one.
+/// Brings the window forward (the Dock icon, launching the app a second time).
 pub fn focus_main(app: &AppHandle) {
-    match app.get_webview_window(arbodat::LABEL) {
-        Some(window) => bring_forward(&window),
-        None => show_launcher(app),
+    if let Some(window) = main_window(app) {
+        bring_forward(&window);
     }
 }
 

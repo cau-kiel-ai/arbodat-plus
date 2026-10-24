@@ -4,6 +4,7 @@ import { openUrl } from "@tauri-apps/plugin-opener";
 import type { AppError } from "./bindings/AppError";
 import type { Operation } from "./bindings/Operation";
 import type { ProgressEvent } from "./bindings/ProgressEvent";
+import type { ServerStatus } from "./bindings/ServerStatus";
 import type { SettingsView } from "./bindings/SettingsView";
 import type { Status } from "./bindings/Status";
 
@@ -37,6 +38,17 @@ export const setAutoStart = (enabled: boolean) => invoke<SettingsView>("set_auto
 /** Opens the system's folder picker; resolves to `null` if the user cancelled. */
 export const chooseBackupFolder = () => invoke<SettingsView | null>("choose_backup_folder");
 export const resetBackupFolder = () => invoke<SettingsView>("reset_backup_folder");
+
+/**
+ * Switches to server mode and opens the ArboDat+ window on `url`. Unless `force`, the address is
+ * checked first; rejects with an `AppError` (`serverUnreachable` / `notArbodat` can be forced).
+ */
+export const connectServer = (url: string, force = false) => invoke<SettingsView>("connect_server", { url, force });
+/** Back to ArboDat+ on this computer. */
+export const useLocalMode = () => invoke<SettingsView>("use_local_mode");
+export const serverStatus = () => invoke<ServerStatus>("server_status");
+/** Opens the saved server in the system browser. */
+export const openServerInBrowser = () => invoke<void>("open_server_in_browser");
 
 /** Rejections from our commands are `AppError`s; anything else (a bug, IPC trouble) gets wrapped. */
 export function asAppError(e: unknown): AppError {

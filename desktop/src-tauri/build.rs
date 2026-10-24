@@ -15,6 +15,10 @@ fn main() {
             "set_auto_start",
             "choose_backup_folder",
             "reset_backup_folder",
+            "connect_server",
+            "use_local_mode",
+            "server_status",
+            "open_server_in_browser",
         ]),
     ))
     .expect("failed to run tauri-build");

@@ -30,13 +30,16 @@ tauri-plugin-dialog = "2"
 log = "0.4"
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"
-base64 = "0.22"
 thiserror = "2"
 semver = "1"
 # Operating-system randomness for the database password.
 getrandom = "0.4"
 tokio = { version = "1.53", features = ["process", "time", "sync", "fs", "io-util", "net", "macros", "rt-multi-thread"] }
 ts-rs = "12"
+# Probing a server's /healthz (server mode). TLS with the operating system's trusted certificates
+# and proxy settings, so an institute's own certificate authority works like it does in a browser.
+reqwest = { version = "0.13", default-features = false, features = ["rustls-no-provider", "system-proxy"] }
+rustls = { version = "0.23", default-features = false, features = ["ring", "std", "tls12"] }
 
 # macOS only: the system webview never passes the mouse's back/forward buttons to the page, so
 # they are picked up natively (windows/mouse_nav.rs).

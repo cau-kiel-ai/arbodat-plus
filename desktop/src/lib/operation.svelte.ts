@@ -66,6 +66,8 @@ class OperationState {
     // shown next to a stale "Installing…" for as long as the refresh takes.
     await afterwards();
     this.running = null;
+    // "The window stays open until this has finished" has served its purpose.
+    this.notice = null;
     if (failure) this.error = failure;
     else this.succeeded = operation;
   }

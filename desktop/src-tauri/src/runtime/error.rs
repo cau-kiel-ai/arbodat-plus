@@ -30,6 +30,10 @@ pub enum ErrorCode {
     PortInUse,
     /// The user's input can't be used (e.g. a port outside the allowed range).
     InvalidInput,
+    /// A server (server mode) doesn't answer: no connection, a certificate problem, too slow.
+    ServerUnreachable,
+    /// A server answers, but not like an ArboDat+ server.
+    NotArbodat,
     Offline,
     RegistryDenied,
     DiskFull,

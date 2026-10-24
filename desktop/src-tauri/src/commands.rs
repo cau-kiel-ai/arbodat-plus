@@ -1,13 +1,14 @@
-//! Commands callable from the launcher window (see capabilities/launcher.json and build.rs).
+//! Commands callable from the Control Center page (see capabilities/launcher.json and build.rs).
 
 use tauri::ipc::Channel;
-use tauri::{AppHandle, Manager, Url};
+use tauri::{AppHandle, Url};
 use tauri_plugin_dialog::DialogExt;
 
 use crate::runtime::error::{AppError, ErrorCode};
 use crate::runtime::model::{ProgressEvent, Status};
 use crate::runtime::{RuntimeManager, probe, state};
-use crate::settings::{self, SettingsStore, SettingsView};
+use crate::server;
+use crate::settings::{self, Mode, SettingsStore, SettingsView};
 use crate::windows;
 
 /// Never fails: problems (no Docker, engine down, damaged state...) are part of the `Status`.
@@ -20,65 +21,50 @@ pub async fn get_status(runtime: tauri::State<'_, RuntimeManager>) -> Result<Sta
 /// Installs ArboDat+ on this computer and starts it. Progress streams through `on_event`.
 #[tauri::command]
 pub async fn install(
-    app: AppHandle,
     runtime: tauri::State<'_, RuntimeManager>,
     on_event: Channel<ProgressEvent>,
 ) -> Result<(), AppError> {
-    runtime.install(&|event| drop(on_event.send(event))).await?;
-    windows::arbodat::resume(&app);
-    Ok(())
+    runtime.install(&|event| drop(on_event.send(event))).await
 }
 
 /// Starts the installed stack (downloading anything missing first).
 #[tauri::command]
 pub async fn start(
-    app: AppHandle,
     runtime: tauri::State<'_, RuntimeManager>,
     on_event: Channel<ProgressEvent>,
 ) -> Result<(), AppError> {
-    runtime.start(&|event| drop(on_event.send(event))).await?;
-    windows::arbodat::resume(&app);
-    Ok(())
+    runtime.start(&|event| drop(on_event.send(event))).await
 }
 
-/// Stops the stack. Containers, network and data stay. An open ArboDat+ window says so.
+/// Stops the stack. Containers, network and data stay.
 #[tauri::command]
 pub async fn stop(
-    app: AppHandle,
     runtime: tauri::State<'_, RuntimeManager>,
     on_event: Channel<ProgressEvent>,
 ) -> Result<(), AppError> {
-    runtime.stop(&|event| drop(on_event.send(event))).await?;
-    windows::arbodat::show_stopped(&app);
-    Ok(())
+    runtime.stop(&|event| drop(on_event.send(event))).await
 }
 
-/// Moves ArboDat+ to another port. An open ArboDat+ window follows.
+/// Moves ArboDat+ to another port.
 #[tauri::command]
 pub async fn change_port(
-    app: AppHandle,
     runtime: tauri::State<'_, RuntimeManager>,
     port: u16,
     on_event: Channel<ProgressEvent>,
 ) -> Result<(), AppError> {
     runtime
         .change_port(port, &|event| drop(on_event.send(event)))
-        .await?;
-    windows::arbodat::follow(&app, local_url(port));
-    Ok(())
+        .await
 }
 
 /// Removes ArboDat+'s containers from Docker. The database, the password file, backups and
 /// downloaded images are kept, so installing again picks the same data up.
 #[tauri::command]
 pub async fn remove_installation(
-    app: AppHandle,
     runtime: tauri::State<'_, RuntimeManager>,
     on_event: Channel<ProgressEvent>,
 ) -> Result<(), AppError> {
-    runtime.remove(&|event| drop(on_event.send(event))).await?;
-    windows::arbodat::show_stopped(&app);
-    Ok(())
+    runtime.remove(&|event| drop(on_event.send(event))).await
 }
 
 #[tauri::command]
@@ -114,8 +100,8 @@ pub async fn choose_backup_folder(
     if current.is_dir() {
         dialog = dialog.set_directory(current);
     }
-    if let Some(launcher) = app.get_webview_window(windows::LAUNCHER) {
-        dialog = dialog.set_parent(&launcher);
+    if let Some(window) = windows::main_window(&app) {
+        dialog = dialog.set_parent(&window);
     }
     let Some(picked) = dialog.blocking_pick_folder() else {
         return Ok(None);
@@ -149,37 +135,55 @@ fn local_url(port: u16) -> Url {
     Url::parse(&format!("http://127.0.0.1:{port}/")).expect("a valid local address")
 }
 
-/// Opens the ArboDat+ window on the local installation (or brings it forward). The launcher
+/// Shows ArboDat+ (the local installation or the server) in the window. The Control Center
 /// can't choose the address: it always comes from the installation record.
 #[tauri::command]
 pub async fn open_arbodat(
     app: AppHandle,
     runtime: tauri::State<'_, RuntimeManager>,
+    store: tauri::State<'_, SettingsStore>,
 ) -> Result<(), AppError> {
-    let port = match state::load(runtime.runtime_dir()) {
-        Ok(Some(installed)) => installed.port,
-        Ok(None) => {
+    let settings = store.get();
+    let url = match (settings.mode, settings.server_url) {
+        (Mode::Server, Some(server)) => server::check(&server::normalize_url(&server)?).await?,
+        (Mode::Server, None) => {
             return Err(AppError::new(
                 ErrorCode::NotInstalled,
-                "ArboDat+ isn't installed on this computer yet.",
+                "No server has been chosen yet.",
             ));
         }
-        Err(e) => {
-            return Err(AppError::new(
-                ErrorCode::StateDamaged,
-                "ArboDat+'s installation record can't be read.",
-            )
-            .with_detail(e.to_string()));
+        (Mode::Local, _) => {
+            let port = match state::load(runtime.runtime_dir()) {
+                Ok(Some(installed)) => installed.port,
+                Ok(None) => {
+                    return Err(AppError::new(
+                        ErrorCode::NotInstalled,
+                        "ArboDat+ isn't installed on this computer yet.",
+                    ));
+                }
+                Err(e) => {
+                    return Err(AppError::new(
+                        ErrorCode::StateDamaged,
+                        "ArboDat+'s installation record can't be read.",
+                    )
+                    .with_detail(e.to_string()));
+                }
+            };
+            // An empty window with a connection error is no answer to "Open".
+            if probe::status_of(port, "/healthz").await != Ok(200) {
+                return Err(AppError::new(
+                    ErrorCode::NotReady,
+                    "ArboDat+ isn't answering. Start it first, or wait a moment if it is still starting.",
+                ));
+            }
+            local_url(port)
         }
     };
-    // An empty window with a connection error is no answer to "Open".
-    if probe::status_of(port, "/healthz").await != Ok(200) {
-        return Err(AppError::new(
-            ErrorCode::NotReady,
-            "ArboDat+ isn't answering. Start it first, or wait a moment if it is still starting.",
-        ));
-    }
-    let url = local_url(port);
+    open_window(&app, url).await
+}
+
+/// Opens (or brings forward) the ArboDat+ window on `url`.
+async fn open_window(app: &AppHandle, url: Url) -> Result<(), AppError> {
     // Creating windows from a worker thread is unreliable on some platforms.
     let handle = app.clone();
     let (done, result) = tokio::sync::oneshot::channel();
@@ -203,6 +207,74 @@ pub async fn open_arbodat(
     }
 }
 
+/// Switches to server mode: checks the address, saves it and shows the server in the window. The
+/// local installation is left alone. With `force` (the user wants an address that didn't pass the
+/// check) it is only saved: the Control Center then shows that the server doesn't answer, and Open
+/// works as soon as it does, instead of leaving the user in front of an empty browser error page.
+#[tauri::command]
+pub async fn connect_server(
+    app: AppHandle,
+    store: tauri::State<'_, SettingsStore>,
+    url: String,
+    force: bool,
+) -> Result<SettingsView, AppError> {
+    let typed = server::normalize_url(&url)?;
+    let base = if force {
+        typed.clone()
+    } else {
+        server::check(&typed).await?
+    };
+    let view = store
+        .update(|s| {
+            s.mode = Mode::Server;
+            s.server_url = Some(base.to_string());
+        })
+        .map_err(|e| save_failed(&e))?;
+    if !force {
+        open_window(&app, base).await?;
+    }
+    Ok(view)
+}
+
+/// Back to ArboDat+ on this computer. The server stays remembered.
+#[tauri::command]
+pub fn use_local_mode(store: tauri::State<'_, SettingsStore>) -> Result<SettingsView, AppError> {
+    store
+        .update(|s| s.mode = Mode::Local)
+        .map_err(|e| save_failed(&e))
+}
+
+/// Opens the server of server mode in the system browser. The address is the saved one, never
+/// something the Control Center passes in.
+#[tauri::command]
+pub fn open_server_in_browser(
+    app: AppHandle,
+    store: tauri::State<'_, SettingsStore>,
+) -> Result<(), AppError> {
+    let Some(server) = store.get().server_url else {
+        return Err(AppError::new(
+            ErrorCode::NotInstalled,
+            "No server has been chosen yet.",
+        ));
+    };
+    windows::open_external(&app, &server::normalize_url(&server)?);
+    Ok(())
+}
+
+/// Does the server of server mode answer right now?
+#[tauri::command]
+pub async fn server_status(
+    store: tauri::State<'_, SettingsStore>,
+) -> Result<server::ServerStatus, AppError> {
+    let Some(server) = store.get().server_url else {
+        return Err(AppError::new(
+            ErrorCode::NotInstalled,
+            "No server has been chosen yet.",
+        ));
+    };
+    Ok(server::status(&server::normalize_url(&server)?).await)
+}
+
 /// Tests of `capabilities/launcher.json`: a command or URL missing there doesn't fail loudly, it just
 /// makes a button do nothing, so the file is checked like code.
 #[cfg(test)]
@@ -212,7 +284,7 @@ mod capability_tests {
     const LAUNCHER: &str = include_str!("../capabilities/launcher.json");
     const BUILD_RS: &str = include_str!("../build.rs");
     /// Every `#[tauri::command]` of this file.
-    const COMMANDS: [&str; 11] = [
+    const COMMANDS: [&str; 15] = [
         "get_status",
         "install",
         "start",
@@ -224,6 +296,10 @@ mod capability_tests {
         "set_auto_start",
         "choose_backup_folder",
         "reset_backup_folder",
+        "connect_server",
+        "use_local_mode",
+        "server_status",
+        "open_server_in_browser",
     ];
 
     fn launcher() -> Value {
@@ -235,8 +311,8 @@ mod capability_tests {
         let capability = launcher();
         assert_eq!(
             capability["windows"],
-            serde_json::json!(["launcher"]),
-            "only the launcher window may call commands"
+            serde_json::json!(["main"]),
+            "only the app's own window may call commands, and only its own pages (no `remote` entry)"
         );
         let permissions: Vec<&str> = capability["permissions"]
             .as_array()
@@ -271,7 +347,7 @@ mod capability_tests {
     /// capability file there is must name the launcher alone, with no wildcard and no `remote`
     /// access (which is what would let a web page use the commands).
     #[test]
-    fn the_arbodat_window_is_granted_nothing() {
+    fn a_web_page_in_the_window_is_granted_nothing() {
         let dir = std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("capabilities");
         let files: Vec<_> = std::fs::read_dir(&dir)
             .unwrap()
@@ -294,11 +370,11 @@ mod capability_tests {
             .iter()
             .filter_map(Value::as_str)
             .collect();
-        assert_eq!(
-            windows,
-            ["launcher"],
-            "only the launcher window, no wildcard"
-        );
+        assert_eq!(windows, ["main"], "only the app's window, no wildcard");
+        // `local` defaults to true: the capability applies to the app's own pages. A web page
+        // (ArboDat+) in the same window is a remote origin and only matches `remote` entries,
+        // of which there are none: that is the whole protection, so it must stay that way.
+        assert!(capability.get("local").is_none_or(|v| v == true));
     }
 
     /// The patterns the opener plugin will match a URL against (as a literal string; it does not

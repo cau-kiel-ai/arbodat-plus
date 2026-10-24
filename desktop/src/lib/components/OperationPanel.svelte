@@ -69,13 +69,19 @@
 {/if}
 
 {#if operation.notice}
-  <section><div class="hint">{operation.notice}</div></section>
+  <section>
+    <div class="hint notice">
+      <span>{operation.notice}</span>
+      <button class="link" onclick={() => (operation.notice = null)}>Dismiss</button>
+    </div>
+  </section>
 {/if}
 
 <style>
   .step { margin: 4px 0 8px; font-weight: 600; }
   .small { font-size: 13px; margin: 8px 0 0; }
   .done { margin: 0; font-weight: 600; }
+  .notice { display: flex; justify-content: space-between; gap: 16px; align-items: baseline; margin-top: 0; }
   progress { width: 100%; height: 10px; accent-color: var(--accent); }
   details { margin-top: 10px; }
   summary { cursor: pointer; color: var(--muted); }
