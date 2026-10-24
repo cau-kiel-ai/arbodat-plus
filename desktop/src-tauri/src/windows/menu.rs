@@ -1,6 +1,8 @@
 //! The menu. The window needs an Edit menu (macOS only copies and pastes through it) and a few
 //! browser-like Navigate commands, which act on the ArboDat+ page.
 
+#[cfg(target_os = "macos")]
+use tauri::menu::AboutMetadataBuilder;
 use tauri::menu::{Menu, MenuBuilder, MenuItemBuilder, SubmenuBuilder};
 use tauri::{AppHandle, Emitter, Manager, Wry};
 
@@ -26,17 +28,24 @@ fn build(app: &AppHandle) -> tauri::Result<Menu<Wry>> {
 
     #[cfg(target_os = "macos")]
     {
+        // The standard panel shows "Version 5.0.0-dev (5.0.0-dev)": version and build number are
+        // the same text here. An empty build number leaves the brackets out.
+        let about = AboutMetadataBuilder::new()
+            .name(Some("ArboDat+"))
+            .version(Some(app.package_info().version.to_string()))
+            .short_version(Some(""))
+            .build();
         menu = menu.item(
             &SubmenuBuilder::new(app, "ArboDat+")
-                .about(None)
+                .about_with_text("About ArboDat+", Some(about))
                 .separator()
                 .services()
                 .separator()
-                .hide()
+                .hide_with_text("Hide ArboDat+")
                 .hide_others()
                 .show_all()
                 .separator()
-                .quit()
+                .quit_with_text("Quit ArboDat+")
                 .build()?,
         );
     }

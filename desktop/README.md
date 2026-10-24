@@ -89,7 +89,7 @@ All verified on macOS in the Phase 4a spike; see the plan for details.
   (that page holds the whole migration state), a dialog asks first. Until ArboDat+ or a server is
   set up the Control Center is all there is and has no "x"; it also opens by itself when ArboDat+
   isn't available at startup, and can't be left while an operation runs.
-- **Title bar.** "ArboDat+" on the start page and in the Control Center; "ArboDat+  Data Input" (a wide gap, no dash)
+- **Title bar.** "ArboDat+" on the start page and in the Control Center; "ArboDat+  Data Input" (a gap as wide as the one between the window buttons and the title, no dash)
   (and Data Migration, Data Explorer, Data Report, Data Export, License, Contact) on the other pages,
   named by file so it also works under a server's sub-path (`window_title` in `windows/arbodat.rs`).
 - **Quitting.** Closing the window quits the app, the stack keeps running. Starting the app while
