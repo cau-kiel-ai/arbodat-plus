@@ -11,6 +11,7 @@ use super::template::{COMPOSE_FILE, PROJECT};
 
 const PS_TIMEOUT: Duration = Duration::from_secs(20);
 const CONFIG_TIMEOUT: Duration = Duration::from_secs(30);
+const LOGS_TIMEOUT: Duration = Duration::from_secs(30);
 /// `up` may also have to pull missing images (it does so by itself), then waits up to `UP_WAIT_SECS` for health checks.
 const UP_TIMEOUT: Duration = Duration::from_secs(55 * 60);
 const UP_WAIT_SECS: &str = "600";
@@ -111,6 +112,32 @@ pub async fn stop(
         on_line,
     )
     .await
+}
+
+/// The last `tail` lines of every service's log, oldest first, for the diagnostics report. Works for
+/// stopped containers too; changes nothing.
+pub async fn logs(cli: &DockerCli, runtime_dir: &Path, tail: u32) -> Result<String, String> {
+    let tail = tail.to_string();
+    let out = cli
+        .run_in(
+            runtime_dir,
+            args(
+                runtime_dir,
+                &["logs", "--no-color", "--timestamps", "--tail", &tail],
+            ),
+            LOGS_TIMEOUT,
+        )
+        .await
+        .map_err(|e| e.to_string())?;
+    if !out.success() {
+        return Err(if out.stderr.is_empty() {
+            format!("`docker compose logs` failed (exit code {:?})", out.code)
+        } else {
+            out.stderr
+        });
+    }
+    // Services write to both streams; compose forwards its own notices to stderr.
+    Ok(out.stdout)
 }
 
 /// `docker compose down` with nothing else: removes the containers and the network, nothing

@@ -5,6 +5,7 @@
   import type { SettingsView } from "./lib/bindings/SettingsView";
   import type { Status } from "./lib/bindings/Status";
   import CogButton from "./lib/components/CogButton.svelte";
+  import DiagnosticsPanel from "./lib/components/DiagnosticsPanel.svelte";
   import DockerPanel from "./lib/components/DockerPanel.svelte";
   import OperationPanel from "./lib/components/OperationPanel.svelte";
   import ServerForm from "./lib/components/ServerForm.svelte";
@@ -227,6 +228,7 @@
 
   {#if settings?.mode === "server"}
     <ServerPanel {settings} {server} {onSettings} />
+    <DiagnosticsPanel />
   {:else if status}
     <DockerPanel docker={status.docker} />
     <StackPanel stack={status.stack} appVersion={status.appVersion} {dockerReady} afterOperation={refreshAfterOperation} />
@@ -250,6 +252,7 @@
           onConnected={onSettings}
         />
       </section>
+      <DiagnosticsPanel />
     {/if}
   {:else if !error}
     <section><p class="muted">Checking…</p></section>

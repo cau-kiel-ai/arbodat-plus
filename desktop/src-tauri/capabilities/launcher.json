@@ -22,6 +22,7 @@
     "allow-use-local-mode",
     "allow-server-status",
     "allow-open-server-in-browser",
+    "allow-get-diagnostics",
     {
       "identifier": "opener:allow-open-url",
       "allow": [

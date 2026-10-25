@@ -47,6 +47,8 @@ export const connectServer = (url: string, force = false) => invoke<SettingsView
 /** Back to ArboDat+ on this computer. */
 export const useLocalMode = () => invoke<SettingsView>("use_local_mode");
 export const serverStatus = () => invoke<ServerStatus>("server_status");
+/** A text report about the app, Docker and the installation (database password left out). */
+export const getDiagnostics = () => invoke<string>("get_diagnostics");
 /** Opens the saved server in the system browser. */
 export const openServerInBrowser = () => invoke<void>("open_server_in_browser");
 

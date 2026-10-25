@@ -1,4 +1,5 @@
 mod commands;
+mod diagnostics;
 pub mod runtime;
 mod server;
 mod settings;
@@ -71,7 +72,8 @@ pub fn run() {
             commands::connect_server,
             commands::use_local_mode,
             commands::server_status,
-            commands::open_server_in_browser
+            commands::open_server_in_browser,
+            commands::get_diagnostics
         ])
         .on_window_event(|window, event| {
             // Closing the window (or quitting) while the stack is being installed, started or

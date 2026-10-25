@@ -19,6 +19,7 @@ fn main() {
             "use_local_mode",
             "server_status",
             "open_server_in_browser",
+            "get_diagnostics",
         ]),
     ))
     .expect("failed to run tauri-build");

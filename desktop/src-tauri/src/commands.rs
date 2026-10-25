@@ -261,6 +261,19 @@ pub fn open_server_in_browser(
     Ok(())
 }
 
+/// A report about the app, Docker and the installation, to copy into a message when asking for
+/// help. Reads only; the database password is left out.
+#[tauri::command]
+pub async fn get_diagnostics(
+    app: AppHandle,
+    runtime: tauri::State<'_, RuntimeManager>,
+    store: tauri::State<'_, SettingsStore>,
+) -> Result<String, AppError> {
+    crate::diagnostics::collect(&app, &runtime, &store)
+        .await
+        .map_err(|e| AppError::new(ErrorCode::Io, "The report couldn't be created.").with_detail(e))
+}
+
 /// Does the server of server mode answer right now?
 #[tauri::command]
 pub async fn server_status(
@@ -284,7 +297,7 @@ mod capability_tests {
     const LAUNCHER: &str = include_str!("../capabilities/launcher.json");
     const BUILD_RS: &str = include_str!("../build.rs");
     /// Every `#[tauri::command]` of this file.
-    const COMMANDS: [&str; 15] = [
+    const COMMANDS: [&str; 16] = [
         "get_status",
         "install",
         "start",
@@ -300,6 +313,7 @@ mod capability_tests {
         "use_local_mode",
         "server_status",
         "open_server_in_browser",
+        "get_diagnostics",
     ];
 
     fn launcher() -> Value {

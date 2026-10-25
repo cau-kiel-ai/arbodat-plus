@@ -136,6 +136,15 @@ impl RuntimeManager {
         }
     }
 
+    /// The recent log lines of the installed stack, or why they can't be had. Read-only.
+    pub async fn logs(&self, tail: u32) -> Result<String, String> {
+        let cli = self
+            .docker_cli()
+            .await
+            .map_err(|_| "Docker isn't available".to_string())?;
+        compose::logs(&cli, &self.runtime_dir, tail).await
+    }
+
     async fn docker_cli(&self) -> Result<DockerCli, CliStatus> {
         let mut cached = self.docker.lock().await;
         // The binary and the app-owned settings must both still exist: a user who deletes the

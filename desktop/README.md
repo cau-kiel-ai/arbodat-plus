@@ -134,6 +134,14 @@ appears).
   address can still be saved on request (Open then waits until the server answers). In server mode the app does not touch Docker at all; the
   local installation stays as it is and *Use ArboDat+ on this computer instead* goes back to it.
   Backups, updates and access are the server administrator's business.
+- **Diagnostics.** The Control Center's *Create Report* collects one piece of text to copy into a
+  message when asking for help (`src-tauri/src/diagnostics.rs`): app and system versions, the mode,
+  Docker, the state of ArboDat+ and its services, `state.json`, the `.env` without its secrets, the
+  last 150 log lines per service (`docker compose logs`) and the end of the app's own log; in
+  server mode the server's answer instead of everything Docker. It only reads. The database
+  password is left out twice over: the `.env` shows `DATABASE_PASSWORD=<hidden>`, and the whole
+  report is then cleaned of that password wherever a log quotes it and of any `password=…`, `secret: …`
+  or `token=…` value. Folder names and the user name in paths are not removed.
 - **Remove ArboDat+ from Docker** runs `down` and forgets `state.json`, nothing else: the database
   volume, `.env` (the password), `compose.yml`, the downloaded images and your backups stay, so
   *Install* afterwards finds and keeps the same data and the same port. If Docker no longer has the
