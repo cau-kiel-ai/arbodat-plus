@@ -322,6 +322,7 @@ public class ExportService {
             gen.writeBooleanField("buildingContext", feature.getBuildingContext());
         } else
             gen.writeNullField("buildingContext");
+        gen.writeStringField("buildingContextDescription", feature.getBuildingContextDescription());
         gen.writeStringField("remarks", feature.getRemarksFeature());
 
         // Samples -----------------------------------------------------------------

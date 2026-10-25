@@ -33,6 +33,9 @@ public class Feature implements Serializable {
     @Column(name = "building_context")
     private Boolean buildingContext;
 
+    @Column(name = "building_context_description")
+    private String buildingContextDescription;
+
     @Column(name = "feature_condition")
     private Boolean featureCondition;
 

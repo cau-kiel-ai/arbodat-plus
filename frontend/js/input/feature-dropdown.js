@@ -17,6 +17,7 @@ document.addEventListener("DOMContentLoaded", () => {
     const feature_type_dropdown = document.getElementById("feature_type");
     const excavation_years_selectpicker = document.getElementById("excavation_years");
     const building_context_checkbox = document.getElementById("building_context");
+    const building_context_description_input = document.getElementById("building_context_description");
     const remarks_textarea = document.getElementById("remarks_feature");
     // ---------------------------------------------------------------------------------------
 
@@ -106,6 +107,8 @@ document.addEventListener("DOMContentLoaded", () => {
             applyDefaults("feature");
             excavation_years_selectpicker.value = '';
             building_context_checkbox.checked = false;
+            building_context_description_input.value = '';
+            toggleBuildingContextDescription();
             remarks_textarea.value = '';
             // -------------------------------------------
         }
@@ -144,6 +147,8 @@ document.addEventListener("DOMContentLoaded", () => {
             option.selected = item.excavationYears.includes(value);
         });
         building_context_checkbox.checked = item.buildingContext;
+        building_context_description_input.value = item.buildingContextDescription ?? '';
+        toggleBuildingContextDescription();
         remarks_textarea.value = item.remarksFeature;
         // -------------------------------------------------------------------------
     }
@@ -163,6 +168,8 @@ document.addEventListener("DOMContentLoaded", () => {
         applyDefaults("feature");
         excavation_years_selectpicker.value = '';
         building_context_checkbox.checked = false;
+        building_context_description_input.value = '';
+        toggleBuildingContextDescription();
         remarks_textarea.value = '';
         // -------------------------------------------
 

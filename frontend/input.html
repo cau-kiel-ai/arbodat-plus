@@ -1366,10 +1366,13 @@
                   <!-- building context -->
                   <div class="row">
                     <div class="col-25"> 
-                      <label for="building_context" data-tooltip="Check this box if the feature belongs to a building. Specifications such as house numbers can be made in the 'remarks' box below.">building context:</label>
+                      <label for="building_context" data-tooltip="Check this box if the feature belongs to a building. A description of the house (e.g. house number) can be entered in the field next to the checkbox.">building context:</label>
                     </div>
                     <div class="col-75">
-                      <input type="checkbox" id="building_context" style="margin-top: 18px;">
+                      <div style="display: flex; align-items: center; gap: 12px; min-height: 52px;">
+                        <input type="checkbox" id="building_context" onchange="toggleBuildingContextDescription()" style="margin-top: 0px;">
+                        <input type="text" id="building_context_description" placeholder="description (e.g. house number)" style="display: none;">
+                      </div>
                     </div>
                   </div>
 

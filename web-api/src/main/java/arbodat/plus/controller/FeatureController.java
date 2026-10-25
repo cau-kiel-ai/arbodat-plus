@@ -105,6 +105,10 @@ public class FeatureController {
         feature.setExcavationYears(transferredFeature.getExcavationYears());
         feature.setExcavationArea(transferredFeature.getExcavationArea());
         feature.setBuildingContext(transferredFeature.getBuildingContext());
+        // description only applies to features in a building context
+        feature.setBuildingContextDescription(Boolean.TRUE.equals(transferredFeature.getBuildingContext())
+                ? transferredFeature.getBuildingContextDescription()
+                : null);
         feature.setFeatureCondition(transferredFeature.getFeatureCondition());
         feature.setRemarksFeature(transferredFeature.getRemarksFeature());
 

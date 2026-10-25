@@ -248,6 +248,9 @@ async function buildFeatureTable() {
                     }
                 }
             },
+            {title:"building context description", titleDownload:"buildingContextDescription", field:"buildingContextDescription", editor:"input", headerFilter:true, headerSort:false,
+                editable: cell => cell.getRow().getData().buildingContext === true,
+            },
             {title:"remarks", field:"remarksFeature", editor:"input", headerFilter:true, headerSort:false},
         ],
         initialSort: [
@@ -277,7 +280,10 @@ async function buildFeatureTable() {
             selectedRows.push(editedRow);
         }
         selectedRows.forEach(row => {
-            
+
+            // Description only applies to features in a building context
+            if (editedField === "buildingContextDescription" && row.getData().buildingContext !== true) return;
+
             // Create payload
             const feature = JSON.parse(JSON.stringify(row.getData()));
             setNestedValue(feature, editedField, newValue); // other selected rows do not contain the new value yet
@@ -299,6 +305,10 @@ async function buildFeatureTable() {
                 // Update table
                 if(row !== cell.getRow()) { // skip the edited line
                     row.update({ [editedField]: newValue });
+                }
+                // Backend clears the description if building context is unchecked
+                if (editedField === "buildingContext" && !newValue) {
+                    row.update({ buildingContextDescription: null });
                 }
             })
             .catch(error => console.error("Error updating feature:", error));
@@ -367,6 +377,7 @@ document.getElementById("download-json").addEventListener("click", function(){
                     : null,
                 excavationYears: row.excavationYears,
                 buildingContext: row.buildingContext,
+                buildingContextDescription: row.buildingContextDescription,
                 remarks: row.remarksFeature,
             };
         });

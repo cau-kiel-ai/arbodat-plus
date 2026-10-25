@@ -118,6 +118,7 @@ function create_update_feature() {
         const cond_satisfactory = document.getElementById("feature_condition").checked;
         const selectedYears = Array.from(excavationYears_selectpicker.selectedOptions).map(opt => parseInt(opt.value));
         const building_context = document.getElementById("building_context").checked;
+        const building_context_description = document.getElementById("building_context_description").value;
         const remarks = document.getElementById("remarks_feature").value;        
         // preservation condition
         const PreservationConditionId = preservationConditionDropdown ? preservationConditionDropdown.value : null;
@@ -135,6 +136,7 @@ function create_update_feature() {
             featureType: FeatureTypeId ? { id: FeatureTypeId, label: FeatureTypeLabel } : null,
             excavationYears: selectedYears,
             buildingContext: building_context,
+            buildingContextDescription: building_context ? building_context_description : null,
             remarksFeature: remarks,
         };
 
@@ -186,7 +188,14 @@ function create_update_feature() {
 
 function resetFeatureForm() {
     featureForm.reset();
+    toggleBuildingContextDescription();
     $('#preservation_condition').val(null).trigger('change');
     $('#feature_type').val(null).trigger('change');
     applyDefaults("feature");
+}
+
+// Show building context description only if building context is checked
+function toggleBuildingContextDescription() {
+    const checked = document.getElementById("building_context").checked;
+    document.getElementById("building_context_description").style.display = checked ? "" : "none";
 }
