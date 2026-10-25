@@ -121,7 +121,11 @@ async function buildResultTable() {
                 headerFilter:"list", headerFilterParams: {
                     values: samples.map(item => ({
                             value: item.id,
-                            label: item.label
+                            label:
+                                item.label +
+                                " (" +
+                                item.feature.label +
+                                ")"
                     })),
                     multiselect: true
                 },
@@ -151,7 +155,11 @@ async function buildResultTable() {
                 headerFilter:"list", headerFilterParams: {
                     values: features.map(item => ({
                             value: item.id,
-                            label: item.label
+                            label:
+                                item.label +
+                                " (" +
+                                item.site.label +
+                                ")"
                     })),
                     multiselect: true
                 },
@@ -170,8 +178,8 @@ async function buildResultTable() {
                             value: item.id,
                             label:
                                 item.label +
-                                " (research projects: " +
-                                item.researchProjectList.map(rp => rp.projectName).join(', ') +
+                                " (" +
+                                item.researchProjectList.map(rp => rp.projectName).join(',') +
                                 ")"
                         }))
                     ,
@@ -181,8 +189,8 @@ async function buildResultTable() {
                             value: item.id,
                             label:
                                 item.label +
-                                " (research projects: " +
-                                item.researchProjectList.map(rp => rp.projectName).join(', ') +
+                                " (" +
+                                item.researchProjectList.map(rp => rp.projectName).join(',') +
                                 ")"
                     })),
                     multiselect: true

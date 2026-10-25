@@ -62,8 +62,8 @@ async function buildFeatureTable() {
                             value: item.id,
                             label:
                                 item.label +
-                                " (research projects: " +
-                                item.researchProjectList.map(rp => rp.projectName).join(', ') +
+                                " (" +
+                                item.researchProjectList.map(rp => rp.projectName).join(',') +
                                 ")"
                         }))
                     ],
@@ -74,8 +74,8 @@ async function buildFeatureTable() {
                             value: item.id,
                             label:
                                 item.label +
-                                " (research projects: " +
-                                item.researchProjectList.map(rp => rp.projectName).join(', ') +
+                                " (" +
+                                item.researchProjectList.map(rp => rp.projectName).join(',') +
                                 ")"
                     })),
                     multiselect: true

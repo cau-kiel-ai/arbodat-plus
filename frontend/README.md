@@ -13,12 +13,13 @@ below) — opening an `.html` file directly from disk will not work.
 | `input.html` | Data Input |
 | `migration.html` | Data Migration (import from legacy MS Access ArboDat) |
 | `explorer.html` | Data Explorer (query/filter/edit/export) |
+| `report.html` | Data Report (placeholder WIP) |
 | `export.html` | Data Export |
-| `report.html` | Data Report (placeholder) |
+| `settings.html` | Settings page (default values for DANTE dropdowns) |
 | `contact.html`, `license.html` | Static pages |
 
 Each page's JS lives under `js/` in a matching subfolder (`js/input/`, `js/migration/`,
-`js/data-explorer/`, `js/data-export/`), plus `js/danteAttributes/` (shared: loads/pushes the
+`js/explorer/`, `js/export/`, `js/settings/`), plus `js/danteAttributes/` (shared: loads/pushes the
 DANTE vocabulary lists used across Data Input and Migration).
 
 ## nginx: how this becomes one origin
@@ -48,7 +49,5 @@ finds nothing to replace there, which is expected.
 ## Docker image
 
 `Dockerfile` compiles the CSS and stamps the version in a `node:24-alpine` build stage, then copies
-only what's actually served — the HTML pages, `js/`, the compiled CSS, and the 6 images that are
-actually referenced (`frontend/img/` has ~85MB of others that are tracked in git but linked from
-nowhere; see `.dockerignore` and `../info/TODO.md`) — into an `nginx:1.30-alpine` runtime stage.
-Multi-arch (`linux/amd64`, `linux/arm64`), no `RUN` in the runtime stage.
+only what's actually served — the HTML pages, `js/`, the compiled CSS, and the images — into an
+`nginx:1.30-alpine` runtime stage. Multi-arch (`linux/amd64`, `linux/arm64`), no `RUN` in the runtime stage.

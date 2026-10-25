@@ -123,7 +123,11 @@ async function buildSampleTable() {
                 headerFilter:"list", headerFilterParams: {
                     values: features.map(item => ({
                             value: item.id,
-                            label: item.label
+                            label:
+                                item.label +
+                                " (" +
+                                item.site.label +
+                                ")"
                     })),
                     multiselect: true
                 },
@@ -142,8 +146,8 @@ async function buildSampleTable() {
                             value: item.id,
                             label:
                                 item.label +
-                                " (research projects: " +
-                                item.researchProjectList.map(rp => rp.projectName).join(', ') +
+                                " (" +
+                                item.researchProjectList.map(rp => rp.projectName).join(',') +
                                 ")"
                         }))
                     ,
@@ -153,8 +157,8 @@ async function buildSampleTable() {
                             value: item.id,
                             label:
                                 item.label +
-                                " (research projects: " +
-                                item.researchProjectList.map(rp => rp.projectName).join(', ') +
+                                " (" +
+                                item.researchProjectList.map(rp => rp.projectName).join(',') +
                                 ")"
                     })),
                     multiselect: true
