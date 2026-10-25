@@ -43,6 +43,8 @@ pub enum ErrorCode {
     NotReady,
     /// A backup (just written, or chosen for a restore) can't be read completely.
     BackupInvalid,
+    /// The restore transaction failed and was rolled back (the data is unchanged).
+    RestoreFailed,
     Io,
 }
 
@@ -89,6 +91,7 @@ impl AppError {
             Operation::ChangePort => "changing its port",
             Operation::Remove => "being removed",
             Operation::Backup => "making a backup",
+            Operation::Restore => "restoring a backup",
         };
         Self::new(
             ErrorCode::Busy,

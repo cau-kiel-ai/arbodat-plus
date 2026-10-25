@@ -8,6 +8,7 @@ use crate::autobackup::AutoBackupState;
 use crate::runtime::backup::{BackupInfo, BackupKind, BackupList};
 use crate::runtime::error::{AppError, ErrorCode};
 use crate::runtime::model::{ProgressEvent, Status};
+use crate::runtime::restore::{self, RestoreCandidate, RestoreOutcome, RestoreSource};
 use crate::runtime::{RuntimeManager, probe, state};
 use crate::server;
 use crate::settings::{self, Mode, SettingsStore, SettingsView};
@@ -298,6 +299,57 @@ pub fn list_backups(
     crate::runtime::backup::list(&store.backup_folder(), auto.failure())
 }
 
+/// Restores a backup (from the backup folder, or a file chosen with `choose_restore_file`). A
+/// backup of the current data is made first; the restore itself is all or nothing.
+#[tauri::command]
+pub async fn restore_backup(
+    runtime: tauri::State<'_, RuntimeManager>,
+    store: tauri::State<'_, SettingsStore>,
+    source: RestoreSource,
+    on_event: Channel<ProgressEvent>,
+) -> Result<RestoreOutcome, AppError> {
+    if store.get().mode != Mode::Local {
+        return Err(AppError::new(
+            ErrorCode::NotInstalled,
+            "Backups are restored into ArboDat+ on this computer; a server is managed by whoever runs it.",
+        ));
+    }
+    let folder = store.backup_folder();
+    let dump = restore::resolve(&source, &folder)?;
+    runtime
+        .restore(&dump, &folder, &|event| drop(on_event.send(event)))
+        .await
+}
+
+/// "Restore from file": lets the user pick a dump and says what is known about it (nothing is
+/// restored yet). `None` if they cancelled.
+#[tauri::command]
+pub async fn choose_restore_file(
+    app: AppHandle,
+    runtime: tauri::State<'_, RuntimeManager>,
+    store: tauri::State<'_, SettingsStore>,
+) -> Result<Option<RestoreCandidate>, AppError> {
+    let mut dialog = app
+        .dialog()
+        .file()
+        .set_title("Choose the backup to restore")
+        .add_filter("ArboDat+ backup (PostgreSQL dump)", &["dump", "backup"]);
+    let folder = store.backup_folder();
+    if folder.is_dir() {
+        dialog = dialog.set_directory(folder);
+    }
+    if let Some(window) = windows::main_window(&app) {
+        dialog = dialog.set_parent(&window);
+    }
+    let Some(picked) = dialog.blocking_pick_file() else {
+        return Ok(None);
+    };
+    let path = picked.into_path().map_err(|e| {
+        AppError::new(ErrorCode::Io, "That file can't be used.").with_detail(e.to_string())
+    })?;
+    runtime.inspect_restore_file(&path).map(Some)
+}
+
 /// Deletes one backup from the backup folder (the user's choice in the list, after a confirmation).
 #[tauri::command]
 pub fn delete_backup(
@@ -366,7 +418,7 @@ mod capability_tests {
     const LAUNCHER: &str = include_str!("../capabilities/launcher.json");
     const BUILD_RS: &str = include_str!("../build.rs");
     /// Every `#[tauri::command]` of this file.
-    const COMMANDS: [&str; 20] = [
+    const COMMANDS: [&str; 22] = [
         "get_status",
         "install",
         "start",
@@ -387,6 +439,8 @@ mod capability_tests {
         "list_backups",
         "open_backup_folder",
         "delete_backup",
+        "restore_backup",
+        "choose_restore_file",
     ];
 
     fn launcher() -> Value {

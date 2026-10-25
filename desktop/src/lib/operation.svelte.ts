@@ -14,6 +14,7 @@ export const operationTitles: Record<Operation, string> = {
   changePort: "Changing the port",
   remove: "Removing ArboDat+",
   backup: "Backing up ArboDat+",
+  restore: "Restoring a backup",
 };
 
 /** The operation the user started in this window, with its progress and outcome. */

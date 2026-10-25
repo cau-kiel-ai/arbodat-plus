@@ -13,6 +13,7 @@ pub mod model;
 pub mod parse;
 pub mod ports;
 pub mod probe;
+pub mod restore;
 pub mod state;
 pub mod status;
 pub mod template;

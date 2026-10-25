@@ -27,6 +27,8 @@
     "allow-list-backups",
     "allow-open-backup-folder",
     "allow-delete-backup",
+    "allow-restore-backup",
+    "allow-choose-restore-file",
     {
       "identifier": "opener:allow-open-url",
       "allow": [

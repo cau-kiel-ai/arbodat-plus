@@ -3,6 +3,7 @@ import { listen } from "@tauri-apps/api/event";
 import { openUrl } from "@tauri-apps/plugin-opener";
 import type { AppError } from "./bindings/AppError";
 import type { BackupList } from "./bindings/BackupList";
+import type { RestoreCandidate } from "./bindings/RestoreCandidate";
 import type { Operation } from "./bindings/Operation";
 import type { ProgressEvent } from "./bindings/ProgressEvent";
 import type { ServerStatus } from "./bindings/ServerStatus";
@@ -19,6 +20,7 @@ const commands: Record<Operation, string> = {
   changePort: "change_port",
   remove: "remove_installation",
   backup: "backup_now",
+  restore: "restore_backup",
 };
 
 /**
@@ -50,6 +52,8 @@ export const connectServer = (url: string, force = false) => invoke<SettingsView
 export const useLocalMode = () => invoke<SettingsView>("use_local_mode");
 export const serverStatus = () => invoke<ServerStatus>("server_status");
 export const listBackups = () => invoke<BackupList>("list_backups");
+/** "Restore from file": the system's file picker; `null` if cancelled. Nothing is restored yet. */
+export const chooseRestoreFile = () => invoke<RestoreCandidate | null>("choose_restore_file");
 /** Deletes one backup (the .dump and its details file) from the backup folder. */
 export const deleteBackup = (fileName: string) => invoke<void>("delete_backup", { fileName });
 /** Shows the backup folder in Finder / Explorer / the file manager. */

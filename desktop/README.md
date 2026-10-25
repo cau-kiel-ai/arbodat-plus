@@ -146,6 +146,16 @@ appears).
   ones: backups made by hand, before an update or a restore, and any file the app didn't make are never
   deleted. A backup can be deleted by hand from the list (trash icon, then *Delete*); that removes
   only that `.dump` and its details file, nothing outside the backup folder.
+- **Restore** (`src-tauri/src/runtime/restore.rs`): from the list (the arrow icon) or *Restore from file*
+  (any `pg_dump -Fc` file, e.g. one made by hand from an older ArboDat+:
+  `docker exec <database container> pg_dump -U postgres -Fc postgres > old.dump`). Before anything changes,
+  the backup is checked: custom format, checksum against its details file, read completely, its PostgreSQL
+  and ArboDat+ versions not newer than this installation's. Then a "before restore" backup of the current
+  data is made, web-api and frontend are stopped, and the restore runs as **one transaction**: drop the
+  `public` schema, recreate it, load the backup, compare every table's row count with the details file,
+  commit. A damaged file, an SQL error or a wrong count rolls everything back and the data stays as it was;
+  the commit is only sent after `pg_restore` itself finished without error. Afterwards ArboDat+ is running
+  again (web-api upgrades an older schema on start) or stopped again, as before.
 - **Diagnostics.** The Control Center's *Create Report* collects one piece of text to copy into a
   message when asking for help (`src-tauri/src/diagnostics.rs`): app and system versions, the mode,
   Docker, the state of ArboDat+ and its services, `state.json`, the `.env` without its secrets, the

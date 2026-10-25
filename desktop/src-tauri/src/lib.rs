@@ -80,7 +80,9 @@ pub fn run() {
             commands::backup_now,
             commands::list_backups,
             commands::open_backup_folder,
-            commands::delete_backup
+            commands::delete_backup,
+            commands::restore_backup,
+            commands::choose_restore_file
         ])
         .on_window_event(|window, event| {
             // Closing the window (or quitting) while the stack is being installed, started or

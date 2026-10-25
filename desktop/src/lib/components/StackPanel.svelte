@@ -41,6 +41,7 @@
     changePort: "Changing the port…",
     remove: "Removing…",
     backup: "Backing up…",
+    restore: "Restoring…",
   };
 
   const serviceNames: Record<string, string> = { database: "Database", "web-api": "Web API", frontend: "Frontend" };

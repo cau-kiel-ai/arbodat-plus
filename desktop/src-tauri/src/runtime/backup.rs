@@ -29,9 +29,9 @@ use super::model::{Operation, ProgressEvent};
 use super::state;
 use super::template::DATA_VOLUME;
 
-const DB_SERVICE: &str = "database";
-const DB_USER: &str = "postgres";
-const DB_NAME: &str = "postgres";
+pub(super) const DB_SERVICE: &str = "database";
+pub(super) const DB_USER: &str = "postgres";
+pub(super) const DB_NAME: &str = "postgres";
 const PREFIX: &str = "arbodat-plus_";
 const DUMP_EXT: &str = "dump";
 const PARTIAL_EXT: &str = "partial";
@@ -287,6 +287,32 @@ fn modified_rfc3339(path: &Path) -> String {
         .unwrap_or_default()
 }
 
+/// What is known about one dump file: its sidecar (if there is a readable one next to it) and the
+/// list entry made from it.
+pub(super) fn describe(dump: &Path) -> (Option<BackupMeta>, BackupInfo) {
+    let meta = read_meta(&dump.with_extension(SIDECAR_EXT));
+    let size = std::fs::metadata(dump).map(|m| m.len()).unwrap_or(0);
+    let info = BackupInfo {
+        file_name: dump
+            .file_name()
+            .map(|n| n.to_string_lossy().into_owned())
+            .unwrap_or_default(),
+        kind: meta.as_ref().map(|m| m.kind),
+        created: meta
+            .as_ref()
+            .map(|m| m.created.clone())
+            .unwrap_or_else(|| modified_rfc3339(dump)),
+        stack_version: meta.as_ref().map(|m| m.stack_version.clone()),
+        postgres_version: meta.as_ref().map(|m| m.postgres_version.clone()),
+        size_bytes: size,
+        rows: meta.as_ref().map(|m| m.tables.values().sum()),
+        tables: meta.as_ref().map(|m| m.tables.len() as u32),
+        description: meta.as_ref().and_then(|m| m.description.clone()),
+        retained: None,
+    };
+    (meta, info)
+}
+
 /// Every `*.dump` in the folder, newest first. A folder that doesn't exist yet has none.
 fn entries(folder: &Path) -> Vec<Entry> {
     let Ok(dir) = std::fs::read_dir(folder) else {
@@ -297,26 +323,7 @@ fn entries(folder: &Path) -> Vec<Entry> {
         .map(|e| e.path())
         .filter(|p| p.is_file() && p.extension().is_some_and(|x| x == DUMP_EXT))
         .map(|dump| {
-            let meta = read_meta(&dump.with_extension(SIDECAR_EXT));
-            let size = std::fs::metadata(&dump).map(|m| m.len()).unwrap_or(0);
-            let info = BackupInfo {
-                file_name: dump
-                    .file_name()
-                    .map(|n| n.to_string_lossy().into_owned())
-                    .unwrap_or_default(),
-                kind: meta.as_ref().map(|m| m.kind),
-                created: meta
-                    .as_ref()
-                    .map(|m| m.created.clone())
-                    .unwrap_or_else(|| modified_rfc3339(&dump)),
-                stack_version: meta.as_ref().map(|m| m.stack_version.clone()),
-                postgres_version: meta.as_ref().map(|m| m.postgres_version.clone()),
-                size_bytes: size,
-                rows: meta.as_ref().map(|m| m.tables.values().sum()),
-                tables: meta.as_ref().map(|m| m.tables.len() as u32),
-                description: meta.as_ref().and_then(|m| m.description.clone()),
-                retained: None,
-            };
+            let (meta, info) = describe(&dump);
             Entry { dump, meta, info }
         })
         .collect();
@@ -392,9 +399,9 @@ pub fn prune_auto_backups(folder: &Path) -> Vec<String> {
     deleted
 }
 
-/// Deletes one backup the user picked in the list: the `.dump` and its sidecar. Only a plain file
-/// name of a `.dump` directly in `folder` is accepted, so nothing else can be reached through it.
-pub fn delete(folder: &Path, file_name: &str) -> Result<(), AppError> {
+/// The path of the backup `file_name` in `folder`. Only a plain file name of an existing `.dump`
+/// directly in `folder` is accepted, so nothing else can be reached through it.
+pub(super) fn in_folder(folder: &Path, file_name: &str) -> Result<PathBuf, AppError> {
     let plain = Path::new(file_name).file_name().and_then(|n| n.to_str()) == Some(file_name);
     if !plain
         || file_name.starts_with('.')
@@ -413,6 +420,13 @@ pub fn delete(folder: &Path, file_name: &str) -> Result<(), AppError> {
             "That backup isn't in the backup folder any more.",
         ));
     }
+    Ok(dump)
+}
+
+/// Deletes one backup the user picked in the list: the `.dump` and its sidecar. Only a plain file
+/// name of a `.dump` directly in `folder` is accepted, so nothing else can be reached through it.
+pub fn delete(folder: &Path, file_name: &str) -> Result<(), AppError> {
+    let dump = in_folder(folder, file_name)?;
     std::fs::remove_file(&dump).map_err(|e| AppError::io("Couldn't delete the backup", &e))?;
     let sidecar = dump.with_extension(SIDECAR_EXT);
     if sidecar.exists() {
@@ -737,7 +751,11 @@ impl RuntimeManager {
     }
 
     /// One SQL statement in the database container, unaligned output without headers.
-    async fn query(&self, cli: &super::docker::DockerCli, sql: &str) -> Result<String, AppError> {
+    pub(super) async fn query(
+        &self,
+        cli: &super::docker::DockerCli,
+        sql: &str,
+    ) -> Result<String, AppError> {
         let dir = self.runtime_dir.as_path();
         let out = cli
             .run_in(

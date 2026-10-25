@@ -225,6 +225,12 @@ impl<'a> Steps<'a> {
             label: label.to_string(),
         });
     }
+    /// The final step, numbered as the last one even if earlier ones were skipped (a check failed).
+    pub(super) fn last(&mut self, label: &str) {
+        self.index = self.total - 1;
+        self.next(label);
+    }
+
     pub(super) fn log(&self, text: impl Into<String>) {
         (self.emit)(ProgressEvent::Log { text: text.into() });
     }
@@ -651,7 +657,12 @@ impl RuntimeManager {
     }
 
     /// `up -d --wait`. If it fails on the port, look again who holds it so the message can name them.
-    async fn bring_up(&self, cli: &DockerCli, port: u16, emit: Emit<'_>) -> Result<(), AppError> {
+    pub(super) async fn bring_up(
+        &self,
+        cli: &DockerCli,
+        port: u16,
+        emit: Emit<'_>,
+    ) -> Result<(), AppError> {
         let dir = self.runtime_dir.as_path();
         let out = compose::up(cli, dir, |line| {
             emit(ProgressEvent::Log {
@@ -674,7 +685,7 @@ impl RuntimeManager {
     }
 }
 
-async fn wait_until_ready(port: u16, emit: Emit<'_>) -> Result<(), AppError> {
+pub(super) async fn wait_until_ready(port: u16, emit: Emit<'_>) -> Result<(), AppError> {
     probe::wait_ready(port, READY_DEADLINE, |why| {
         emit(ProgressEvent::Log { text: format!("Waiting for ArboDat+ to answer ({why})") });
     })
@@ -941,6 +952,25 @@ mod tests {
                     label: "B".into()
                 },
             ]
+        );
+    }
+
+    #[test]
+    fn the_last_step_is_numbered_last_even_after_a_failed_check() {
+        let seen = Mutex::new(Vec::new());
+        let emit = |e: ProgressEvent| seen.lock().unwrap().push(e);
+        let mut steps = Steps::new(&emit, 8);
+        steps.next("A");
+        steps.next("B");
+        steps.last("Starting again");
+        let seen = seen.into_inner().unwrap();
+        assert_eq!(
+            seen.last(),
+            Some(&ProgressEvent::Step {
+                index: 8,
+                total: 8,
+                label: "Starting again".into()
+            })
         );
     }
 }

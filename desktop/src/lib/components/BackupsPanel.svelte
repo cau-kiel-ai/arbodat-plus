@@ -1,8 +1,10 @@
 <script lang="ts">
-  import { asAppError, deleteBackup, listBackups, openBackupFolder } from "../api";
+  import { asAppError, chooseRestoreFile, deleteBackup, listBackups, openBackupFolder } from "../api";
   import type { BackupInfo } from "../bindings/BackupInfo";
   import type { BackupKind } from "../bindings/BackupKind";
   import type { BackupList } from "../bindings/BackupList";
+  import type { RestoreCandidate } from "../bindings/RestoreCandidate";
+  import type { RestoreSource } from "../bindings/RestoreSource";
   import type { Retained } from "../bindings/Retained";
   import type { StackStatus } from "../bindings/StackStatus";
   import { operation } from "../operation.svelte";
@@ -87,6 +89,44 @@
 
   /** The backup whose deletion waits for "Delete" or "Cancel". */
   let confirmingDelete = $state<string | null>(null);
+  /** The backup in the list whose restore waits for "Restore" or "Cancel". */
+  let confirmingRestore = $state<string | null>(null);
+  /** A file chosen with "Restore from file", waiting for "Restore" or "Cancel". */
+  let candidate = $state<RestoreCandidate | null>(null);
+
+  function toggleRestore(fileName: string) {
+    confirmingDelete = null;
+    candidate = null;
+    confirmingRestore = confirmingRestore === fileName ? null : fileName;
+  }
+
+  function toggleDelete(fileName: string) {
+    confirmingRestore = null;
+    confirmingDelete = confirmingDelete === fileName ? null : fileName;
+  }
+
+  async function restoreFromFile() {
+    confirmingRestore = null;
+    confirmingDelete = null;
+    try {
+      candidate = await chooseRestoreFile();
+    } catch (e) {
+      operation.error = asAppError(e);
+    }
+  }
+
+  async function restore(source: RestoreSource) {
+    confirmingRestore = null;
+    candidate = null;
+    await operation.run(
+      "restore",
+      async () => {
+        await afterOperation();
+        await load();
+      },
+      { source },
+    );
+  }
 
   async function remove(fileName: string) {
     confirmingDelete = null;
@@ -121,6 +161,18 @@
   const shown = $derived(list ? (showAll ? list.backups : list.backups.slice(0, SHOWN)) : []);
 </script>
 
+{#snippet restoreWarning(b: BackupInfo)}
+  <div class="hint bad">
+    <strong>Restore this backup?</strong><br />
+    All current data is replaced by the data of {when(b)} · {label(b)}.<br />
+    A backup of the current data is made first.
+    {#if !b.kind}
+      <br />This file wasn't made by this app, so its ArboDat+ version is unknown. If it doesn't fit,
+      nothing is changed.
+    {/if}
+  </div>
+{/snippet}
+
 <section>
   <h2>Backups</h2>
 
@@ -153,7 +205,17 @@
   {:else}
     <div class="actions">
       <button class="primary" disabled={busy || !dockerReady || !canBackUp} onclick={askForDescription}>Back up</button>
-      <button onclick={openFolder}>Open folder</button>
+      <button disabled={busy || !dockerReady || !canBackUp} onclick={restoreFromFile}>Restore from file</button>
+      <button onclick={openFolder}>Open backup folder</button>
+    </div>
+  {/if}
+
+  {#if candidate}
+    {@render restoreWarning(candidate.backup)}
+    <p class="small muted path">{candidate.path}</p>
+    <div class="actions">
+      <button class="danger" disabled={busy || !dockerReady} onclick={() => candidate && restore({ from: "file", path: candidate.path })}>Restore</button>
+      <button onclick={() => (candidate = null)}>Cancel</button>
     </div>
   {/if}
 
@@ -169,11 +231,22 @@
             <td class="num muted">{b.rows !== null ? `${b.rows.toLocaleString()} rows` : ""}</td>
             <td class="icon">
               <button
-                class="trash danger-hover"
+                class="row-icon danger-hover"
+                title="Restore this backup"
+                aria-label="Restore this backup"
+                disabled={busy || !dockerReady || !canBackUp}
+                onclick={() => toggleRestore(b.fileName)}
+              >
+                <svg viewBox="0 0 16 16" width="14" height="14" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M3 8a5 5 0 1 0 1.5-3.6M3 2.5v2.4h2.4" />
+                </svg>
+              </button>
+              <button
+                class="row-icon danger-hover"
                 title="Delete this backup"
                 aria-label="Delete this backup"
                 disabled={busy}
-                onclick={() => (confirmingDelete = confirmingDelete === b.fileName ? null : b.fileName)}
+                onclick={() => toggleDelete(b.fileName)}
               >
                 <svg viewBox="0 0 16 16" width="14" height="14" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round">
                   <path d="M2.5 4h11M6 4V2.5h4V4M3.8 4l.7 9.5h7l.7-9.5M6.6 6.5v4.8M9.4 6.5v4.8" />
@@ -181,6 +254,17 @@
               </button>
             </td>
           </tr>
+          {#if confirmingRestore === b.fileName}
+            <tr class="confirm">
+              <td colspan="6">
+                {@render restoreWarning(b)}
+                <div class="actions">
+                  <button class="danger" disabled={busy || !dockerReady} onclick={() => restore({ from: "folder", fileName: b.fileName })}>Restore</button>
+                  <button onclick={() => (confirmingRestore = null)}>Cancel</button>
+                </div>
+              </td>
+            </tr>
+          {/if}
           {#if confirmingDelete === b.fileName}
             <tr class="confirm">
               <td colspan="6">
@@ -217,8 +301,10 @@
   table { width: 100%; border-collapse: collapse; margin-top: 14px; font-size: 14px; }
   td { padding: 5px 8px 5px 0; border-top: 1px solid var(--border); white-space: nowrap; }
   td.num { text-align: right; }
-  td.icon { width: 1%; padding-right: 0; text-align: right; }
-  .trash { padding: 3px 6px; line-height: 0; border-color: transparent; background: transparent; color: var(--muted); }
+  td.icon { width: 1%; padding-right: 0; text-align: right; white-space: nowrap; }
+  .row-icon { padding: 3px 6px; line-height: 0; border-color: transparent; background: transparent; color: var(--muted); }
+  .row-icon + .row-icon { margin-left: 2px; }
+  .path { overflow-wrap: anywhere; margin: 6px 0 0; }
   tr.confirm td { border-top: none; padding-top: 0; white-space: normal; }
   tr.confirm .hint { margin-top: 4px; }
   tr.confirm .actions { margin-top: 10px; margin-bottom: 6px; }

@@ -182,6 +182,7 @@ pub enum Operation {
     ChangePort,
     Remove,
     Backup,
+    Restore,
 }
 
 /// Progress of a running operation, streamed to the launcher window.
