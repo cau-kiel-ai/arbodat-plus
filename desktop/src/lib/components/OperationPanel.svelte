@@ -8,6 +8,7 @@
     stop: "ArboDat+ is stopped. Your data is kept.",
     changePort: "ArboDat+ now uses the new port.",
     remove: "ArboDat+ was removed from Docker. Your data is kept.",
+    backup: "The backup is saved.",
   };
 
   let logElement = $state<HTMLPreElement>();

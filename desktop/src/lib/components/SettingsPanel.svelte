@@ -152,7 +152,8 @@
           downloaded program parts are kept, and installing again picks your data up.
         </p>
       {:else}
-        <div class="hint {databaseGone ? 'bad' : ''}">
+        <!-- Removing or deleting is always confirmed in red. -->
+        <div class="hint bad">
           {#if databaseGone}
             <strong>ArboDat+'s database is not in this Docker.</strong> Removing ArboDat+ lets you install
             it again, which creates a <strong>new, empty database</strong>. Backups on your computer stay

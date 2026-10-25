@@ -23,6 +23,10 @@
     "allow-server-status",
     "allow-open-server-in-browser",
     "allow-get-diagnostics",
+    "allow-backup-now",
+    "allow-list-backups",
+    "allow-open-backup-folder",
+    "allow-delete-backup",
     {
       "identifier": "opener:allow-open-url",
       "allow": [

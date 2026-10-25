@@ -76,9 +76,16 @@ Each entry says what to do and why.
 - [ ] **Code signing & notarization.** Apple Developer ID + notarization (macOS), Authenticode (Windows, e.g. Azure
   Trusted Signing or SignPath Foundation). This removes the Gatekeeper "Open Anyway" / SmartScreen warnings and the
   repeated macOS privacy prompts after updates.
-- [ ] **Periodic automatic backups.** v1 backs up before updates and on demand. Resetting Docker Desktop to factory
-  defaults, or uninstalling it, deletes all volumes. An automatic backup (e.g. on app start when the last one is
-  older than 7 days, keeping the last N) protects users who never click "Backup".
+- [ ] **Backups while the app is closed.** The app makes a daily backup only while it is open (and ArboDat+ is
+  running); the stack keeps running when the window is closed. A per-OS scheduled task (launchd, Windows Task
+  Scheduler, systemd timer) calling a headless `arbodat-plus --backup` would cover days the app isn't opened.
+- [ ] **Import wizard for pre-v5 installations.** Dropped for v5.0.0: old data comes in through *Restore from file*
+  (a `pg_dump -Fc` made with one documented command). If many v4 users turn up, a wizard could find their volumes
+  (labels, project names), show evidence (row counts, dates), dump them read-only with a temporary container
+  (`--network none`) and restore into the new installation, never deleting anything.
+- [ ] **Title bar centred on every system.** macOS centres the window title; Windows and Linux put it at the left.
+  Centring it everywhere needs an own title bar (a strip web view above the page, own window buttons on
+  Windows/Linux; Tauri's multi-webview is still "unstable").
 - [ ] **Windows arm64 build.**
 - [ ] **Tauri 3.** Migrate once it is stable (alphas since Sep 2026); stay on 2.x until then.
 - [ ] **License notices for the desktop bundle.** Generate them from the Cargo/npm dependencies (e.g. cargo-about) and

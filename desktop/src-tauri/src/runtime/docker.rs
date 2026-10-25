@@ -39,6 +39,14 @@ impl Output {
     }
 }
 
+/// What `run_into_file` wrote.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct Written {
+    pub bytes: u64,
+    /// Lower-case hex.
+    pub sha256: String,
+}
+
 #[derive(Debug, thiserror::Error)]
 pub enum RunError {
     #[error("could not run {program}: {source}")]
@@ -235,6 +243,132 @@ impl DockerCli {
             stdout,
             stderr: stderr.trim().to_string(),
         })
+    }
+
+    /// Runs a command whose output is binary data (a database dump): stdout goes straight into
+    /// `file`, which must not exist yet, and is hashed on the way. The file is flushed to disk before
+    /// this returns. stderr is kept for the error message.
+    pub async fn run_into_file<I, S>(
+        &self,
+        dir: &Path,
+        args: I,
+        timeout: Duration,
+        file: &Path,
+    ) -> Result<(Output, Written), RunError>
+    where
+        I: IntoIterator<Item = S>,
+        S: AsRef<OsStr>,
+    {
+        use sha2::{Digest, Sha256};
+        use tokio::io::{AsyncReadExt, AsyncWriteExt};
+
+        let args: Vec<OsString> = args
+            .into_iter()
+            .map(|a| a.as_ref().to_os_string())
+            .collect();
+        let label = args
+            .iter()
+            .map(|a| a.to_string_lossy())
+            .collect::<Vec<_>>()
+            .join(" ");
+        let spawn_error = |source| RunError::Spawn {
+            program: self.bin.display().to_string(),
+            source,
+        };
+        let mut cmd = self.command(&args);
+        cmd.current_dir(dir);
+        let mut child = cmd.spawn().map_err(spawn_error)?;
+        let mut stdout = child.stdout.take().expect("stdout is piped");
+        let mut stderr = child.stderr.take().expect("stderr is piped");
+
+        let work = async {
+            let mut out = tokio::fs::OpenOptions::new()
+                .write(true)
+                .create_new(true)
+                .open(file)
+                .await?;
+            let collect_stderr = async {
+                let mut text = Vec::new();
+                let _ = stderr.read_to_end(&mut text).await;
+                String::from_utf8_lossy(&text).trim().to_string()
+            };
+            let copy = async {
+                let mut hasher = Sha256::new();
+                let mut bytes = 0u64;
+                let mut buf = vec![0u8; 64 * 1024];
+                loop {
+                    let n = stdout.read(&mut buf).await?;
+                    if n == 0 {
+                        break;
+                    }
+                    hasher.update(&buf[..n]);
+                    out.write_all(&buf[..n]).await?;
+                    bytes += n as u64;
+                }
+                out.flush().await?;
+                out.sync_all().await?;
+                Ok::<_, std::io::Error>((bytes, hasher.finalize()))
+            };
+            let (copied, stderr_text) = tokio::join!(copy, collect_stderr);
+            let (bytes, digest) = copied?;
+            let status = child.wait().await?;
+            Ok::<_, std::io::Error>((status, stderr_text, bytes, digest))
+        };
+        match tokio::time::timeout(timeout, work).await {
+            Err(_) => {
+                let _ = child.kill().await;
+                Err(RunError::Timeout {
+                    args: label,
+                    secs: timeout.as_secs(),
+                })
+            }
+            Ok(Err(source)) => {
+                let _ = child.kill().await;
+                Err(spawn_error(source))
+            }
+            Ok(Ok((status, stderr_text, bytes, digest))) => Ok((
+                Output {
+                    code: status.code(),
+                    stdout: String::new(),
+                    stderr: stderr_text,
+                },
+                Written {
+                    bytes,
+                    sha256: digest.iter().map(|b| format!("{b:02x}")).collect(),
+                },
+            )),
+        }
+    }
+
+    /// Like `run_in`, with `file` as the command's input (checking or restoring a dump inside the
+    /// container). Every other command keeps its input closed.
+    pub async fn run_with_input<I, S>(
+        &self,
+        dir: &Path,
+        args: I,
+        timeout: Duration,
+        file: &Path,
+    ) -> Result<Output, RunError>
+    where
+        I: IntoIterator<Item = S>,
+        S: AsRef<OsStr>,
+    {
+        let args: Vec<OsString> = args
+            .into_iter()
+            .map(|a| a.as_ref().to_os_string())
+            .collect();
+        let input = std::fs::File::open(file).map_err(|source| RunError::Spawn {
+            program: file.display().to_string(),
+            source,
+        })?;
+        let mut cmd = self.command(&args);
+        cmd.current_dir(dir).stdin(Stdio::from(input));
+        let label = args
+            .iter()
+            .map(|a| a.to_string_lossy())
+            .collect::<Vec<_>>()
+            .join(" ");
+        execute(&mut cmd, &self.bin, &label, timeout).await
     }
 
     /// Downloads exactly one image (`docker pull`), streaming Docker's progress to `on_line`.

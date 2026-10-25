@@ -1,3 +1,4 @@
+mod autobackup;
 mod commands;
 mod diagnostics;
 pub mod runtime;
@@ -38,6 +39,7 @@ pub fn run() {
             app.manage(windows::arbodat::Home::default());
             app.manage(windows::arbodat::LastPage::default());
             app.manage(windows::arbodat::RevealWhenLoaded::default());
+            app.manage(autobackup::AutoBackupState::default());
             let documents = app
                 .path()
                 .document_dir()
@@ -54,6 +56,7 @@ pub fn run() {
             // away instead of flashing the Control Center first.
             tauri::async_runtime::spawn(route_on_startup(app.handle().clone()));
             tauri::async_runtime::spawn(windows::watch::run(app.handle().clone()));
+            tauri::async_runtime::spawn(autobackup::run(app.handle().clone()));
             Ok(())
         })
         .on_menu_event(|app, event| windows::menu::handle(app, event.id().as_ref()))
@@ -73,7 +76,11 @@ pub fn run() {
             commands::use_local_mode,
             commands::server_status,
             commands::open_server_in_browser,
-            commands::get_diagnostics
+            commands::get_diagnostics,
+            commands::backup_now,
+            commands::list_backups,
+            commands::open_backup_folder,
+            commands::delete_backup
         ])
         .on_window_event(|window, event| {
             // Closing the window (or quitting) while the stack is being installed, started or

@@ -114,6 +114,41 @@ pub async fn stop(
     .await
 }
 
+/// `docker compose up -d --wait <services>`: starts only these services (a backup of a stopped
+/// installation needs just the database).
+pub async fn up_services(
+    cli: &DockerCli,
+    runtime_dir: &Path,
+    services: &[&str],
+    on_line: impl FnMut(&str),
+) -> Result<Output, RunError> {
+    let mut sub = vec!["up", "-d", "--wait", "--wait-timeout", UP_WAIT_SECS];
+    sub.extend_from_slice(services);
+    cli.run_streaming_in(runtime_dir, args(runtime_dir, &sub), UP_TIMEOUT, on_line)
+        .await
+}
+
+/// `docker compose stop <services>`: a graceful stop of only these services.
+pub async fn stop_services(
+    cli: &DockerCli,
+    runtime_dir: &Path,
+    services: &[&str],
+    on_line: impl FnMut(&str),
+) -> Result<Output, RunError> {
+    let mut sub = vec!["stop"];
+    sub.extend_from_slice(services);
+    cli.run_streaming_in(runtime_dir, args(runtime_dir, &sub), STOP_TIMEOUT, on_line)
+        .await
+}
+
+/// `docker compose exec -T <service> <command...>`: runs a command inside a running container,
+/// without a terminal (so binary output and piped input pass through unchanged).
+pub fn exec_args(runtime_dir: &Path, service: &str, command: &[&str]) -> Vec<OsString> {
+    let mut sub = vec!["exec", "-T", service];
+    sub.extend_from_slice(command);
+    args(runtime_dir, &sub)
+}
+
 /// The last `tail` lines of every service's log, oldest first, for the diagnostics report. Works for
 /// stopped containers too; changes nothing.
 pub async fn logs(cli: &DockerCli, runtime_dir: &Path, tail: u32) -> Result<String, String> {

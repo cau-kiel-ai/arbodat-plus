@@ -4,6 +4,7 @@
   import type { ServerStatus } from "./lib/bindings/ServerStatus";
   import type { SettingsView } from "./lib/bindings/SettingsView";
   import type { Status } from "./lib/bindings/Status";
+  import BackupsPanel from "./lib/components/BackupsPanel.svelte";
   import CogButton from "./lib/components/CogButton.svelte";
   import DiagnosticsPanel from "./lib/components/DiagnosticsPanel.svelte";
   import DockerPanel from "./lib/components/DockerPanel.svelte";
@@ -232,6 +233,9 @@
   {:else if status}
     <DockerPanel docker={status.docker} />
     <StackPanel stack={status.stack} appVersion={status.appVersion} {dockerReady} afterOperation={refreshAfterOperation} />
+    {#if status.stack.installedVersion}
+      <BackupsPanel stack={status.stack} {dockerReady} afterOperation={refreshAfterOperation} />
+    {/if}
     {#if settings}
       <SettingsPanel
         {settings}

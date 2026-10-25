@@ -20,6 +20,10 @@ fn main() {
             "server_status",
             "open_server_in_browser",
             "get_diagnostics",
+            "backup_now",
+            "list_backups",
+            "open_backup_folder",
+            "delete_backup",
         ]),
     ))
     .expect("failed to run tauri-build");

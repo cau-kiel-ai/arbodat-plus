@@ -36,6 +36,9 @@ semver = "1"
 getrandom = "0.4"
 tokio = { version = "1.53", features = ["process", "time", "sync", "fs", "io-util", "net", "macros", "rt-multi-thread"] }
 ts-rs = "12"
+# Backups: local time for names and the daily schedule, and a checksum of every dump.
+chrono = { version = "0.4", default-features = false, features = ["clock", "std"] }
+sha2 = "0.10"
 # Probing a server's /healthz (server mode). TLS with the operating system's trusted certificates
 # and proxy settings, so an institute's own certificate authority works like it does in a browser.
 reqwest = { version = "0.13", default-features = false, features = ["rustls-no-provider", "system-proxy"] }

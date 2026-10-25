@@ -134,6 +134,18 @@ appears).
   address can still be saved on request (Open then waits until the server answers). In server mode the app does not touch Docker at all; the
   local installation stays as it is and *Use ArboDat+ on this computer instead* goes back to it.
   Backups, updates and access are the server administrator's business.
+- **Backups** (`src-tauri/src/runtime/backup.rs`, `src/autobackup.rs`). A backup is a `pg_dump` custom-format file
+  plus a JSON sidecar (kind, time, versions, size, sha256, exact row count per table), named
+  `arbodat-plus_<date>_<time>_<kind>_v<version>.dump` in the backup folder. It is written as `.partial`,
+  flushed, then checked by reading it completely (`pg_restore -f /dev/null` in the database container;
+  `--list` alone would accept a dump whose end is missing) and only then renamed. If ArboDat+ is stopped,
+  only the database is started for the backup and stopped again. *Back up* makes one by hand, with an optional short description (at most 25 characters, "manual
+  backup" by default); one is
+  made by itself once a day while the app is open and ArboDat+ is running. Retention keeps the newest
+  daily backup of each of the last 7 days, 4 weeks and 12 months, and applies **only** to those daily
+  ones: backups made by hand, before an update or a restore, and any file the app didn't make are never
+  deleted. A backup can be deleted by hand from the list (trash icon, then *Delete*); that removes
+  only that `.dump` and its details file, nothing outside the backup folder.
 - **Diagnostics.** The Control Center's *Create Report* collects one piece of text to copy into a
   message when asking for help (`src-tauri/src/diagnostics.rs`): app and system versions, the mode,
   Docker, the state of ArboDat+ and its services, `state.json`, the `.env` without its secrets, the

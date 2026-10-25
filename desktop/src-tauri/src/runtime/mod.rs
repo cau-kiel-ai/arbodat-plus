@@ -2,6 +2,7 @@
 //! Independent of Tauri (only paths go in), so it can be exercised from tests and
 //! `examples/status.rs` against a real Docker without the GUI.
 
+pub mod backup;
 pub mod compose;
 pub mod discovery;
 pub mod docker;

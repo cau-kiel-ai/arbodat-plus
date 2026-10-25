@@ -186,7 +186,7 @@ pub fn run_failure(what: &str, e: RunError) -> AppError {
 }
 
 /// A non-zero exit of a Docker command, judged by what it printed.
-fn command_failure(what: &str, stderr: &str) -> AppError {
+pub(super) fn command_failure(what: &str, stderr: &str) -> AppError {
     AppError::docker(what, parse::classify(stderr), stderr)
 }
 
@@ -202,21 +202,21 @@ fn cli_problem(status: CliStatus) -> AppError {
 // Progress
 // ---------------------------------------------------------------------------------------------
 
-struct Steps<'a> {
+pub(super) struct Steps<'a> {
     emit: Emit<'a>,
     total: u32,
     index: u32,
 }
 
 impl<'a> Steps<'a> {
-    fn new(emit: Emit<'a>, total: u32) -> Self {
+    pub(super) fn new(emit: Emit<'a>, total: u32) -> Self {
         Self {
             emit,
             total,
             index: 0,
         }
     }
-    fn next(&mut self, label: &str) {
+    pub(super) fn next(&mut self, label: &str) {
         self.index += 1;
         log::info!("step {}/{}: {label}", self.index, self.total);
         (self.emit)(ProgressEvent::Step {
@@ -225,7 +225,7 @@ impl<'a> Steps<'a> {
             label: label.to_string(),
         });
     }
-    fn log(&self, text: impl Into<String>) {
+    pub(super) fn log(&self, text: impl Into<String>) {
         (self.emit)(ProgressEvent::Log { text: text.into() });
     }
 }
@@ -257,7 +257,7 @@ impl RuntimeManager {
             .unwrap_or_else(|poisoned| poisoned.into_inner())
     }
 
-    fn begin(&self, operation: Operation) -> Result<OperationGuard<'_>, AppError> {
+    pub(super) fn begin(&self, operation: Operation) -> Result<OperationGuard<'_>, AppError> {
         let mut slot = self
             .op
             .lock()
@@ -270,7 +270,7 @@ impl RuntimeManager {
     }
 
     /// A working docker CLI with a reachable engine and a recent enough Compose, or the reason why not.
-    async fn ready_docker(&self) -> Result<(DockerCli, EngineStatus), AppError> {
+    pub(super) async fn ready_docker(&self) -> Result<(DockerCli, EngineStatus), AppError> {
         let cli = self.docker_cli().await.map_err(cli_problem)?;
         let (compose, engine) = tokio::join!(compose_status(&cli), engine_status(&cli));
         match compose {

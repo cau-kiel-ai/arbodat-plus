@@ -13,6 +13,7 @@ export const operationTitles: Record<Operation, string> = {
   stop: "Stopping ArboDat+",
   changePort: "Changing the port",
   remove: "Removing ArboDat+",
+  backup: "Backing up ArboDat+",
 };
 
 /** The operation the user started in this window, with its progress and outcome. */

@@ -2,6 +2,7 @@ import { Channel, invoke } from "@tauri-apps/api/core";
 import { listen } from "@tauri-apps/api/event";
 import { openUrl } from "@tauri-apps/plugin-opener";
 import type { AppError } from "./bindings/AppError";
+import type { BackupList } from "./bindings/BackupList";
 import type { Operation } from "./bindings/Operation";
 import type { ProgressEvent } from "./bindings/ProgressEvent";
 import type { ServerStatus } from "./bindings/ServerStatus";
@@ -17,6 +18,7 @@ const commands: Record<Operation, string> = {
   stop: "stop",
   changePort: "change_port",
   remove: "remove_installation",
+  backup: "backup_now",
 };
 
 /**
@@ -47,6 +49,12 @@ export const connectServer = (url: string, force = false) => invoke<SettingsView
 /** Back to ArboDat+ on this computer. */
 export const useLocalMode = () => invoke<SettingsView>("use_local_mode");
 export const serverStatus = () => invoke<ServerStatus>("server_status");
+export const listBackups = () => invoke<BackupList>("list_backups");
+/** Deletes one backup (the .dump and its details file) from the backup folder. */
+export const deleteBackup = (fileName: string) => invoke<void>("delete_backup", { fileName });
+/** Shows the backup folder in Finder / Explorer / the file manager. */
+export const openBackupFolder = () => invoke<void>("open_backup_folder");
+
 /** A text report about the app, Docker and the installation (database password left out). */
 export const getDiagnostics = () => invoke<string>("get_diagnostics");
 /** Opens the saved server in the system browser. */

@@ -4,6 +4,8 @@ use tauri::ipc::Channel;
 use tauri::{AppHandle, Url};
 use tauri_plugin_dialog::DialogExt;
 
+use crate::autobackup::AutoBackupState;
+use crate::runtime::backup::{BackupInfo, BackupKind, BackupList};
 use crate::runtime::error::{AppError, ErrorCode};
 use crate::runtime::model::{ProgressEvent, Status};
 use crate::runtime::{RuntimeManager, probe, state};
@@ -261,6 +263,73 @@ pub fn open_server_in_browser(
     Ok(())
 }
 
+/// Makes a backup now, with the user's short note (the user's own; never deleted by the
+/// retention policy).
+#[tauri::command]
+pub async fn backup_now(
+    runtime: tauri::State<'_, RuntimeManager>,
+    store: tauri::State<'_, SettingsStore>,
+    description: Option<String>,
+    on_event: Channel<ProgressEvent>,
+) -> Result<BackupInfo, AppError> {
+    let description = crate::runtime::backup::clean_description(description.as_deref())?;
+    if store.get().mode != Mode::Local {
+        return Err(AppError::new(
+            ErrorCode::NotInstalled,
+            "Backups are made of ArboDat+ on this computer; a server is backed up by whoever runs it.",
+        ));
+    }
+    runtime
+        .backup(
+            BackupKind::Manual,
+            description,
+            &store.backup_folder(),
+            &|event| drop(on_event.send(event)),
+        )
+        .await
+}
+
+/// The backups in the backup folder, newest first.
+#[tauri::command]
+pub fn list_backups(
+    store: tauri::State<'_, SettingsStore>,
+    auto: tauri::State<'_, AutoBackupState>,
+) -> BackupList {
+    crate::runtime::backup::list(&store.backup_folder(), auto.failure())
+}
+
+/// Deletes one backup from the backup folder (the user's choice in the list, after a confirmation).
+#[tauri::command]
+pub fn delete_backup(
+    runtime: tauri::State<'_, RuntimeManager>,
+    store: tauri::State<'_, SettingsStore>,
+    file_name: String,
+) -> Result<(), AppError> {
+    // A restore or update may be reading it right now.
+    if let Some(running) = runtime.current_operation() {
+        return Err(AppError::busy(running));
+    }
+    crate::runtime::backup::delete(&store.backup_folder(), &file_name)
+}
+
+/// Shows the backup folder in Finder / Explorer / the file manager (creating it if needed).
+#[tauri::command]
+pub fn open_backup_folder(
+    app: AppHandle,
+    store: tauri::State<'_, SettingsStore>,
+) -> Result<(), AppError> {
+    use tauri_plugin_opener::OpenerExt;
+    let folder = store.backup_folder();
+    std::fs::create_dir_all(&folder)
+        .map_err(|e| AppError::io("Couldn't create the backup folder", &e))?;
+    app.opener()
+        .open_path(folder.display().to_string(), None::<&str>)
+        .map_err(|e| {
+            AppError::new(ErrorCode::Io, "The backup folder couldn't be opened.")
+                .with_detail(e.to_string())
+        })
+}
+
 /// A report about the app, Docker and the installation, to copy into a message when asking for
 /// help. Reads only; the database password is left out.
 #[tauri::command]
@@ -297,7 +366,7 @@ mod capability_tests {
     const LAUNCHER: &str = include_str!("../capabilities/launcher.json");
     const BUILD_RS: &str = include_str!("../build.rs");
     /// Every `#[tauri::command]` of this file.
-    const COMMANDS: [&str; 16] = [
+    const COMMANDS: [&str; 20] = [
         "get_status",
         "install",
         "start",
@@ -314,6 +383,10 @@ mod capability_tests {
         "server_status",
         "open_server_in_browser",
         "get_diagnostics",
+        "backup_now",
+        "list_backups",
+        "open_backup_folder",
+        "delete_backup",
     ];
 
     fn launcher() -> Value {

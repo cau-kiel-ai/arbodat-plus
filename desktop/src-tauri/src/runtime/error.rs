@@ -41,6 +41,8 @@ pub enum ErrorCode {
     DockerFailed,
     /// The containers are up but the web interface doesn't answer.
     NotReady,
+    /// A backup (just written, or chosen for a restore) can't be read completely.
+    BackupInvalid,
     Io,
 }
 
@@ -86,6 +88,7 @@ impl AppError {
             Operation::Stop => "stopping",
             Operation::ChangePort => "changing its port",
             Operation::Remove => "being removed",
+            Operation::Backup => "making a backup",
         };
         Self::new(
             ErrorCode::Busy,
