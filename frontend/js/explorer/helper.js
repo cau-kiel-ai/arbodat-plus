@@ -69,3 +69,14 @@ function formatCoordinateSystem(coordinateSystemId) {
         .join(" - ")
         || coordinateSystemId;
 }
+
+// Set a value in `obj` by a Tabulator field path, e.g. "taxCode.id" -> obj.taxCode.id
+function setNestedValue(obj, path, value) {
+    const keys = path.split(".");
+    let target = obj;
+    keys.slice(0, -1).forEach(key => {
+        target[key] = target[key] ?? {};
+        target = target[key];
+    });
+    target[keys[keys.length - 1]] = value;
+}

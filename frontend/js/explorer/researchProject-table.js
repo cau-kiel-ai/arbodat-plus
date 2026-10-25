@@ -52,7 +52,7 @@ async function buildResearchProjectTable() {
         height:"100%",
         data: researchProjects,
         columns:[
-            {formatter:"rowSelection", titleFormatter:"rowSelection", titleFormatterParams:{
+            {cssClass:"selectionColumn", formatter:"rowSelection", titleFormatter:"rowSelection", titleFormatterParams:{
                 rowRange:"active" //only toggle the values of the active filtered rows
             }, hozAlign:"center", headerSort:false},
             {title:"id", field:"id", headerFilter:true, headerSort:false},
@@ -147,7 +147,8 @@ async function buildResearchProjectTable() {
         selectedRows.forEach(row => {
             
             // Create payload
-            const researchProject = row.getData();
+            const researchProject = JSON.parse(JSON.stringify(row.getData()));
+            setNestedValue(researchProject, editedField, newValue); // other selected rows do not contain the new value yet
             const researchProjectId = researchProject.id;
             // Map site ids back to site objects
             const siteListAsObjects = (researchProject.siteList || []).map(site => typeof site === "string" ? { id: site } : site);
@@ -220,7 +221,8 @@ async function buildResearchProjectTable() {
         deleteButton.classList.toggle("hidden", rows.length === 0);
     });
 
-    deleteButton.addEventListener("click", function() {
+    // onclick (not addEventListener): the button is shared by all tables
+    deleteButton.onclick = function() {
         
         const selectedRows = researchProjectTable.getSelectedRows();
         selectedRows.forEach(row => {
@@ -228,15 +230,17 @@ async function buildResearchProjectTable() {
             const researchProjectId = row.getData().id;
 
             axios.delete(`api/research_projects/${researchProjectId}`)
-            .then(response => {
+            .then(async response => {
                 console.log(response.data);
-                row.delete();
+                await row.delete();
+                // Deleting a row does not fire rowSelectionChanged
+                deleteButton.classList.toggle("hidden", researchProjectTable.getSelectedRows().length === 0);
             })
             .catch(error => {
                 console.error('Error deleting research project:', error);
             });            
         });
-    });
+    };
 
 }
 

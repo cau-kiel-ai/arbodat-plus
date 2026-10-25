@@ -92,7 +92,7 @@ async function buildDatingTable() {
         height: "100%",
         data: absoluteDatings,
         columns:[
-            {formatter:"rowSelection", titleFormatter:"rowSelection", titleFormatterParams:{
+            {cssClass:"selectionColumn", formatter:"rowSelection", titleFormatter:"rowSelection", titleFormatterParams:{
                 rowRange:"active" //only toggle the values of the active filtered rows
             }, hozAlign:"center", headerSort:false},
             {title:"id", field:"id", headerFilter:true, headerSort:false},
@@ -358,7 +358,8 @@ async function buildDatingTable() {
         selectedRows.forEach(row => {
             
             // Create payload
-            const absolute_dating = row.getData();
+            const absolute_dating = JSON.parse(JSON.stringify(row.getData()));
+            setNestedValue(absolute_dating, editedField, newValue); // other selected rows do not contain the new value yet
             const absoluteDatingId = absolute_dating.id;
 
             // Map ids back to objects
@@ -409,7 +410,8 @@ async function buildDatingTable() {
         deleteButton.classList.toggle("hidden", rows.length === 0);
     });
 
-    deleteButton.addEventListener("click", function() {
+    // onclick (not addEventListener): the button is shared by all tables
+    deleteButton.onclick = function() {
         
         const selectedRows = datingTable.getSelectedRows();
         selectedRows.forEach(row => {
@@ -417,15 +419,17 @@ async function buildDatingTable() {
             const absoluteDatingId = row.getData().id;
 
             axios.delete(`api/absolute_datings/${absoluteDatingId}`)
-            .then(response => {
+            .then(async response => {
                 console.log(response.data);
-                row.delete();
+                await row.delete();
+                // Deleting a row does not fire rowSelectionChanged
+                deleteButton.classList.toggle("hidden", datingTable.getSelectedRows().length === 0);
             })
             .catch(error => {
                 console.error('Error deleting absolute datings:', error);
             });            
         });
-    });
+    };
 }
 
 // Export table -----------------------------------------------------------------

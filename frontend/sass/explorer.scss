@@ -303,3 +303,10 @@ footer li a:hover{
 
 
 @import '../bootstrap-scss/bootstrap';
+
+
+// Center the "select row" checkbox in the header of the row selection column
+.tabulator .tabulator-header .tabulator-col.selectionColumn {
+    align-items: center;
+    justify-content: center;
+}

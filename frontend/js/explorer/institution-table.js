@@ -22,7 +22,7 @@ async function buildInstitutionTable() {
         height: "100%",
         data: institutions,
         columns:[
-            {formatter:"rowSelection", titleFormatter:"rowSelection",
+            {cssClass:"selectionColumn", formatter:"rowSelection", titleFormatter:"rowSelection",
                 titleFormatterParams:{
                     rowRange:"active" //only toggle the values of the active filtered rows
                 }, hozAlign:"center", headerSort:false
@@ -60,7 +60,8 @@ async function buildInstitutionTable() {
         selectedRows.forEach(row => {
             
             // Create payload
-            const institution = row.getData();
+            const institution = JSON.parse(JSON.stringify(row.getData()));
+            setNestedValue(institution, editedField, newValue); // other selected rows do not contain the new value yet
             const institutionId = institution.id;
             const payload = {
                 ...institution,
@@ -91,7 +92,8 @@ async function buildInstitutionTable() {
         deleteButton.classList.toggle("hidden", rows.length === 0);
     });
 
-    deleteButton.addEventListener("click", function() {
+    // onclick (not addEventListener): the button is shared by all tables
+    deleteButton.onclick = function() {
         
         const selectedRows = institutionTable.getSelectedRows();
         selectedRows.forEach(row => {
@@ -99,15 +101,17 @@ async function buildInstitutionTable() {
             const institutionId = row.getData().id;
 
             axios.delete(`api/institutions/${institutionId}`)
-            .then(response => {
+            .then(async response => {
                 console.log(response.data);
-                row.delete();
+                await row.delete();
+                // Deleting a row does not fire rowSelectionChanged
+                deleteButton.classList.toggle("hidden", institutionTable.getSelectedRows().length === 0);
             })
             .catch(error => {
                 console.error('Error deleting institution:', error);
             });            
         });
-    });
+    };
 }
 
 // Export table -----------------------------------------------------------------

@@ -53,7 +53,7 @@ async function buildLiteratureTable() {
         height: "100%",
         data: literature,
         columns:[
-            {formatter:"rowSelection", titleFormatter:"rowSelection", titleFormatterParams:{
+            {cssClass:"selectionColumn", formatter:"rowSelection", titleFormatter:"rowSelection", titleFormatterParams:{
                 rowRange:"active" //only toggle the values of the active filtered rows
             }, hozAlign:"center", headerSort:false},
             {title:"id", field:"id", headerFilter:true, headerSort:false},
@@ -142,7 +142,8 @@ async function buildLiteratureTable() {
         selectedRows.forEach(row => {
             
             // Create payload
-            const literature = row.getData();
+            const literature = JSON.parse(JSON.stringify(row.getData()));
+            setNestedValue(literature, editedField, newValue); // other selected rows do not contain the new value yet
             const literatureId = literature.id;
 
             // Map author ids back to author objects
@@ -188,7 +189,8 @@ async function buildLiteratureTable() {
         deleteButton.classList.toggle("hidden", rows.length === 0);
     });
 
-    deleteButton.addEventListener("click", function() {
+    // onclick (not addEventListener): the button is shared by all tables
+    deleteButton.onclick = function() {
         
         const selectedRows = literatureTable.getSelectedRows();
         selectedRows.forEach(row => {
@@ -196,15 +198,17 @@ async function buildLiteratureTable() {
             const literatureId = row.getData().id;
 
             axios.delete(`api/literature/${literatureId}`)
-            .then(response => {
+            .then(async response => {
                 console.log(response.data);
-                row.delete();
+                await row.delete();
+                // Deleting a row does not fire rowSelectionChanged
+                deleteButton.classList.toggle("hidden", literatureTable.getSelectedRows().length === 0);
             })
             .catch(error => {
                 console.error('Error deleting literature:', error);
             });            
         });
-    });
+    };
 }
 
 // Export table -----------------------------------------------------------------

@@ -31,7 +31,7 @@ async function buildUserTable() {
         height: "100%",
         data: users,
         columns:[
-            {formatter:"rowSelection", titleFormatter:"rowSelection", titleFormatterParams:{
+            {cssClass:"selectionColumn", formatter:"rowSelection", titleFormatter:"rowSelection", titleFormatterParams:{
                 rowRange:"active" //only toggle the values of the active filtered rows
             }, hozAlign:"center", headerSort:false},
             {title:"id", field:"id", headerFilter:true, headerSort:false},
@@ -101,7 +101,8 @@ async function buildUserTable() {
         selectedRows.forEach(row => {
             
             // Create payload
-            const user = row.getData();
+            const user = JSON.parse(JSON.stringify(row.getData()));
+            setNestedValue(user, editedField, newValue); // other selected rows do not contain the new value yet
             const userId = user.id;
 
             // Map institution ids back to institution objects
@@ -142,7 +143,8 @@ async function buildUserTable() {
         deleteButton.classList.toggle("hidden", rows.length === 0);
     });
 
-    deleteButton.addEventListener("click", function() {
+    // onclick (not addEventListener): the button is shared by all tables
+    deleteButton.onclick = function() {
         
         const selectedRows = userTable.getSelectedRows();
         selectedRows.forEach(row => {
@@ -150,15 +152,17 @@ async function buildUserTable() {
             const userId = row.getData().id;
 
             axios.delete(`api/users/${userId}`)
-            .then(response => {
+            .then(async response => {
                 console.log(response.data);
-                row.delete();
+                await row.delete();
+                // Deleting a row does not fire rowSelectionChanged
+                deleteButton.classList.toggle("hidden", userTable.getSelectedRows().length === 0);
             })
             .catch(error => {
                 console.error('Error deleting user:', error);
             });            
         });
-    });
+    };
 }
 
 // Export table -----------------------------------------------------------------

@@ -121,7 +121,7 @@ async function buildSiteTable() {
         height: "100%",
         data: sites,
         columns:[
-            {formatter:"rowSelection", titleFormatter:"rowSelection", titleFormatterParams:{
+            {cssClass:"selectionColumn", formatter:"rowSelection", titleFormatter:"rowSelection", titleFormatterParams:{
                 rowRange:"active" //only toggle the values of the active filtered rows
             }, hozAlign:"center", headerSort:false},
             {title:"id", field:"id", headerFilter:true, headerSort:false},
@@ -638,7 +638,8 @@ async function buildSiteTable() {
         selectedRows.forEach(row => {
             
             // Create payload
-            const site = row.getData();
+            const site = JSON.parse(JSON.stringify(row.getData()));
+            setNestedValue(site, editedField, newValue); // other selected rows do not contain the new value yet
             const siteId = site.id;
             // Map ids back to objects
             const researchProjectsAsObjects = (site.researchProjectList || []).map(item => typeof item === "string"
@@ -738,7 +739,8 @@ async function buildSiteTable() {
         deleteButton.classList.toggle("hidden", rows.length === 0);
     });
 
-    deleteButton.addEventListener("click", function() {
+    // onclick (not addEventListener): the button is shared by all tables
+    deleteButton.onclick = function() {
         
         const selectedRows = siteTable.getSelectedRows();
         selectedRows.forEach(row => {
@@ -746,15 +748,17 @@ async function buildSiteTable() {
             const siteId = row.getData().id;
 
             axios.delete(`api/sites/${siteId}`)
-            .then(response => {
+            .then(async response => {
                 console.log(response.data);
-                row.delete();
+                await row.delete();
+                // Deleting a row does not fire rowSelectionChanged
+                deleteButton.classList.toggle("hidden", siteTable.getSelectedRows().length === 0);
             })
             .catch(error => {
                 console.error(`Error deleting site ${siteId}:`, error);
             });            
         });
-    });
+    };
 }
 
 // Export table -----------------------------------------------------------------

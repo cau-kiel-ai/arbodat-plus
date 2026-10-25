@@ -50,7 +50,7 @@ async function buildFeatureTable() {
         height: "100%",
         data: features,
         columns:[
-            {formatter:"rowSelection", titleFormatter:"rowSelection", titleFormatterParams:{
+            {cssClass:"selectionColumn", formatter:"rowSelection", titleFormatter:"rowSelection", titleFormatterParams:{
                 rowRange:"active" //only toggle the values of the active filtered rows
             }, hozAlign:"center", headerSort:false},
             {title:"id", field:"id", headerFilter:true, headerSort:false},
@@ -279,7 +279,8 @@ async function buildFeatureTable() {
         selectedRows.forEach(row => {
             
             // Create payload
-            const feature = row.getData();
+            const feature = JSON.parse(JSON.stringify(row.getData()));
+            setNestedValue(feature, editedField, newValue); // other selected rows do not contain the new value yet
             const featureId = feature.id;
 
             const payload = {
@@ -312,7 +313,8 @@ async function buildFeatureTable() {
         deleteButton.classList.toggle("hidden", rows.length === 0);
     });
 
-    deleteButton.addEventListener("click", function() {
+    // onclick (not addEventListener): the button is shared by all tables
+    deleteButton.onclick = function() {
         
         const selectedRows = featureTable.getSelectedRows();
         selectedRows.forEach(row => {
@@ -320,15 +322,17 @@ async function buildFeatureTable() {
             const featureId = row.getData().id;
 
             axios.delete(`api/features/${featureId}`)
-            .then(response => {
+            .then(async response => {
                 console.log(response.data);
-                row.delete();
+                await row.delete();
+                // Deleting a row does not fire rowSelectionChanged
+                deleteButton.classList.toggle("hidden", featureTable.getSelectedRows().length === 0);
             })
             .catch(error => {
                 console.error('Error deleting feature:', error);
             });            
         });
-    });
+    };
 }
 
 // Export table -----------------------------------------------------------------

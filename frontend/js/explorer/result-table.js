@@ -103,7 +103,7 @@ async function createResultTable({ selector, results, hiddenFields = [], height 
         height: height,
         data: results,
         columns:[
-            {formatter:"rowSelection", titleFormatter:"rowSelection", titleFormatterParams:{
+            {cssClass:"selectionColumn", formatter:"rowSelection", titleFormatter:"rowSelection", titleFormatterParams:{
                 rowRange:"active" //only toggle the values of the active filtered rows
             }, hozAlign:"center", headerSort:false},
             {title:"id", field:"id", headerFilter:true, headerSort:false},
@@ -597,10 +597,12 @@ async function createResultTable({ selector, results, hiddenFields = [], height 
         if (!selectedRows.includes(editedRow)) {
             selectedRows.push(editedRow);
         }
-        selectedRows.forEach(row => {
-            
-            // Create payload
-            const result = row.getData();
+        const refused = await Promise.all(selectedRows.map(async row => {
+
+            // Create payload from a copy of the row data with the edit applied
+            // (other selected rows do not contain the new value yet)
+            const result = JSON.parse(JSON.stringify(row.getData()));
+            setNestedValue(result, editedField, newValue);
             const resultId = result.id;
 
             // Map ids back to objects
@@ -613,31 +615,36 @@ async function createResultTable({ selector, results, hiddenFields = [], height 
                 sample: result.sample ? { id: result.sample.id } : null,
                 absoluteDatingList: datingsAsObjects,
             };
-    
-            axios.put(`api/results/${resultId}`, JSON.stringify(payload), {
-                headers: {
-                    "Content-Type": 'application/json'
-                }
-            })
-            .then(async response => {
+
+            try {
+                const response = await axios.put(`api/results/${resultId}`, JSON.stringify(payload), {
+                    headers: {
+                        "Content-Type": 'application/json'
+                    }
+                });
                 console.log(response.data);
 
                 // Backend refused: the edit would duplicate another result
                 if (response.data === "result already exists") {
                     if (row === editedRow) {
                         cell.restoreOldValue();
-                        toast.info("result already exists");
                     }
-                    return;
+                    return true;
                 }
 
                 // Update table
                 if(row !== editedRow) { // skip the edited line
                     row.update({ [editedField]: newValue });
                 }
-            })
-            .catch(error => console.error("Error updating results:", error));
-        });
+            } catch (error) {
+                console.error("Error updating results:", error);
+            }
+            return false;
+        }));
+
+        if (refused.includes(true)) {
+            toast.info("result already exists");
+        }
     });
 
     return table;
@@ -647,9 +654,11 @@ async function createResultTable({ selector, results, hiddenFields = [], height 
 function attachResultDeleteHandler(table, deleteButton) {
     deleteButton.classList.add("hidden");
 
-    table.on("rowSelectionChanged", function(rows){
-        deleteButton.classList.toggle("hidden", rows.length === 0);
-    });
+    const updateDeleteButton = () => {
+        deleteButton.classList.toggle("hidden", table.getSelectedRows().length === 0);
+    };
+
+    table.on("rowSelectionChanged", updateDeleteButton);
 
     // onclick (not addEventListener): the button is reused when the table is rebuilt
     deleteButton.onclick = function() {
@@ -657,9 +666,11 @@ function attachResultDeleteHandler(table, deleteButton) {
             const resultId = row.getData().id;
 
             axios.delete(`api/results/${resultId}`)
-            .then(response => {
+            .then(async response => {
                 console.log(response.data);
-                row.delete();
+                await row.delete();
+                // Deleting a row does not fire rowSelectionChanged
+                updateDeleteButton();
             })
             .catch(error => {
                 console.error('Error deleting results:', error);

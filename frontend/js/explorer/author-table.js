@@ -22,7 +22,7 @@ async function buildAuthorTable() {
         height: "100%",
         data: authors,
         columns:[
-            {formatter:"rowSelection", titleFormatter:"rowSelection", titleFormatterParams:{
+            {cssClass:"selectionColumn", formatter:"rowSelection", titleFormatter:"rowSelection", titleFormatterParams:{
                 rowRange:"active" //only toggle the values of the active filtered rows
             }, hozAlign:"center", headerSort:false},
             {title:"id", field:"id", headerFilter:true, headerSort:false},
@@ -59,7 +59,8 @@ async function buildAuthorTable() {
         selectedRows.forEach(row => {
             
             // Create payload
-            const author = row.getData();
+            const author = JSON.parse(JSON.stringify(row.getData()));
+            setNestedValue(author, editedField, newValue); // other selected rows do not contain the new value yet
             const authorId = author.id;
             const payload = {
                 ...author,
@@ -90,7 +91,8 @@ async function buildAuthorTable() {
         deleteButton.classList.toggle("hidden", rows.length === 0);
     });
 
-    deleteButton.addEventListener("click", function() {
+    // onclick (not addEventListener): the button is shared by all tables
+    deleteButton.onclick = function() {
         
         const selectedRows = authorTable.getSelectedRows();
         selectedRows.forEach(row => {
@@ -98,15 +100,17 @@ async function buildAuthorTable() {
             const authorId = row.getData().id;
 
             axios.delete(`api/authors/${authorId}`)
-            .then(response => {
+            .then(async response => {
                 console.log(response.data);
-                row.delete();
+                await row.delete();
+                // Deleting a row does not fire rowSelectionChanged
+                deleteButton.classList.toggle("hidden", authorTable.getSelectedRows().length === 0);
             })
             .catch(error => {
                 console.error('Error deleting author:', error);
             });            
         });
-    });
+    };
 }
 
 // Export table -----------------------------------------------------------------
