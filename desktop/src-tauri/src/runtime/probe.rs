@@ -159,14 +159,15 @@ mod tests {
         let port = listener.local_addr().unwrap().port();
         tokio::spawn(async move {
             let (mut sock, _) = listener.accept().await.unwrap();
+            // Read the request first: on Windows, closing a socket with unread data resets the
+            // connection, and the client would see "reading failed" instead of the answer.
+            let mut buf = [0u8; 1024];
+            let _ = sock.read(&mut buf).await;
             let _ = sock.write_all(b"SSH-2.0-OpenSSH\r\n").await;
+            let _ = sock.shutdown().await;
         });
-        assert!(
-            status_of(port, "/")
-                .await
-                .unwrap_err()
-                .contains("unexpected answer")
-        );
+        let err = status_of(port, "/").await.unwrap_err();
+        assert!(err.contains("unexpected answer"), "{err}");
     }
 
     #[tokio::test]
