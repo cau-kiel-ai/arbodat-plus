@@ -1,0 +1,52 @@
+/* ------------ Sticky accordion headers --------------- */
+// Keeps accordion headers visible below the fixed page header while scrolling; nested headers stack below their parent
+
+:root {
+    --page-header-height: 70px;
+}
+
+// z-index: each sticky header is its own stacking layer; a later header paints over the previous one,
+// so the focused header is raised to keep its focus ring visible. Nested headers stay below top-level ones.
+.accordion-item > .accordion-header {
+    position: sticky;
+    top: var(--page-header-height);
+    z-index: 6;
+    background-color: var(--bs-accordion-bg); // opaque, so scrolled content never shows through
+}
+
+.accordion-item > .accordion-header:has(> .accordion-button:focus) {
+    z-index: 7;
+}
+
+// no focus ring after a mouse click (keyboard focus via :focus-visible keeps it)
+.accordion-button:focus:not(:focus-visible) {
+    box-shadow: none;
+}
+
+.accordion-item:has(> .accordion-collapse.show) > .accordion-header {
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.12);
+}
+
+.accordion-item {
+    scroll-margin-top: var(--page-header-height); // used by scrollIntoView in js/stickyAccordion.js
+}
+
+// nested accordion: stack directly below the parent header
+// --parent-accordion-header-height is measured in js/stickyAccordion.js (fallback: one-line header)
+.accordion-body .accordion-item > .accordion-header {
+    top: calc(var(--page-header-height) + var(--parent-accordion-header-height, 52px));
+    z-index: 4;
+}
+
+.accordion-body .accordion-item > .accordion-header:has(> .accordion-button:focus) {
+    z-index: 5;
+}
+
+.accordion-body .accordion-item {
+    scroll-margin-top: calc(var(--page-header-height) + var(--parent-accordion-header-height, 52px));
+}
+
+// Leaflet panes (z-index 400) and controls (z-index 1000) would otherwise paint over the sticky headers
+.leaflet-container {
+    isolation: isolate;
+}

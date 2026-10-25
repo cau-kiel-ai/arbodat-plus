@@ -38,6 +38,12 @@ except for `.gitkeep` — it's build output, not source. `Dockerfile` compiles i
 local editing without Docker, see the *Live Sass Compiler* settings in the top-level
 [`../README.md`](../README.md#frontend).
 
+Files starting with `_` (e.g. `sass/_stickyAccordion.scss`) are Sass *partials*: they are never
+compiled to their own CSS file, only pulled into a page stylesheet via `@import` (e.g.
+`@import 'stickyAccordion';` in `input.scss`). Use a partial for styles shared
+by several pages. `Dockerfile` renames `*.scss` to `*.min.scss` before compiling (to get the
+`.min.css` output names) but skips partials, so that `@import` still finds them by their original name.
+
 ## Version stamping
 
 Five pages have a `Version __APP_VERSION__` placeholder in their footer. `Dockerfile` replaces it

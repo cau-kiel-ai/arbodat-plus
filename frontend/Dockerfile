@@ -10,7 +10,7 @@ ARG APP_VERSION=0.0.0
 COPY ./sass ./sass
 COPY ./bootstrap-scss ./bootstrap-scss
 
-RUN find ./sass -name "*.scss" -exec sh -c 'mv "$1" "${1%.scss}.min.scss"' _ {} \;
+RUN find ./sass -name "*.scss" ! -name "_*" -exec sh -c 'mv "$1" "${1%.scss}.min.scss"' _ {} \;
 
 # Install dart-sass globally
 RUN npm install -g sass@1.62.1
