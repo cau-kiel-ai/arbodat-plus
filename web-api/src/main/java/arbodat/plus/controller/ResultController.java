@@ -37,7 +37,13 @@ public class ResultController {
     @Autowired
     TaxCodeRepository taxCodeRepository;
 
-    @GetMapping public Page<Result> getResults(Pageable pageable) { return resultRepository.findAll(pageable); }
+    @GetMapping
+    public Page<Result> getResults(@RequestParam(required = false) UUID sampleId, Pageable pageable) {
+        if (sampleId != null) {
+            return resultRepository.findBySampleId(sampleId, pageable);
+        }
+        return resultRepository.findAll(pageable);
+    }
 
     @PostMapping
     public String create(@RequestBody Result transferredResult) {

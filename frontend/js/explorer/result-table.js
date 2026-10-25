@@ -1,15 +1,12 @@
+// Result table -------------------------------------------------------------------
+// Shared by explorer.html (all results) and input.html (results of the selected
+// reference sample, see js/input/result.js).
+
 let resultTable;
 
-async function buildResultTable() {
-    const container = document.getElementById("table");
-    const spinner = document.getElementById('tableSpinner');
-    const tableContainer = document.querySelector('.table-container');
-    container.innerHTML = "";
-    spinner.style.display = 'block';
-    tableContainer.style.display = 'none';
-
-    // GET results --------------------------------------------------------------
-    let results = [];
+// GET results (paged), optionally filtered e.g. by { sampleId } ---------------------
+async function loadResults(params = {}) {
+    const results = [];
 
     const size = 1000;
     let page = 0;
@@ -17,7 +14,7 @@ async function buildResultTable() {
     while (!last) {
         try {
             const response = await axios.get("api/results", {
-                params: { page, size }
+                params: { ...params, page, size }
             });
 
             results.push(...response.data.content);
@@ -25,8 +22,14 @@ async function buildResultTable() {
             page++;
         } catch (error) {
             console.error("Error loading results:", error);
+            break;
         }
     }
+    return results;
+}
+
+// Build the table in `selector`; columns in `hiddenFields` are hidden but still exported
+async function createResultTable({ selector, results, hiddenFields = [], height = "100%" }) {
 
     // GET sites --------------------------------------------------------------
     let sites = [];
@@ -96,8 +99,8 @@ async function buildResultTable() {
     }
 
     // Create Table -------------------------------------------------------------
-    resultTable = new Tabulator("#table", {
-        height: "100%",
+    const table = new Tabulator(selector, {
+        height: height,
         data: results,
         columns:[
             {formatter:"rowSelection", titleFormatter:"rowSelection", titleFormatterParams:{
@@ -371,7 +374,7 @@ async function buildResultTable() {
                     return entry ? [entry.notation, entry.prefLabel?.la].filter(Boolean).join(", ") : "";
                 },
                 accessorDownload: function(value, data) {
-                    const row = resultTable.getRow(data.id);
+                    const row = table.getRow(data.id);
                     const rowData = row.getData();
 
                     if (!value) return "";
@@ -577,26 +580,19 @@ async function buildResultTable() {
                 },
             },
             {title:"remarks", field:"remarksTaxonomy", editor:"input", headerFilter:true, headerSort:false},
-        ],
+        ].map(column => hiddenFields.includes(column.field)
+            ? { ...column, visible: false, download: true }
+            : column),
     });
 
-
-    // Hide spinner
-    spinner.style.display = 'none';
-    // Show table
-    tableContainer.style.display = 'flex';
-
-    activeTable = "resultTable";
-
-
     // PUT: update results ------------------------------------------------------
-    resultTable.on("cellEdited", async function(cell){
+    table.on("cellEdited", async function(cell){
 
         const editedField = cell.getField();
         const newValue = cell.getValue();
 
         // Update all selected rows
-        const selectedRows = resultTable.getSelectedRows();
+        const selectedRows = table.getSelectedRows();
         const editedRow = cell.getRow();
         if (!selectedRows.includes(editedRow)) {
             selectedRows.push(editedRow);
@@ -625,9 +621,18 @@ async function buildResultTable() {
             })
             .then(async response => {
                 console.log(response.data);
-                
+
+                // Backend refused: the edit would duplicate another result
+                if (response.data === "result already exists") {
+                    if (row === editedRow) {
+                        cell.restoreOldValue();
+                        toast.info("result already exists");
+                    }
+                    return;
+                }
+
                 // Update table
-                if(row !== cell.getRow()) { // skip the edited line
+                if(row !== editedRow) { // skip the edited line
                     row.update({ [editedField]: newValue });
                 }
             })
@@ -635,19 +640,20 @@ async function buildResultTable() {
         });
     });
 
-    // Delete rows --------------------------------------------------------------
-    const deleteButton = document.getElementById("deleteRows-button");
-    
-    // Only show deleteButton if at least one row is selected
-    resultTable.on("rowSelectionChanged", function(rows){
+    return table;
+}
+
+// Delete selected rows via `deleteButton` (only visible while rows are selected) ----
+function attachResultDeleteHandler(table, deleteButton) {
+    deleteButton.classList.add("hidden");
+
+    table.on("rowSelectionChanged", function(rows){
         deleteButton.classList.toggle("hidden", rows.length === 0);
     });
 
-    deleteButton.addEventListener("click", function() {
-        
-        const selectedRows = resultTable.getSelectedRows();
-        selectedRows.forEach(row => {
-            // Get id
+    // onclick (not addEventListener): the button is reused when the table is rebuilt
+    deleteButton.onclick = function() {
+        table.getSelectedRows().forEach(row => {
             const resultId = row.getData().id;
 
             axios.delete(`api/results/${resultId}`)
@@ -657,20 +663,40 @@ async function buildResultTable() {
             })
             .catch(error => {
                 console.error('Error deleting results:', error);
-            });            
+            });
         });
-    });
+    };
+}
+
+// Explorer: build the table with all results -----------------------------------------
+async function buildResultTable() {
+    const container = document.getElementById("table");
+    const spinner = document.getElementById('tableSpinner');
+    const tableContainer = document.querySelector('.table-container');
+    container.innerHTML = "";
+    spinner.style.display = 'block';
+    tableContainer.style.display = 'none';
+
+    const results = await loadResults();
+    resultTable = await createResultTable({ selector: "#table", results });
+    attachResultDeleteHandler(resultTable, document.getElementById("deleteRows-button"));
+
+    // Hide spinner
+    spinner.style.display = 'none';
+    // Show table
+    tableContainer.style.display = 'flex';
+
+    activeTable = "resultTable";
 }
 
 // Export table -----------------------------------------------------------------
-document.getElementById("download-json").addEventListener("click", function(){
-    if (activeTable === "resultTable") {
-        const rawData = resultTable.getData("active");
+function downloadResultsJson(table) {
+        const rawData = table.getData("active");
         
         const transformed = rawData.map(row => {
             // Sample
             const sampleId = row.sample?.id;
-            const sampleValues = resultTable.getColumn("sample.id").getDefinition().editorParams({
+            const sampleValues = table.getColumn("sample.id").getDefinition().editorParams({
                 getRow: () => ({
                     getData: () => row
                 })
@@ -678,7 +704,7 @@ document.getElementById("download-json").addEventListener("click", function(){
             const sample = sampleValues.find(s => s.value === sampleId);
             // Feature
             const featureId     = row.sample?.feature?.id;
-            const featureValues = resultTable.getColumn("sample.feature.id").getDefinition().editorParams({
+            const featureValues = table.getColumn("sample.feature.id").getDefinition().editorParams({
                 getRow: () => ({
                     getData: () => row
                 })
@@ -686,11 +712,11 @@ document.getElementById("download-json").addEventListener("click", function(){
             const feature       = featureValues.find(f => f.value === featureId);
             // Site
             const siteId     = row.sample?.feature?.site?.id;
-            const siteValues = resultTable.getColumn("sample.feature.site.id").getDefinition().editorParams.values;
+            const siteValues = table.getColumn("sample.feature.site.id").getDefinition().editorParams.values;
             const site       = siteValues.find(s => s.value === siteId);
             // Tax code
             const taxCodeId     = row.taxCode?.id;
-            const taxCodeValues = resultTable.getColumn("taxCode.id").getDefinition().editorParams({
+            const taxCodeValues = table.getColumn("taxCode.id").getDefinition().editorParams({
                 getRow: () => ({
                     getData: () => row
                 })
@@ -701,7 +727,7 @@ document.getElementById("download-json").addEventListener("click", function(){
             const classificationConfer   = cachedClassificationConfers.find(cf => cf.uri === classificationConferId);
             // Rest type
             const restTypeId     = row.restType.id;
-            const restTypeValues = resultTable.getColumn("restType.id").getDefinition().editorParams.values;
+            const restTypeValues = table.getColumn("restType.id").getDefinition().editorParams.values;
             const restType       = restTypeValues.find(rt => rt.value === restTypeId);
             // State of preservation
             const stateOfPreservationId = row.stateOfPreservation.id;
@@ -722,7 +748,7 @@ document.getElementById("download-json").addEventListener("click", function(){
                     name: site.label
                 },
                 absoluteDatingList: (() => {
-                    const accessorDownload = resultTable
+                    const accessorDownload = table
                         .getColumn("absoluteDatingList")
                         .getDefinition()
                         .accessorDownload;
@@ -762,33 +788,40 @@ document.getElementById("download-json").addEventListener("click", function(){
         a.click();
         // Revoke later: WebKit (macOS app window) cancels downloads whose blob URL is already revoked.
         setTimeout(() => URL.revokeObjectURL(url), 60000);
-    }
-});
+}
 
-document.getElementById("download-csv").addEventListener("click", function(){
-    if (activeTable === "resultTable") {
-        resultTable.download(
-            "csv",
-            "ArboDat+_Download_Results.csv"
-        );
-    }    
-});    
+function downloadResultsCsv(table) {
+    table.download(
+        "csv",
+        "ArboDat+_Download_Results.csv"
+    );
+}
 
-document.getElementById("download-xlsx").addEventListener("click", function(){
-    if (activeTable === "resultTable") {
-        resultTable.download(
-            "xlsx",
-            "ArboDat+_Download_Results.xlsx",
-            {sheetName:"ArboDat+ Results"}
-        );
-    }
-});
+function downloadResultsXlsx(table) {
+    table.download(
+        "xlsx",
+        "ArboDat+_Download_Results.xlsx",
+        {sheetName:"ArboDat+ Results"}
+    );
+}
 
-document.getElementById("download-html").addEventListener("click", function(){
-    if (activeTable === "resultTable") {
-        resultTable.download(
-            "html",
-            "ArboDat+_Download_Results.html"
-        );
-    }
+function downloadResultsHtml(table) {
+    table.download(
+        "html",
+        "ArboDat+_Download_Results.html"
+    );
+}
+
+// Explorer export buttons (not present on input.html)
+[
+    ["download-json", downloadResultsJson],
+    ["download-csv",  downloadResultsCsv],
+    ["download-xlsx", downloadResultsXlsx],
+    ["download-html", downloadResultsHtml],
+].forEach(([buttonId, download]) => {
+    document.getElementById(buttonId)?.addEventListener("click", function(){
+        if (activeTable === "resultTable") {
+            download(resultTable);
+        }
+    });
 });

@@ -535,3 +535,36 @@ footer li a:hover{
 
 
 @import '../bootstrap-scss/bootstrap';
+
+
+// Existing results table (same look as in the explorer) -------------------------
+.button-container {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 1em;
+}
+
+.deleteButton {
+    width: auto;
+    height: 35px;
+    cursor: pointer;
+    border-radius: 5px;
+    border-color:  #f2f2f2;
+    background-color: rgb(241, 34, 34);
+    color: #FFFFFF;
+}
+
+.deleteButton.hidden {
+    visibility: hidden;
+}
+
+.exportButton {
+    width: auto;
+    height: 30px;
+    cursor: pointer;
+    border-radius: 5px;
+    background-color: rgb(28, 182, 209);
+    border-color:  #f2f2f2;
+    color: #FFFFFF;
+}

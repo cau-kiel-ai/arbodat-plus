@@ -41,6 +41,38 @@
         rel="stylesheet"
       />
       <script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
+      <!-- tabulator (results table) -->
+      <link
+        href="https://unpkg.com/tabulator-tables@6.3.1/dist/css/tabulator.min.css"
+        rel="stylesheet"
+      >
+      <script
+        type="text/javascript"
+        src="https://unpkg.com/tabulator-tables@6.3.1/dist/js/tabulator.min.js"
+        >
+      </script>
+      <!-- Export includes -->
+      <script type="text/javascript" src="https://oss.sheetjs.com/sheetjs/xlsx.full.min.js"></script>
+      <!-- Spinner style -->
+      <style>
+        /* Loading Spinner (Circular) */
+        .spinner {
+          border: 4px solid #f3f3f3;
+          border-top: 4px solid #3498db;
+          border-radius: 50%;
+          width: 50px;
+          height: 50px;
+          animation: spin 2s linear infinite;
+          display: none; /* Initially hidden */
+          margin: 20px auto;
+        }
+
+        /* Spinner Animation */
+        @keyframes spin {
+          0% { transform: rotate(0deg); }
+          100% { transform: rotate(360deg); }
+        }
+      </style>
 
 
       <style>
@@ -2442,12 +2474,6 @@
           <div id="panelsStayOpen-collapseSeven" class="accordion-collapse collapse">
             <div class="accordion-body">
 
-              <span style="padding: 4px;">
-                ⓘ Results can only be submitted. In the
-                <a href="explorer.html" target="_blank">Data Explorer</a>,
-                results can be viewed, edited and deleted.
-              </span>
-
               <form id="resultForm" style="padding-top: 4px;">               
 
                 <!-- References -->
@@ -2829,6 +2855,33 @@
                   </button>
 
                 </fieldset>
+
+                <br>
+
+                <!-- Existing results of the selected reference sample -->
+                <fieldset>
+                  <span id="existingResults-hint" style="padding: 4px;">
+                    ⓘ Select a reference sample to see its existing results.
+                  </span>
+
+                  <div id="existingResults-buttons" class="button-container" style="display: none;">
+                    <button type="button" id="existingResults-delete" class="deleteButton hidden">
+                      Delete selected Rows
+                    </button>
+
+                    Export Table:
+
+                    <button type="button" id="existingResults-json" class="exportButton">JSON</button>
+                    <button type="button" id="existingResults-csv" class="exportButton">CSV</button>
+                    <button type="button" id="existingResults-xlsx" class="exportButton">XLSX</button>
+                    <button type="button" id="existingResults-html" class="exportButton">HTML</button>
+                  </div>
+
+                  <div id="existingResults-spinner" class="spinner"></div>
+
+                  <div id="existingResults-table" style="display: none;"></div>
+                </fieldset>
+
               </form>
             </div>
           </div>
@@ -2893,6 +2946,9 @@
 
     <!-- result -->
     <script src="js/input/result.js"></script>
+    <!-- results table (shared with the explorer) -->
+    <script src="js/explorer/helper.js"></script>
+    <script src="js/explorer/result-table.js"></script>
     <!------------------------------------------------------------------------>
 
     <footer>

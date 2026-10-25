@@ -184,6 +184,78 @@ $('#result_sample_dropdown')
     .find('.select2-selection__arrow')
     .remove();
 
+// Existing results of the selected sample ------------------------------------------
+// (table code is shared with the explorer: js/explorer/result-table.js)
+const existingResults_hint    = document.getElementById("existingResults-hint");
+const existingResults_buttons = document.getElementById("existingResults-buttons");
+const existingResults_delete  = document.getElementById("existingResults-delete");
+const existingResults_spinner = document.getElementById("existingResults-spinner");
+const existingResults_table   = document.getElementById("existingResults-table");
+let existingResultsTable = null;
+
+function clearExistingResults() {
+    if (existingResultsTable) {
+        existingResultsTable.destroy();
+        existingResultsTable = null;
+    }
+    existingResults_table.style.display = 'none';
+    existingResults_buttons.style.display = 'none';
+    existingResults_spinner.style.display = 'none';
+    existingResults_hint.style.display = '';
+}
+
+let existingResults_requestId = 0;
+async function refreshExistingResults() {
+    const sampleId = result_sample_dropdown.value;
+    const requestId = ++existingResults_requestId;
+
+    // No sample selected (or dropdown is loading)
+    if (!sampleId || sampleId === 'loading') {
+        clearExistingResults();
+        return;
+    }
+
+    clearExistingResults();
+    existingResults_hint.style.display = 'none';
+    existingResults_spinner.style.display = 'block';
+
+    const results = await loadResults({ sampleId });
+    // Another sample was selected in the meantime
+    if (requestId !== existingResults_requestId) return;
+
+    // The table container must be visible before Tabulator is built
+    existingResults_table.style.display = 'block';
+    existingResultsTable = await createResultTable({
+        selector: "#existingResults-table",
+        results,
+        hiddenFields: ["id", "sample.id", "sample.feature.id", "sample.feature.site.id"],
+        height: "400px",
+    });
+    if (requestId !== existingResults_requestId) {
+        existingResultsTable.destroy();
+        existingResultsTable = null;
+        return;
+    }
+    attachResultDeleteHandler(existingResultsTable, existingResults_delete);
+
+    existingResults_spinner.style.display = 'none';
+    existingResults_buttons.style.display = 'flex';
+}
+
+$('#result_sample_dropdown').on('change', refreshExistingResults);
+
+// Functions from js/explorer/result-table.js (loaded after this file): look them up on click
+[
+    ["existingResults-json", table => downloadResultsJson(table)],
+    ["existingResults-csv",  table => downloadResultsCsv(table)],
+    ["existingResults-xlsx", table => downloadResultsXlsx(table)],
+    ["existingResults-html", table => downloadResultsHtml(table)],
+].forEach(([buttonId, download]) => {
+    document.getElementById(buttonId).addEventListener("click", () => {
+        if (existingResultsTable) download(existingResultsTable);
+    });
+});
+
 let resultSample_isReopening = false;
 $('#result_sample_dropdown').on('select2:opening', async function (e) {
     if (resultSample_isReopening) {
@@ -452,6 +524,7 @@ function submitResult() {
             if (response.data === "result already exists") {
                 toast.info("result already exists");
             }
+            refreshExistingResults();
             // Reset "Taxonomy" and "Results" fields -------------------
             const inputs = resultFormTaxonomy.querySelectorAll('input, select, textarea');
             

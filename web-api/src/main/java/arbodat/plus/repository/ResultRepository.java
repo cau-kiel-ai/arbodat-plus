@@ -1,6 +1,8 @@
 package arbodat.plus.repository;
 
 import arbodat.plus.model.*;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
@@ -29,6 +31,9 @@ public interface ResultRepository extends JpaRepository <Result, UUID> {
                                          @Param("cf")        ClassificationConfer cf,
                                          @Param("restType")   RestType restType,
                                          @Param("stateOfPreservation")StateOfPreservation stateOfPreservation);
+
+    // Results of one sample (paged like findAll, used by the results table in the input form)
+    Page<Result> findBySampleId(UUID sampleId, Pageable pageable);
 
     // Called per FEATURE (batch), not per sample -> no N+1
     List<Result> findBySampleFeatureId(UUID featureId);
