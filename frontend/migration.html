@@ -1289,6 +1289,81 @@
                 </table>
 
               </form>
+
+              <!-- Create Fraction Analyzed Popup -->
+              <div id="fractionAnalyzedModal" class="modal">
+                <div class="modal-content">
+                  <span class="close">&times;</span>
+                  <h2>Create new Fraction</h2>
+                  No fraction analyzed was found for this sample in the 'Fractions Analyzed' table.
+                  Create it here to continue creating the result.
+                  <br><br>
+
+                  <form id="fractionAnalyzedModalForm" role="form">
+                    <fieldset>
+                      <legend>Fraction</legend>
+
+                      <div class="row">
+                        <div class="col-25"></div>
+                        <div class="col-75" style="margin-bottom: 10px;">
+                          <span id="fractionAnalyzedModalInfo"></span>
+                        </div>
+                      </div>
+
+                      <!-- fraction analyzed -->
+                      <div class="row">
+                        <div class="col-25">
+                          <label for="fractionAnalyzedModalSelect">fraction analyzed: *</label>
+                        </div>
+                        <div class="col-75">
+                          <select id="fractionAnalyzedModalSelect" required>
+                            <option value="" hidden selected></option>
+                            <option value="yes">yes</option>
+                            <option value="no">no</option>
+                            <option value="partly">partly</option>
+                          </select>
+                        </div>
+                      </div>
+
+                      <!-- orgOrMin -->
+                      <div class="row">
+                        <div class="col-25">
+                          <label>organic / minerals: *</label>
+                        </div>
+                        <div class="col-75">
+                          <div class="form-check form-check-inline">
+                            <label class="form-check-label" for="fractionAnalyzedModalOrg">ORG</label>
+                            <input class="form-check-input" type="radio" name="fractionAnalyzedModalOrgOrMin" id="fractionAnalyzedModalOrg" value="org" disabled>
+                          </div>
+                          <div class="form-check form-check-inline">
+                            <label class="form-check-label" for="fractionAnalyzedModalMin">MIN</label>
+                            <input class="form-check-input" type="radio" name="fractionAnalyzedModalOrgOrMin" id="fractionAnalyzedModalMin" value="min" disabled>
+                          </div>
+                        </div>
+                      </div>
+
+                      <!-- sieve size -->
+                      <div class="row">
+                        <div class="col-25">
+                          <label for="fractionAnalyzedModalSieveSize">sieve size [mm]: *</label>
+                        </div>
+                        <div class="col-75">
+                          <input type="number" step="0.01" id="fractionAnalyzedModalSieveSize" disabled>
+                        </div>
+                      </div>
+
+                      <button
+                        type="button"
+                        id="fractionAnalyzedModalSubmitButton"
+                        class="MySubmitButton"
+                        style="width: unset; padding-left: 10px; padding-right: 10px;"
+                      >
+                        create
+                      </button>
+                    </fieldset>
+                  </form>
+                </div>
+              </div>
             </div>
           </div>
         </div>

@@ -125,6 +125,129 @@ function sortBySieveSize() {
     rows.forEach(row => tableBody.appendChild(row));
 }
 
+async function postFractionAnalyzed(payload) {
+    const response = await fetch(
+        'api/fractions_analyzed',
+        {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify(payload)
+        }
+    );
+    if (!response.ok) {
+        throw new Error(`HTTP Error! Status: ${response.status}`);
+    }
+    const data = await response.text();
+    console.log(data);
+    return data;
+}
+
+// Fill fractionAnalyzed, orgOrMin and sieveSize in all matching result rows
+function fillResultFractionCells(siteLabel, sampleId, originalFraction, fractionAnalyzed, orgOrMin, sieveSize) {
+    const resultTableBody =
+        document.getElementById(`resultTableBody_${siteLabel}`);
+
+    Array.from(resultTableBody.rows).forEach(row => {
+        const sampleCell           = row.cells[2];
+        const fractionAnalyzedCell = row.cells[5];
+        const orgOrMinCell         = row.cells[6];
+        const sieveSizeCell        = row.cells[7];
+
+        if (
+            sampleCell.getAttribute('data-sampleId') === sampleId &&
+            orgOrMinCell.getAttribute('data-originalFraction') === originalFraction &&
+            sieveSizeCell.getAttribute('data-originalFraction') === originalFraction
+        ) {
+            fractionAnalyzedCell.textContent = fractionAnalyzed;
+            orgOrMinCell.textContent = orgOrMin;
+            sieveSizeCell.textContent = sieveSize;
+        }
+    });
+}
+
+// True if the 'Fractions Analyzed' table still has a row for this site + sample + fraction
+function hasPendingFractionAnalyzedRow(siteLabel, sampleId, fraction) {
+    const tableBody = document.getElementById("fractionAnalyzedTableBody");
+    return Array.from(tableBody.rows).some(row =>
+        row.dataset.siteLabel === siteLabel &&
+        row.dataset.sampleId === String(sampleId) &&
+        row.dataset.originalFraction === fraction
+    );
+}
+
+// Open popup to create a fraction analyzed for a result row without pending fraction analyzed row
+function openCreateFractionModal(item, resultRow) {
+    const result           = item.result;
+    const siteLabel        = result.sample.feature.site.label;
+    const sampleId         = String(result.sample.id);
+    const originalFraction = item.fractionAnalyzed.fraction;
+
+    const modal        = document.getElementById("fractionAnalyzedModal");
+    const select       = document.getElementById("fractionAnalyzedModalSelect");
+    const orgRadio     = document.getElementById("fractionAnalyzedModalOrg");
+    const minRadio     = document.getElementById("fractionAnalyzedModalMin");
+    const sieveInput   = document.getElementById("fractionAnalyzedModalSieveSize");
+    const submitButton = document.getElementById("fractionAnalyzedModalSubmitButton");
+
+    // Reset form ---------------------------------------------------
+    select.value = "";
+    orgRadio.checked = false;
+    minRadio.checked = false;
+    sieveInput.value = "";
+    [orgRadio, minRadio, sieveInput].forEach(el => { el.disabled = true; el.required = false; });
+
+    document.getElementById("fractionAnalyzedModalInfo").innerHTML =
+        `${siteLabel}<br>${result.sample.feature.label}<br>${result.sample.label}`;
+
+    // Enable orgOrMin and sieveSize when fractionAnalyzed is selected
+    select.onchange = function () {
+        const enabled = select.value !== "";
+        [orgRadio, minRadio, sieveInput].forEach(el => { el.disabled = !enabled; el.required = enabled; });
+    };
+
+    // Show Popup ---------------------------------------------------
+    modal.style.display = "block";
+
+    const closeModal = () => { modal.style.display = "none"; };
+    modal.querySelector(".close").onclick = closeModal;
+    modal.onclick = function (event) {
+        if (event.target === modal) { closeModal(); }
+    };
+
+    submitButton.onclick = async function () {
+        const fractionAnalyzed = select.value;
+        const orgOrMin         = (orgRadio.checked && "org") || (minRadio.checked && "min") || "";
+        const sieveSize        = sieveInput.value;
+
+        if (!fractionAnalyzed || !orgOrMin || !sieveSize) {
+            toast.info("Please select fraction analyzed, organic / minerals and enter a sieve size.");
+            return;
+        }
+
+        try {
+            await postFractionAnalyzed({
+                fractionAnalyzed: fractionAnalyzed,
+                orgOrMin: orgOrMin,
+                sieveSize: sieveSize,
+                sample: {
+                    id: sampleId
+                }
+            });
+
+            fillResultFractionCells(siteLabel, sampleId, originalFraction, fractionAnalyzed, orgOrMin, sieveSize);
+            closeModal();
+
+            // Continue with creating the result
+            createResult(resultRow.dataset.itemId, resultRow);
+        } catch (error) {
+            console.error('Error:', error);
+            alert("Failed to create FractionAnalyzed.");
+        }
+    };
+}
+
 async function createFractionAnalyzed (orgOrMin, sieveSize, row, triggerNext=true) {
     const siteLabel = row.dataset.siteLabel;
     const sampleId = row.dataset.sampleId;
@@ -143,41 +266,9 @@ async function createFractionAnalyzed (orgOrMin, sieveSize, row, triggerNext=tru
         };
 
         try {
-            const response = await fetch(
-                'api/fractions_analyzed',
-                {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json'
-                    },
-                    body: JSON.stringify(payload)
-                }
-            );
-            if (!response.ok) {
-                throw new Error(`HTTP Error! Status: ${response.status}`);
-            }
-            const data = await response.text();
-            console.log(data);
+            await postFractionAnalyzed(payload);
 
-            const resultTableBody =
-                document.getElementById(`resultTableBody_${siteLabel}`);
-
-            Array.from(resultTableBody.rows).forEach(row => {
-                const sampleCell           = row.cells[2];
-                const fractionAnalyzedCell = row.cells[5];
-                const orgOrMinCell         = row.cells[6];
-                const sieveSizeCell        = row.cells[7];
-
-                if (
-                    sampleCell.getAttribute('data-sampleId') === sampleId &&
-                    orgOrMinCell.getAttribute('data-originalFraction') === originalFraction &&
-                    sieveSizeCell.getAttribute('data-originalFraction') === originalFraction
-                ) {
-                    fractionAnalyzedCell.textContent = fractionAnalyzed;
-                    orgOrMinCell.textContent = orgOrMin;
-                    sieveSizeCell.textContent = sieveSize;
-                }
-            });
+            fillResultFractionCells(siteLabel, sampleId, originalFraction, fractionAnalyzed, orgOrMin, sieveSize);
 
             row.remove();
             if (triggerNext) { updateCheckedFractionAnalyzed(); }

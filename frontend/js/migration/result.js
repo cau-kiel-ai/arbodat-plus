@@ -78,7 +78,7 @@ function populateResults(resultList) {
             <th scope="col">taxCode</th>
             <th scope="col" style="min-width: 78px;">dante taxCode</th>
 
-            <th scope="col">fraction Analyzed</th>
+            <th scope="col">fraction analyzed</th>
             <th scope="col">orgOrMin</th>
             <th scope="col">sieve size</th>
 
@@ -506,7 +506,11 @@ async function createResult(itemId, row, triggerNext=true) {
 
         } else {
             if (triggerNext) {
-                toast.info("Before you can create a result, you must create the corresponding fraction analysed for the corresponding sample in the ‘Fraction Analyzed’ accordion.");
+                if (!hasPendingFractionAnalyzedRow(siteLabel, result.sample.id, item.fractionAnalyzed.fraction)) {
+                    openCreateFractionModal(item, row);
+                } else {
+                    toast.info("Before you can create a result, you must create the corresponding fraction analysed for the corresponding sample in the ‘Fraction Analyzed’ accordion.");
+                }
             }
             return false;
         }
