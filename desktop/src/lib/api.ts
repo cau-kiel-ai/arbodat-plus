@@ -21,6 +21,8 @@ const commands: Record<Operation, string> = {
   remove: "remove_installation",
   backup: "backup_now",
   restore: "restore_backup",
+  update: "update_stack",
+  rollBack: "roll_back_update",
 };
 
 /**

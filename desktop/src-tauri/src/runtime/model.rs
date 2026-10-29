@@ -106,6 +106,35 @@ pub struct StackStatus {
     pub services: Vec<ServiceStatus>,
     /// Why the phase is `unknown`, for the diagnostics view.
     pub detail: Option<String>,
+    /// Set together with `phase: recovery`.
+    pub recovery: Option<RecoveryView>,
+}
+
+/// How far an update got (the journal in `runtime/journal.json`).
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, serde::Deserialize, TS)]
+#[serde(rename_all = "camelCase")]
+#[ts(export)]
+pub enum UpdateStage {
+    /// Making the backup: nothing changed yet.
+    BackingUp,
+    /// Downloading the new version: nothing changed yet.
+    Downloading,
+    /// The installation's files are the new version's; it may or may not be running.
+    Switched,
+    /// Going back to the previous version.
+    RollingBack,
+}
+
+/// An update that didn't finish, as the Control Center shows it.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, TS)]
+#[serde(rename_all = "camelCase")]
+#[ts(export)]
+pub struct RecoveryView {
+    pub from_version: String,
+    pub to_version: String,
+    pub stage: UpdateStage,
+    /// The backup made before the update (what "go back" restores).
+    pub backup: Option<String>,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, TS)]
@@ -132,6 +161,9 @@ pub enum StackPhase {
     Busy,
     /// Couldn't be determined (corrupt state file, compose error); see `detail`.
     Unknown,
+    /// An update didn't finish (it failed after switching versions, or the app was closed during
+    /// it): try it again, or go back to the previous version. See `recovery`.
+    Recovery,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, TS)]
@@ -183,6 +215,8 @@ pub enum Operation {
     Remove,
     Backup,
     Restore,
+    Update,
+    RollBack,
 }
 
 /// Progress of a running operation, streamed to the launcher window.

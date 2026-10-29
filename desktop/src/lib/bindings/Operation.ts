@@ -3,4 +3,4 @@
 /**
  * Something the app does to the stack that must not overlap with anything else.
  */
-export type Operation = "install" | "start" | "stop" | "changePort" | "remove" | "backup" | "restore";
+export type Operation = "install" | "start" | "stop" | "changePort" | "remove" | "backup" | "restore" | "update" | "rollBack";

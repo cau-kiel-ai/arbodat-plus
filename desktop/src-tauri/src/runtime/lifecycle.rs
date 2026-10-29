@@ -15,6 +15,7 @@
 //!   run: never `-v`, never `--rmi`. Removing keeps `.env` (the password), `compose.yml`, the data
 //!   volume and the images, so installing again picks the same data up.
 
+use std::path::Path;
 use std::time::Duration;
 
 use semver::Version;
@@ -270,6 +271,25 @@ impl RuntimeManager {
             .unwrap_or_else(|poisoned| poisoned.into_inner());
         if let Some(running) = *slot {
             return Err(AppError::busy(running));
+        }
+        // An update that didn't finish leaves the installation between two versions: only
+        // finishing it, undoing it, or stopping ArboDat+ make sense until then.
+        if !matches!(
+            operation,
+            Operation::Update | Operation::RollBack | Operation::Stop
+        ) && let Ok(Some(journal)) = super::update::load_journal(&self.runtime_dir)
+            && matches!(
+                journal.stage,
+                super::model::UpdateStage::Switched | super::model::UpdateStage::RollingBack
+            )
+        {
+            return Err(AppError::new(
+                ErrorCode::UpdateUnfinished,
+                format!(
+                    "The update from {} to {} didn't finish. Try it again or go back first.",
+                    journal.from_version, journal.to_version
+                ),
+            ));
         }
         *slot = Some(operation);
         Ok(OperationGuard { slot: &self.op })
@@ -616,7 +636,18 @@ impl RuntimeManager {
     /// Downloads only what isn't on this computer yet. Images that are already present are not
     /// fetched again (so a development build with locally built images never touches the registry).
     async fn pull_missing_images(&self, cli: &DockerCli, emit: Emit<'_>) -> Result<(), AppError> {
-        let dir = self.runtime_dir.as_path();
+        self.pull_missing_images_in(cli, &self.runtime_dir, emit)
+            .await
+    }
+
+    /// Like `pull_missing_images`, for the stack definition in `dir` (an update stages the new
+    /// version's files in `runtime/next/` first).
+    pub(super) async fn pull_missing_images_in(
+        &self,
+        cli: &DockerCli,
+        dir: &Path,
+        emit: Emit<'_>,
+    ) -> Result<(), AppError> {
         let images = compose::config_images(cli, dir)
             .await
             .map_err(|e| command_failure("Checking which images are needed", &e))?;
@@ -912,6 +943,34 @@ mod tests {
         }
         assert_eq!(manager.current_operation(), None);
         assert!(manager.begin(Operation::Stop).is_ok());
+    }
+
+    #[test]
+    fn an_unfinished_update_allows_only_finishing_undoing_or_stopping() {
+        let dir = tempfile::tempdir().unwrap();
+        let runtime = RuntimeManager::new("5.1.0", dir.path()).unwrap();
+        std::fs::create_dir_all(runtime.runtime_dir()).unwrap();
+        std::fs::write(
+            runtime.runtime_dir().join(super::super::update::JOURNAL_FILE),
+            r#"{"schema":1,"fromVersion":"5.0.0","toVersion":"5.1.0","started":"x","stage":"switched","backup":null,"backupFolder":null}"#,
+        )
+        .unwrap();
+        for op in [
+            Operation::Start,
+            Operation::Backup,
+            Operation::Restore,
+            Operation::ChangePort,
+            Operation::Remove,
+        ] {
+            assert_eq!(
+                runtime.begin(op).err().map(|e| e.code),
+                Some(ErrorCode::UpdateUnfinished),
+                "{op:?}"
+            );
+        }
+        for op in [Operation::Update, Operation::RollBack, Operation::Stop] {
+            assert!(runtime.begin(op).is_ok(), "{op:?}");
+        }
     }
 
     #[test]

@@ -17,6 +17,7 @@ pub mod restore;
 pub mod state;
 pub mod status;
 pub mod template;
+pub mod update;
 
 use std::path::{Path, PathBuf};
 use std::time::Duration;
@@ -115,13 +116,19 @@ impl RuntimeManager {
             } else {
                 None
             };
-        let stack = status::stack_status(
+        let mut stack = status::stack_status(
             &state,
             &engine,
             containers.as_ref(),
             &self.app_version,
             volume_exists,
             busy,
+        );
+        // An update that didn't finish takes precedence: it has to be finished or undone.
+        update::apply_journal(
+            &mut stack,
+            &update::load_journal(&self.runtime_dir),
+            busy.is_some(),
         );
         let docker = DockerStatus {
             cli: CliStatus::Found {

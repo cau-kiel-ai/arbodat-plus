@@ -58,6 +58,41 @@ pub async fn status_of(port: u16, path: &str) -> Result<u16, String> {
         .ok_or_else(|| format!("unexpected answer: {line:?}"))
 }
 
+/// The version the frontend reports in `/version.json` (`{"version":"5.0.0"}`, written at image build
+/// time), to prove that an update really runs the new images.
+pub async fn version_of(port: u16) -> Result<String, String> {
+    let mut stream = tokio::time::timeout(CONNECT_TIMEOUT, TcpStream::connect(("127.0.0.1", port)))
+        .await
+        .map_err(|_| "connection timed out".to_string())?
+        .map_err(|e| format!("connection failed: {e}"))?;
+    let request = format!(
+        "GET /version.json HTTP/1.1\r\nHost: 127.0.0.1:{port}\r\nUser-Agent: ArboDat+-desktop\r\nConnection: close\r\n\r\n"
+    );
+    stream
+        .write_all(request.as_bytes())
+        .await
+        .map_err(|e| format!("sending failed: {e}"))?;
+    let mut response = Vec::new();
+    tokio::time::timeout(READ_TIMEOUT, stream.read_to_end(&mut response))
+        .await
+        .map_err(|_| "no answer".to_string())?
+        .map_err(|e| format!("reading failed: {e}"))?;
+    let text = String::from_utf8_lossy(&response);
+    let (head, body) = text
+        .split_once("\r\n\r\n")
+        .ok_or_else(|| "unexpected answer".to_string())?;
+    if !head.starts_with("HTTP/1.1 200") && !head.starts_with("HTTP/1.0 200") {
+        return Err(format!(
+            "/version.json answered {:?}",
+            head.lines().next().unwrap_or("")
+        ));
+    }
+    serde_json::from_str::<serde_json::Value>(body.trim())
+        .ok()
+        .and_then(|v| v.get("version")?.as_str().map(str::to_string))
+        .ok_or_else(|| format!("unexpected /version.json: {:?}", body.trim()))
+}
+
 /// Polls until every ready path answers 200, or `deadline` has passed. `on_waiting` gets a short
 /// reason whenever a poll fails (so the UI can show that something is still happening).
 pub async fn wait_ready(
@@ -168,6 +203,28 @@ mod tests {
         });
         let err = status_of(port, "/").await.unwrap_err();
         assert!(err.contains("unexpected answer"), "{err}");
+    }
+
+    #[tokio::test]
+    async fn the_version_is_read_from_version_json() {
+        let listener = TcpListener::bind(("127.0.0.1", 0)).await.unwrap();
+        let port = listener.local_addr().unwrap().port();
+        tokio::spawn(async move {
+            for answer in [
+                "HTTP/1.1 200 OK\r\nContent-Type: application/json\r\n\r\n{\"version\":\"5.1.0\"}\n",
+                "HTTP/1.1 404 Not Found\r\n\r\nnope",
+                "HTTP/1.1 200 OK\r\n\r\n<html>not json</html>",
+            ] {
+                let (mut sock, _) = listener.accept().await.unwrap();
+                let mut buf = [0u8; 1024];
+                let _ = sock.read(&mut buf).await;
+                let _ = sock.write_all(answer.as_bytes()).await;
+                let _ = sock.shutdown().await;
+            }
+        });
+        assert_eq!(version_of(port).await, Ok("5.1.0".to_string()));
+        assert!(version_of(port).await.unwrap_err().contains("404"));
+        assert!(version_of(port).await.unwrap_err().contains("unexpected"));
     }
 
     #[tokio::test]

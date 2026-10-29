@@ -129,6 +129,7 @@ fn stack_status_inner(
                 update_available: false,
                 services: Vec::new(),
                 detail: None,
+                recovery: None,
             };
         }
         Ok(Some(state)) => state,
@@ -153,6 +154,7 @@ fn stack_status_inner(
         update_available,
         services: Vec::new(),
         detail: None,
+        recovery: None,
     };
 
     let Some(current_engine) = engine.running_id() else {
@@ -193,6 +195,7 @@ fn stack_status_inner(
         update_available,
         services,
         detail: None,
+        recovery: None,
     }
 }
 
@@ -205,6 +208,7 @@ fn unknown(installed_version: Option<String>, detail: String) -> StackStatus {
         update_available: false,
         services: Vec::new(),
         detail: Some(detail),
+        recovery: None,
     }
 }
 

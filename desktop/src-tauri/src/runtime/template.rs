@@ -70,6 +70,17 @@ pub fn env_with_port(existing: &str, port: u16) -> Result<String, String> {
     ))
 }
 
+/// The `.env` of an existing local installation for another version: password and port stay.
+pub fn env_for_version(existing: &str, version: &str) -> Result<String, String> {
+    let env = parse_env(existing);
+    let password = env
+        .get("DATABASE_PASSWORD")
+        .filter(|v| !v.is_empty())
+        .ok_or("the .env file has no DATABASE_PASSWORD")?;
+    let port = port_of(&env).unwrap_or(DEFAULT_PORT);
+    Ok(render_env(version, password, port))
+}
+
 /// The port a `.env` asks for, if it is a usable one.
 pub fn port_of(env: &std::collections::HashMap<String, String>) -> Option<u16> {
     env.get("ARBODAT_PORT")
@@ -191,6 +202,16 @@ mod tests {
         assert!(env_with_port("ARBODAT_VERSION=5.0.0\n", 9000).is_err());
         assert!(env_with_port("DATABASE_PASSWORD=x\n", 9000).is_err());
         assert!(env_with_port("DATABASE_PASSWORD=\nARBODAT_VERSION=5.0.0\n", 9000).is_err());
+    }
+
+    #[test]
+    fn a_new_version_keeps_password_and_port() {
+        let old = render_env("5.0.0", "s3cretPASS", 9123);
+        let new = parse_env(&env_for_version(&old, "5.1.0").unwrap());
+        assert_eq!(new["ARBODAT_VERSION"], "5.1.0");
+        assert_eq!(new["DATABASE_PASSWORD"], "s3cretPASS");
+        assert_eq!(new["ARBODAT_PORT"], "9123");
+        assert!(env_for_version("ARBODAT_VERSION=5.0.0\n", "5.1.0").is_err());
     }
 
     #[test]

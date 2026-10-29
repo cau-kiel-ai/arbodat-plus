@@ -99,6 +99,25 @@ pub async fn up(
         .await
 }
 
+/// `up` for a new version of the stack: like `up`, and containers of services the new definition no
+/// longer has are removed (`--remove-orphans`; containers only, the data volume is `external`).
+pub async fn up_new_version(
+    cli: &DockerCli,
+    runtime_dir: &Path,
+    on_line: impl FnMut(&str),
+) -> Result<Output, RunError> {
+    let sub = [
+        "up",
+        "-d",
+        "--wait",
+        "--wait-timeout",
+        UP_WAIT_SECS,
+        "--remove-orphans",
+    ];
+    cli.run_streaming_in(runtime_dir, args(runtime_dir, &sub), UP_TIMEOUT, on_line)
+        .await
+}
+
 /// `docker compose stop`: a graceful stop that keeps containers, network and data. Never `down`.
 pub async fn stop(
     cli: &DockerCli,

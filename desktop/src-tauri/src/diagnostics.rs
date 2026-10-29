@@ -638,6 +638,7 @@ mod tests {
                     },
                 ],
                 detail: None,
+                recovery: None,
             },
         });
         input.state_file = Some(Ok("{\"port\": 8480}".into()));

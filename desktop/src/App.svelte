@@ -13,7 +13,9 @@
   import ServerPanel from "./lib/components/ServerPanel.svelte";
   import SettingsPanel from "./lib/components/SettingsPanel.svelte";
   import StackPanel from "./lib/components/StackPanel.svelte";
+  import UpdatePanel from "./lib/components/UpdatePanel.svelte";
   import { operation } from "./lib/operation.svelte";
+  import { updateChoice } from "./lib/update.svelte";
 
   const POLL_MS = 15_000;
 
@@ -107,9 +109,44 @@
    * There is a running ArboDat+ to go back to. (A server is offered even if it is down right now,
    * the x then says why it can't be opened.) A stopped local one isn't: no x until it runs.
    */
-  const canClose = $derived(
-    setUp && (settings?.mode === "server" || status?.stack.phase === "running"),
+  /** An update waits for "Update now" or "Later": until then the Control Center stays. */
+  const updatePending = $derived(
+    settings?.mode === "local" && !!status?.stack.updateAvailable && !updateChoice.later,
   );
+  const canClose = $derived(
+    setUp &&
+      !updatePending &&
+      (settings?.mode === "server" || status?.stack.phase === "running"),
+  );
+  /**
+   * The x appears as a cog first and turns into the x a moment later, like when the card slides in,
+   * also when it only becomes available later ("Later", an update finished, ArboDat+ started).
+   */
+  let showX = $state(false);
+  $effect(() => {
+    if (canClose && entered && !leaving) {
+      const frame = requestAnimationFrame(() => (showX = true));
+      return () => cancelAnimationFrame(frame);
+    }
+    showX = false;
+  });
+
+  /** Set when "Later" closes the Control Center: no x or cog appears on the way out. */
+  let leavingAfterLater = $state(false);
+
+  /**
+   * "Later" on the update question: with ArboDat+ running, go straight to it; otherwise only the
+   * question goes away (nothing is started).
+   */
+  function updateLater() {
+    if (status?.stack.phase === "running") {
+      leavingAfterLater = true;
+      updateChoice.later = true;
+      void closeControlCenter().finally(() => (leavingAfterLater = false));
+    } else {
+      updateChoice.later = true;
+    }
+  }
   const working = $derived(operation.running !== null || status?.stack.phase === "busy");
 
   async function closeControlCenter() {
@@ -151,6 +188,12 @@
   $effect(() => {
     if (autoStartDone || !status || settings?.mode !== "local" || operation.running) return;
     if (!settings?.autoStart || performance.now() > AUTO_START_WINDOW_MS) {
+      autoStartDone = true;
+      return;
+    }
+    // With an update to decide on (or one that didn't finish) nothing starts by itself: "Update now"
+    // starts the new version, "Later" leaves ArboDat+ as it is.
+    if (status.stack.recovery || status.stack.updateAvailable) {
       autoStartDone = true;
       return;
     }
@@ -216,8 +259,8 @@
     <main>
       <header>
         <h1>Control Center</h1>
-        {#if canClose}
-          <CogButton closing={entered && !leaving} right={cogRight} disabled={working} onclick={closeControlCenter} />
+        {#if canClose && !leavingAfterLater}
+          <CogButton closing={showX} right={cogRight} disabled={working} onclick={closeControlCenter} />
         {/if}
       </header>
 
@@ -231,6 +274,13 @@
     <ServerPanel {settings} {server} {onSettings} />
     <DiagnosticsPanel />
   {:else if status}
+    <UpdatePanel
+      stack={status.stack}
+      appVersion={status.appVersion}
+      {dockerReady}
+      afterOperation={refreshAfterOperation}
+      onLater={updateLater}
+    />
     <DockerPanel docker={status.docker} />
     <StackPanel stack={status.stack} appVersion={status.appVersion} {dockerReady} afterOperation={refreshAfterOperation} />
     {#if status.stack.installedVersion}
@@ -245,7 +295,7 @@
         {onSettings}
       />
       <section>
-        <h2>Use a server instead</h2>
+        <h2>Use a server</h2>
         <p class="muted">
           If your institute runs ArboDat+ on a server, enter its address to work there.<br />
           ArboDat+ on this computer stays installed as it is.

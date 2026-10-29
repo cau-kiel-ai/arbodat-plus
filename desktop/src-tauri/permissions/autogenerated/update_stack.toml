@@ -1,0 +1,11 @@
+# Automatically generated - DO NOT EDIT!
+
+[[permission]]
+identifier = "allow-update-stack"
+description = "Enables the update_stack command without any pre-configured scope."
+commands.allow = ["update_stack"]
+
+[[permission]]
+identifier = "deny-update-stack"
+description = "Denies the update_stack command without any pre-configured scope."
+commands.deny = ["update_stack"]

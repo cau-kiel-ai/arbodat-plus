@@ -153,6 +153,17 @@ pub fn app_url(app: &AppHandle) -> Url {
     Url::parse(url).expect("a valid address")
 }
 
+/// `scheme://host[:port]` as a page sees it in `location.protocol + "//" + location.host`. The page
+/// script compares this, not the whole address: the app's own page reports itself as
+/// `tauri://localhost`, without the `/` its URL has here, so a prefix comparison misses it.
+pub fn page_origin(url: &Url) -> String {
+    let mut origin = format!("{}://{}", url.scheme(), url.host_str().unwrap_or_default());
+    if let Some(port) = url.port() {
+        origin.push_str(&format!(":{port}"));
+    }
+    origin
+}
+
 /// What the window counts as ArboDat+ right now. Read at every navigation, not captured when the
 /// window is created: the address changes (another server, another port).
 fn current_home(app: &AppHandle) -> Option<Url> {
@@ -169,10 +180,9 @@ pub fn create_main(app: &AppHandle) -> tauri::Result<()> {
         .find(|w| w.label == MAIN)
         .cloned()
         .expect("tauri.conf.json defines the main window");
-    let own_url = app_url(app);
     let script = format!(
-        "window.__ARBODAT_APP_URL = {};\n{SHIMS}",
-        serde_json::to_string(own_url.as_str()).expect("a string is serialisable")
+        "window.__ARBODAT_APP_ORIGIN = {};\n{SHIMS}",
+        serde_json::to_string(&page_origin(&app_url(app))).expect("a string is serialisable")
     );
     let (nav_app, win_app) = (app.clone(), app.clone());
     #[allow(unused_mut)]
@@ -464,6 +474,20 @@ mod tests {
         assert_eq!(
             classify(&other, Some(&server), &app()),
             Navigation::OpenExternally
+        );
+    }
+
+    #[test]
+    fn the_page_script_knows_the_apps_own_pages_by_origin() {
+        let origin = |u: &str| page_origin(&Url::parse(u).unwrap());
+        assert_eq!(origin("tauri://localhost/"), "tauri://localhost");
+        assert_eq!(origin("tauri://localhost"), "tauri://localhost");
+        assert_eq!(origin("http://tauri.localhost/"), "http://tauri.localhost");
+        assert_eq!(origin("http://localhost:1420/"), "http://localhost:1420");
+        // An ArboDat+ page is never the app's own.
+        assert_ne!(
+            origin("http://127.0.0.1:8480/"),
+            origin("tauri://localhost/")
         );
     }
 

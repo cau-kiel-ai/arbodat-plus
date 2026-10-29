@@ -26,6 +26,8 @@ fn main() {
             "delete_backup",
             "restore_backup",
             "choose_restore_file",
+            "update_stack",
+            "roll_back_update",
         ]),
     ))
     .expect("failed to run tauri-build");

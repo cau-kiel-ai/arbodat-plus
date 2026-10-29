@@ -35,7 +35,10 @@ pub fn run() {
             }
             let version = app.package_info().version.to_string();
             log::info!("ArboDat+ {version}, data directory {}", data_dir.display());
-            app.manage(runtime::RuntimeManager::new(&version, &data_dir)?);
+            let manager = runtime::RuntimeManager::new(&version, &data_dir)?;
+            // An update that stopped before changing anything leaves only a stale note behind.
+            manager.clean_stale_journal();
+            app.manage(manager);
             app.manage(windows::arbodat::Home::default());
             app.manage(windows::arbodat::LastPage::default());
             app.manage(windows::arbodat::RevealWhenLoaded::default());
@@ -82,7 +85,9 @@ pub fn run() {
             commands::open_backup_folder,
             commands::delete_backup,
             commands::restore_backup,
-            commands::choose_restore_file
+            commands::choose_restore_file,
+            commands::update_stack,
+            commands::roll_back_update
         ])
         .on_window_event(|window, event| {
             // Closing the window (or quitting) while the stack is being installed, started or
@@ -150,10 +155,16 @@ async fn route_on_startup(app: tauri::AppHandle) {
         _ => {
             let runtime = app.state::<runtime::RuntimeManager>();
             match tokio::time::timeout(ROUTING_DEADLINE, runtime.status()).await {
-                Ok(status) if status.stack.phase == runtime::model::StackPhase::Running => status
-                    .stack
-                    .port
-                    .and_then(|port| Url::parse(&format!("http://127.0.0.1:{port}/")).ok()),
+                // An available update is asked about first (in the Control Center).
+                Ok(status)
+                    if status.stack.phase == runtime::model::StackPhase::Running
+                        && !status.stack.update_available =>
+                {
+                    status
+                        .stack
+                        .port
+                        .and_then(|port| Url::parse(&format!("http://127.0.0.1:{port}/")).ok())
+                }
                 _ => None,
             }
         }

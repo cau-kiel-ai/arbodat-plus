@@ -33,6 +33,7 @@
     degraded: { label: "Not running correctly", tone: "bad" },
     busy: { label: "Working…", tone: "warn" },
     unknown: { label: "Status unknown", tone: "bad" },
+    recovery: { label: "Update didn't finish", tone: "bad" },
   };
   const busyLabels: Record<Operation, string> = {
     install: "Installing…",
@@ -42,6 +43,8 @@
     remove: "Removing…",
     backup: "Backing up…",
     restore: "Restoring…",
+    update: "Updating…",
+    rollBack: "Going back…",
   };
 
   const serviceNames: Record<string, string> = { database: "Database", "web-api": "Web API", frontend: "Frontend" };
@@ -119,10 +122,6 @@
     </div>
   {:else if stack.phase === "unknown"}
     <div class="hint bad">The status couldn't be determined:<pre>{stack.detail}</pre></div>
-  {/if}
-
-  {#if stack.updateAvailable}
-    <div class="hint">An update to version {appVersion} is available.</div>
   {/if}
 
   {#if stack.services.length}

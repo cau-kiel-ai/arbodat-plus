@@ -4,6 +4,7 @@
 //!     cargo run --example lifecycle -- <data-dir> port <new-port>
 //!     cargo run --example lifecycle -- <data-dir> backup <folder>
 //!     cargo run --example lifecycle -- <data-dir> restore <dump-file> <backup-folder>
+//!     cargo run --example lifecycle -- <data-dir> update <backup-folder> | retry-update | roll-back
 //!
 //! `<data-dir>` plays the role of the app's data directory. Progress and the final result are
 //! printed. WARNING: install creates the real data volume `arbodat-plus-database` and uses the
@@ -81,6 +82,14 @@ async fn main() {
                 Err(e) => Err(e),
             }
         }
+        "update" => {
+            let folder = args
+                .next()
+                .expect("usage: lifecycle <data-dir> update <backup-folder>");
+            runtime.update(Path::new(&folder), &emit).await
+        }
+        "retry-update" => runtime.retry_update(&emit).await,
+        "roll-back" => runtime.roll_back_update(&emit).await,
         "port" => {
             let port = args
                 .next()

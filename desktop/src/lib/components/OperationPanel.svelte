@@ -10,6 +10,8 @@
     remove: "ArboDat+ was removed from Docker. Your data is kept.",
     backup: "The backup is saved.",
     restore: "The backup was restored. The data from before is kept as a \"before restore\" backup.",
+    update: "ArboDat+ is updated.",
+    rollBack: "ArboDat+ is back on the previous version, with the data from before the update.",
   };
 
   let logElement = $state<HTMLPreElement>();

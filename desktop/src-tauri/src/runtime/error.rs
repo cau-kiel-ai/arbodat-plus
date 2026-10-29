@@ -45,6 +45,12 @@ pub enum ErrorCode {
     BackupInvalid,
     /// The restore transaction failed and was rolled back (the data is unchanged).
     RestoreFailed,
+    /// There is nothing to update: the installation already has the app's version.
+    UpToDate,
+    /// The new version didn't start or didn't check out; the update can be tried again or undone.
+    UpdateFailed,
+    /// An update didn't finish: it has to be tried again or undone before anything else.
+    UpdateUnfinished,
     Io,
 }
 
@@ -92,6 +98,8 @@ impl AppError {
             Operation::Remove => "being removed",
             Operation::Backup => "making a backup",
             Operation::Restore => "restoring a backup",
+            Operation::Update => "being updated",
+            Operation::RollBack => "going back to the previous version",
         };
         Self::new(
             ErrorCode::Busy,

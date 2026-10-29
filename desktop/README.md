@@ -156,6 +156,17 @@ appears).
   commit. A damaged file, an SQL error or a wrong count rolls everything back and the data stays as it was;
   the commit is only sent after `pg_restore` itself finished without error. Afterwards ArboDat+ is running
   again (web-api upgrades an older schema on start) or stopped again, as before.
+- **Update** (`src-tauri/src/runtime/update.rs`). When the app is newer than ArboDat+ on this computer,
+  the Control Center asks first (*Update now* / *Later*; automatic start waits for the answer). An
+  update writes a journal (`runtime/journal.json`), makes a "before update" backup, stages the new
+  version's files in `runtime/next/` and downloads only missing images (if either fails, nothing has
+  changed), then keeps the current files as `*.prev`, switches, starts with `up -d --wait
+  --remove-orphans` and checks that ArboDat+ answers and `version.json` reports the new version.
+  If that fails, or the app is closed during it, the journal stays and the Control Center shows
+  *Try again* or *Go back to version …*: the `.prev` files back and the "before update" backup restored
+  (one transaction, like any restore; what was entered since is kept in a "before restore" backup).
+  Until then no other operation than those two, or Stop, is possible. An update that stopped before the
+  switch changed nothing; its journal is removed at the next start. Old images are never deleted.
 - **Diagnostics.** The Control Center's *Create Report* collects one piece of text to copy into a
   message when asking for help (`src-tauri/src/diagnostics.rs`): app and system versions, the mode,
   Docker, the state of ArboDat+ and its services, `state.json`, the `.env` without its secrets, the

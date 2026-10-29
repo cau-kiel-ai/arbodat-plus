@@ -9,7 +9,8 @@
 (function () {
   if (window !== window.top || window.__arbodatShims) return;
   // The app's own pages (the Control Center) need none of this.
-  if (window.__ARBODAT_APP_URL && String(location.href).indexOf(window.__ARBODAT_APP_URL) === 0) return;
+  // (Compared by origin: the app's page reports itself as `tauri://localhost`, without a final `/`.)
+  if (window.__ARBODAT_APP_ORIGIN && location.protocol + '//' + location.host === window.__ARBODAT_APP_ORIGIN) return;
   window.__arbodatShims = true;
 
   // 1. wry on macOS never inspects the click's target frame: such a click is "allowed" by the

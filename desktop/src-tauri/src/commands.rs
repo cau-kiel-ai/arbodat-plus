@@ -350,6 +350,34 @@ pub async fn choose_restore_file(
     runtime.inspect_restore_file(&path).map(Some)
 }
 
+/// Updates ArboDat+ on this computer to the app's version (a "before update" backup first), or,
+/// with `retry`, tries an update that didn't finish again.
+#[tauri::command]
+pub async fn update_stack(
+    runtime: tauri::State<'_, RuntimeManager>,
+    store: tauri::State<'_, SettingsStore>,
+    retry: bool,
+    on_event: Channel<ProgressEvent>,
+) -> Result<(), AppError> {
+    let emit = |event| drop(on_event.send(event));
+    if retry {
+        runtime.retry_update(&emit).await
+    } else {
+        runtime.update(&store.backup_folder(), &emit).await
+    }
+}
+
+/// Undoes an update that didn't finish: the previous version, with the data from before it.
+#[tauri::command]
+pub async fn roll_back_update(
+    runtime: tauri::State<'_, RuntimeManager>,
+    on_event: Channel<ProgressEvent>,
+) -> Result<(), AppError> {
+    runtime
+        .roll_back_update(&|event| drop(on_event.send(event)))
+        .await
+}
+
 /// Deletes one backup from the backup folder (the user's choice in the list, after a confirmation).
 #[tauri::command]
 pub fn delete_backup(
@@ -418,7 +446,7 @@ mod capability_tests {
     const LAUNCHER: &str = include_str!("../capabilities/launcher.json");
     const BUILD_RS: &str = include_str!("../build.rs");
     /// Every `#[tauri::command]` of this file.
-    const COMMANDS: [&str; 22] = [
+    const COMMANDS: [&str; 24] = [
         "get_status",
         "install",
         "start",
@@ -441,6 +469,8 @@ mod capability_tests {
         "delete_backup",
         "restore_backup",
         "choose_restore_file",
+        "update_stack",
+        "roll_back_update",
     ];
 
     fn launcher() -> Value {

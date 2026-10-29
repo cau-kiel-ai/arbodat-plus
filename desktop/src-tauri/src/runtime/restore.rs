@@ -219,7 +219,7 @@ pub const SCRIPT: &str = r#"set -o pipefail
 // ---------------------------------------------------------------------------------------------
 
 /// Turns the nested backup's steps into log lines, so the restore keeps its own step numbers.
-fn as_log<'a>(emit: Emit<'a>) -> impl Fn(ProgressEvent) + Send + Sync + 'a {
+pub(super) fn as_log<'a>(emit: Emit<'a>) -> impl Fn(ProgressEvent) + Send + Sync + 'a {
     move |event| match event {
         ProgressEvent::Step { label, .. } => emit(ProgressEvent::Log {
             text: format!("Backup: {label}"),
@@ -339,7 +339,7 @@ impl RuntimeManager {
     }
 
     /// Steps 4 to 7, with the database container running.
-    async fn restore_with_database_up(
+    pub(super) async fn restore_with_database_up(
         &self,
         cli: &DockerCli,
         dump: &Path,
