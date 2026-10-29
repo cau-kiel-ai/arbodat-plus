@@ -6,6 +6,9 @@ const taxCodeDropdown = document.getElementById("taxCode");
 function resetResultForm() {
     resultForm.reset();
 
+    // Reset (radio) tax code filter to the remembered mode
+    restoreCodeNameFilterMode('taxCode');
+
     // Reset related datings
     $('#result_datings').val(null).trigger('change');
     absDatingMultiselect.innerHTML = '';

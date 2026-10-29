@@ -2318,22 +2318,29 @@
                                   <label for="c14_lab" data-tooltip="Please select a C14 laboratory from the list.">C14 laboratory:</label>
                                 </div>
                                 <div class="col-75">
-                                  <select id="c14_lab" required style="width: 100%;">
-                                    <option value=""></option>
-                                  </select>
+                                  <div style="display: flex; align-items: center; flex-wrap: wrap; gap: 8px 16px;">
+                                    <div style="flex: 1 1 250px; min-width: 0; display: flex;">
+                                      <select id="c14_lab" required style="width: 100%;">
+                                        <option value=""></option>
+                                      </select>
+                                    </div>
+                                    <!-- filter by code / name -->
+                                    <div id="c14LabFilterBy" style="display: flex; align-items: center; gap: 12px; white-space: nowrap;">
+                                      <span>filter by:</span>
+                                      <label for="c14_lab_filter_code" style="display: flex; align-items: center; gap: 6px; padding: 0; cursor: pointer;">
+                                        <input type="radio" name="c14LabFilterBy" id="c14_lab_filter_code" value="code" style="margin: 0;" checked>
+                                        code
+                                      </label>
+                                      <label for="c14_lab_filter_name" style="display: flex; align-items: center; gap: 6px; padding: 0; cursor: pointer;">
+                                        <input type="radio" name="c14LabFilterBy" id="c14_lab_filter_name" value="name" style="margin: 0;">
+                                        name
+                                      </label>
+                                    </div>
+                                  </div>
                                   <!-- Select2 dropdown -->
                                   <script>
                                     $(document).ready(function() {
-                                        $('#c14_lab').select2({
-                                          placeholder: '',
-                                          allowClear: true
-                                        });
-
-                                        // remove arrow
-                                        $('#c14_lab')
-                                          .next('.select2-container')
-                                          .find('.select2-selection__arrow')
-                                          .remove();
+                                        initCodeNameFilter('c14_lab', 'c14LabFilterBy');
                                     });
                                   </script>
                                 </div>
@@ -2716,21 +2723,29 @@
                       <label for="taxCode" data-tooltip="Please select from the corresponding list of taxonomy codes, which was specified under ' site -> general information -> taxonomy '. ">tax code: *</label>
                     </div>
                     <div class="col-75">
-                      <select id="taxCode" required style="width: 100%;">
-                        <option value=""></option>
-                      </select>
+                      <div style="display: flex; align-items: center; flex-wrap: wrap; gap: 8px 16px;">
+                        <div style="flex: 1 1 250px; min-width: 0; display: flex;">
+                          <select id="taxCode" required style="width: 100%;">
+                            <option value=""></option>
+                          </select>
+                        </div>
+                        <!-- filter by code / name -->
+                        <div id="taxCodeFilterBy" style="display: flex; align-items: center; gap: 12px; white-space: nowrap;">
+                          <span>filter by:</span>
+                          <label for="taxCode_filter_code" style="display: flex; align-items: center; gap: 6px; padding: 0; cursor: pointer;">
+                            <input type="radio" name="taxCodeFilterBy" id="taxCode_filter_code" value="code" style="margin: 0;" checked>
+                            code
+                          </label>
+                          <label for="taxCode_filter_name" style="display: flex; align-items: center; gap: 6px; padding: 0; cursor: pointer;">
+                            <input type="radio" name="taxCodeFilterBy" id="taxCode_filter_name" value="name" style="margin: 0;">
+                            name
+                          </label>
+                        </div>
+                      </div>
                       <!-- Select2 dropdown -->
                       <script>
                         $(document).ready(function() {
-                          $('#taxCode').select2({
-                            placeholder: '',
-                            allowClear: true
-                          });
-                          // remove arrow
-                          $('#taxCode')
-                            .next('.select2-container')
-                            .find('.select2-selection__arrow')
-                            .remove();
+                          initCodeNameFilter('taxCode');
                         });
                       </script>
                     </div>
@@ -2901,14 +2916,15 @@
     <script>updateBackendDanteAttributes()</script>
 
     <!-- general -->
-    <script src="js/formatService.js"></script>
-    <script src="js/leafletMap.js"></script>
-    <script src="js/transformCoordinatesToWGS84.js"></script>
-    <script src="js/reverseGeocoding.js"></script>
-    <script src="js/toast.js"></script>
-    <script src="js/stickyAccordion.js"></script>
     <script src="js/confirm.js"></script>
     <script src="js/defaultValues.js"></script>
+    <script src="js/formatService.js"></script>
+    <script src="js/input/codeNameFilter.js"></script>
+    <script src="js/leafletMap.js"></script>
+    <script src="js/reverseGeocoding.js"></script>
+    <script src="js/stickyAccordion.js"></script>
+    <script src="js/toast.js"></script>
+    <script src="js/transformCoordinatesToWGS84.js"></script>
 
     <!-- research project -->
     <script src="js/input/researchProject.js"></script>

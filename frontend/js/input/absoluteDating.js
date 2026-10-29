@@ -621,6 +621,9 @@ function create_update_absoulteDating() {
 function resetAbsoluteDatingForm() {
     absoluteDating_form.reset();
 
+    // Reset (radio) C14 laboratory filter to the remembered mode
+    restoreCodeNameFilterMode('c14_lab');
+
     absoluteDatingLiteratureList = [];
     document.getElementById("absDating_literature_container").innerHTML = "";
 

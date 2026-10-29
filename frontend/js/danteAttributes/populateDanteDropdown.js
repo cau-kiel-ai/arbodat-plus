@@ -293,6 +293,10 @@ function populateDanteDropdown (attribute, dropdown) {
             option.textContent = label;
             option.setAttribute("data-label", label);
 
+            // Lowercased copies for the (case-insensitive) search matcher/sorter in codeNameFilter.js
+            option.setAttribute("data-code-lc", codeSearchKey(item.notation));
+            option.setAttribute("data-name-lc", String(item.prefLabel?.zxx ?? "").toLowerCase());
+
             dropdown.appendChild(option);
             continue; // Jumps to next iteration without executing the rest of the code
                       // (disable guide terms and 'populateNarrower')
@@ -353,6 +357,12 @@ function populateNarrower(dropdown, narrower, attribute, structuralConcept) {
     }
 }
 
+// Search key for the code filter (codeNameFilter.js): all notations lowercased, each prefixed with "|"
+// (DANTE notations are arrays, e.g. ["UBA", "UB"]) -> "|uba|ub"; "" if there is no notation.
+function codeSearchKey(notation) {
+    return [].concat(notation ?? []).map(n => "|" + String(n).toLowerCase()).join("");
+}
+
 function populateTaxCodeDropdown(uri, dropdown) {
     
     // Reset Dropdown
@@ -372,6 +382,10 @@ function populateTaxCodeDropdown(uri, dropdown) {
         const label = [item.notation, item.prefLabel?.la].filter(Boolean).join(", ");
         option.textContent = label;
         option.setAttribute("data-label", item.notation);
+
+        // Lowercased copies for the (case-insensitive) search matcher/sorter in codeNameFilter.js
+        option.setAttribute("data-code-lc", codeSearchKey(item.notation));
+        option.setAttribute("data-name-lc", String(item.prefLabel?.la ?? "").toLowerCase());
 
         dropdown.appendChild(option);
     }
