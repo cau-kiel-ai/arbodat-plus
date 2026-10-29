@@ -21,8 +21,12 @@ All endpoints are served under /api/ by the ArboDat+ Web API:
 /api/fractions_analyzed
 /api/laboratories
 
------------------- Default Values ------------------
+--------------------- Settings ---------------------
+## Default Values
 /api/default_values
+
+## Display Order
+/api/display_order
 
 ----------------- DANTE Attributes -----------------
 ## Research Project

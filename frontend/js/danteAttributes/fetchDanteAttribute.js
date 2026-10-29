@@ -216,6 +216,7 @@ async function fetchDanteAttribute(attribute) {
     // Send GET request and cache vocabulary of attribute
     try {        
         const response = await axios.get(url);
+        const displayOrder = await loadDisplayOrder(); // custom order of hierarchical dropdowns (displayOrder.js)
 
         // - Cache Atributes
         // - add local entries
@@ -405,6 +406,7 @@ async function fetchDanteAttribute(attribute) {
                 cachedFeatureTypes.push(otherRitualFeature_entry);
                 // ------------------------------------------------------------
 
+                applyDisplayOrder("featureType", cachedFeatureTypes, displayOrder);
                 cachedFeatureTypes_loaded = true;
                 break;
 
@@ -527,6 +529,7 @@ async function fetchDanteAttribute(attribute) {
                 cachedDatingMethods.push(other_entry);
                 // ------------------------------------------------------------
 
+                applyDisplayOrder("datingMethod", cachedDatingMethods, displayOrder);
                 cachedDatingMethods_loaded = true;
                 break;
 
@@ -564,15 +567,22 @@ async function fetchDanteAttribute(attribute) {
                 cachedStateOfPreservation.push(notChosen_entry);
                 // ------------------------------------------------------------
 
+                applyDisplayOrder("stateOfPreservation", cachedStateOfPreservation, displayOrder);
                 cachedStateOfPreservation_loaded = true;
                 break;
 
             case ("restType"):
                 cachedRestTypes = response.data;
                 
-                // Add local entries ------------------------------------------
+                // Add local entries (grouped under the guide term 'ArboDat+_restType') ----
+                const localRestTypeGroup = {
+                    uri: "ArboDat+_restType",
+                    prefLabel: {en: "ArboDat+_restType"},
+                    type: ["http://vocab.getty.edu/ontology#GuideTerm"]
+                }
                 unknown_entry =   {
                     uri: "ArboDat+_restType_unknown",
+                    ancestors: [localRestTypeGroup],
                     prefLabel: {en: "unknown"},
                     altLabel: {
                         de: ["unbekannt"],
@@ -582,6 +592,7 @@ async function fetchDanteAttribute(attribute) {
                 }
                 notChosen_entry =   {
                     uri: "ArboDat+_restType_notChosen",
+                    ancestors: [localRestTypeGroup],
                     prefLabel: {en: "not chosen"},
                     altLabel: {
                         de: ["nicht gewählt"],
@@ -594,11 +605,13 @@ async function fetchDanteAttribute(attribute) {
                 cachedRestTypes.push(notChosen_entry);
                 // ------------------------------------------------------------
 
+                applyDisplayOrder("restType", cachedRestTypes, displayOrder);
                 cachedRestTypes_loaded = true;
                 break;
 
             case ("classificationConfer"):
                 cachedClassificationConfers = response.data;
+                applyDisplayOrder("classificationConfer", cachedClassificationConfers, displayOrder);
                 cachedClassificationConfers_loaded = true;
                 break;              
             // ------------------------------------------          

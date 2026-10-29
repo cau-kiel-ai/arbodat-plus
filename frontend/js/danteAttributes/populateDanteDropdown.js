@@ -98,9 +98,13 @@ function populateDanteDropdown (attribute, dropdown) {
             const exists = optionsArray.some(opt => opt.value === item.uri);
 
             if (!exists) {
+                // restType: the cached data is already in the (custom) display order -> always append
+                //           (inserting behind the parent would reverse the order of its children)
+                const appendOnly = attribute === "restType";
+
                 let insertAfterIndex = -1;
                 if (item.ancestors) {
-                    item.ancestors.reverse().forEach((ancestor, index) => {
+                    [...item.ancestors].reverse().forEach((ancestor, index) => {
                         // Check if such an entry already exists and if so determine index
                         const optionIndex = optionsArray.findIndex(opt => opt.value === ancestor.uri)
     
@@ -127,7 +131,7 @@ function populateDanteDropdown (attribute, dropdown) {
                                 dropdown.insertBefore(option, dropdown.options[insertAfterIndex + 1] || null);
                                 insertAfterIndex++;
                             }                        
-                        } else {
+                        } else if (!appendOnly) {
                             insertAfterIndex = optionIndex;
                         }
                     });
@@ -226,35 +230,6 @@ function populateDanteDropdown (attribute, dropdown) {
                     option.textContent = "\u00A0\u00A0" + "other place of cult";
                     option.setAttribute("data-label", "other place of cult");
                     dropdown.appendChild(option);
-                }
-
-                // ArboDat+_restType
-                else if (
-                    item.uri === "ArboDat+_restType_unknown" ||
-                    item.uri === "ArboDat+_restType_notChosen"
-                ) {
-                    // Create "ArboDat+_restType" option
-                    let option = document.createElement('option');
-                    option.textContent = "ArboDat+_restType";
-                    option.disabled = true;
-                    option.style.fontWeight = "bold";
-                    option.style.color = "gray";
-                    dropdown.appendChild(option);
-
-                    // Create "ArboDat+_restType_unknown" option
-                    option = document.createElement('option');
-                    option.value = "ArboDat+_restType_unknown";
-                    option.textContent = "\u00A0\u00A0" + "unknown";
-                    option.setAttribute("data-label", "unknown");
-                    dropdown.appendChild(option);
-                    
-                    // Create "ArboDat+_restType_notChosen" option
-                    option = document.createElement('option');
-                    option.value = "ArboDat+_restType_notChosen";
-                    option.textContent = "\u00A0\u00A0" + "not chosen";
-                    option.setAttribute("data-label", "not chosen");
-                    dropdown.appendChild(option);
-
                 } else {
                     // Skip guide term
                     if (item.type.includes("http://vocab.getty.edu/ontology#GuideTerm")) { continue }
