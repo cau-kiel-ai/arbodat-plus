@@ -25,30 +25,10 @@ async function migrateSites(researchProjectList) {
     // Add research project list
     formData.append("researchProjectList", new Blob([JSON.stringify(researchProjectList)], { type: "application/json" }));
 
-    // Reset researchProject list and box in html container --------------
-    researchProjects = window.researchProjects;
-    researchProjects.length = 0;
-    const container = document.getElementById("researchProjectContainer");
-    container.innerHTML = "";
-    // -------------------------------------------------------------------
-
     // Add siteList (only selected sites)
-    const selectedSites = Array.from(document.querySelectorAll(".siteCheckbox"))
-        .filter(checkbox => checkbox.checked)
-        .map(checkbox => {
-            // Strike, uncheck and disable checked line
-            const row = checkbox.closest("tr");
-            row.style.color = "gray";
-            checkbox.disabled = true;
-            checkbox.checked = false;
-            // Add a green tick
-            const greenCheck = document.createElement("span");
-            greenCheck.innerHTML = "✅";
-            greenCheck.style.marginLeft = "20px";
-            row.lastElementChild.appendChild(greenCheck);
-
-            return checkbox.value
-        });
+    const selectedCheckboxes = Array.from(document.querySelectorAll(".siteCheckbox"))
+        .filter(checkbox => checkbox.checked);
+    const selectedSites = selectedCheckboxes.map(checkbox => checkbox.value);
 
     formData.append("siteList", new Blob([JSON.stringify(selectedSites)], { type: "application/json" }));
 
@@ -58,6 +38,26 @@ async function migrateSites(researchProjectList) {
             headers: {
                 "Content-Type": "multipart/form-data"
             }
+        });
+
+        // Migration succeeded: reset researchProject list and box in html container --------------
+        researchProjects = window.researchProjects;
+        researchProjects.length = 0;
+        const container = document.getElementById("researchProjectContainer");
+        container.innerHTML = "";
+        // -------------------------------------------------------------------
+
+        // Strike, uncheck and disable migrated lines
+        selectedCheckboxes.forEach(checkbox => {
+            const row = checkbox.closest("tr");
+            row.style.color = "gray";
+            checkbox.disabled = true;
+            checkbox.checked = false;
+            // Add a green tick
+            const greenCheck = document.createElement("span");
+            greenCheck.innerHTML = "✅";
+            greenCheck.style.marginLeft = "20px";
+            row.lastElementChild.appendChild(greenCheck);
         });
 
         // Extract lists from the response        
@@ -140,6 +140,7 @@ async function migrateSites(researchProjectList) {
 
     } catch (error) {
         console.error("Error during site migration: ", error);
+        toast.error("Migration failed: " + getErrorMessage(error));
     } finally {
         hideLoading();
     }

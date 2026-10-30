@@ -15,6 +15,7 @@ import org.springframework.stereotype.Service;
 
 import java.io.File;
 import java.io.IOException;
+import java.io.UncheckedIOException;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
 import java.util.*;
@@ -293,7 +294,7 @@ public class MigrationService {
                     }
                 }
             } catch (IOException e) {
-                e.printStackTrace();
+                throw new UncheckedIOException("Could not read 'ArchBotStrukDat.mdb': " + e.getMessage(), e);
             } // ----------------------------------------------------------------------------
 
 
@@ -1988,7 +1989,7 @@ public class MigrationService {
                 }
             }
         } catch (IOException e) {
-            e.printStackTrace();
+            throw new UncheckedIOException("Could not read 'ArchBotDaten.mdb': " + e.getMessage(), e);
         }
 
         // Set lists in migration response -----------------------------------------------

@@ -7,7 +7,11 @@ import com.healthmarketscience.jackcess.Database;
 import com.healthmarketscience.jackcess.DatabaseBuilder;
 import com.healthmarketscience.jackcess.Row;
 import com.healthmarketscience.jackcess.Table;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
@@ -20,6 +24,8 @@ import java.util.Set;
 @RestController
 @RequestMapping("/migration")
 public class MigrationController {
+
+    private static final Logger log = LoggerFactory.getLogger(MigrationController.class);
 
     @Autowired
     private MigrationService migrationService;
@@ -35,28 +41,26 @@ public class MigrationController {
 
         List<String> sites = new ArrayList<>();
 
+        // Save .mdb file as tempFile on server
+        File dataFile = File.createTempFile("uploadedData", ".mdb");
         try {
-            // Save .mdb file as tempFile on server
-            File dataFile = File.createTempFile("uploadedData", ".mdb");
             file.transferTo(dataFile);
 
             // open site table in .mdb file
-            Database db = DatabaseBuilder.open(new File(dataFile.getAbsolutePath()));
-            Table table = db.getTable("Projekte");
-            if (table == null) {
-                throw new IllegalArgumentException("table 'Projekte' doesn't exist");
-            }
+            try (Database db = DatabaseBuilder.open(dataFile)) {
+                Table table = db.getTable("Projekte");
+                if (table == null) {
+                    throw new IllegalArgumentException("table 'Projekte' doesn't exist");
+                }
 
-            // iterate through table
-            for (Row row : table) {
-                sites.add(row.getString("Projekt")); // add siteLabel
+                // iterate through table
+                for (Row row : table) {
+                    sites.add(row.getString("Projekt")); // add siteLabel
+                }
             }
-
+        } finally {
             // Delete tempFile
             dataFile.delete();
-
-        } catch (Exception e) {
-            e.printStackTrace();
         }
         return sites;
     }
@@ -83,34 +87,45 @@ public class MigrationController {
                                          @RequestPart List<ResearchProject> researchProjectList,
                                          @RequestPart List<String> siteList) throws Exception {
 
-        // Init migration response
-        MigrationResponse migrationResponse = new MigrationResponse();
+        // Save .mdb files as tempFiles on server
+        File dataFile = File.createTempFile("uploadedData", ".mdb");
+        File strukDataFile = File.createTempFile("uploadedStrukData", ".mdb");
+        MigrationResponse migrationResponse;
 
         try {
-            // Save .mdb files as tempFiles on server
-            File dataFile = File.createTempFile("uploadedData", ".mdb");
             files[0].transferTo(dataFile);
-
-            File strukDataFile = File.createTempFile("uploadedStrukData", ".mdb");
             files[1].transferTo(strukDataFile);
 
             // Call MigrationService with path to the tempFile and all other transferred parameters
-            migrationResponse =  migrationService.migrateData(dataFile.getAbsolutePath(),
-                                                              strukDataFile.getAbsolutePath(),
-                                                              researchProjectList,
-                                                              siteList);
-
+            migrationResponse = migrationService.migrateData(dataFile.getAbsolutePath(),
+                                                             strukDataFile.getAbsolutePath(),
+                                                             researchProjectList,
+                                                             siteList);
+        } finally {
             // Delete tempFiles
             dataFile.delete();
             strukDataFile.delete();
-
-        } catch (Exception e) {
-            e.printStackTrace();
         }
 
         // For Testing
         // System.out.println(migrationResponse);
         return migrationResponse;
+    }
+
+    /**
+     * Returns the reason of a failed request to the frontend, instead of an empty result.
+     */
+    @ExceptionHandler(IllegalArgumentException.class)
+    public ResponseEntity<String> handleInvalidInput(IllegalArgumentException e) {
+        log.error("Migration request rejected", e);
+        return ResponseEntity.badRequest().body(e.getMessage());
+    }
+
+    @ExceptionHandler(Exception.class)
+    public ResponseEntity<String> handleFailure(Exception e) {
+        log.error("Migration failed", e);
+        return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                .body(e.getClass().getSimpleName() + ": " + e.getMessage());
     }
 
 //    @PostMapping

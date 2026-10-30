@@ -43,6 +43,7 @@ async function getSites() {
     
   } catch (error) {
       console.error("Error uploading file", error);
+      toast.error("Could not read sites from file: " + getErrorMessage(error));
   } finally {
     hideLoading();
   }

@@ -1,3 +1,9 @@
+// Reason of a failed request: message sent by the backend, else the client-side error message
+function getErrorMessage(error) {
+    const data = error.response?.data;
+    return (typeof data === "string" && data) ? data : error.message;
+}
+
 function toggleAllCheckboxes(masterCheckbox, tableBodyId) {
     const tableBody = document.getElementById(tableBodyId);
     if (tableBody) {
