@@ -123,13 +123,20 @@ function fetchUsers() {
         });
 
         // Restore selections (users that no longer exist are dropped)
-        userDropdowns.forEach(dropdown => {
-            const selected = selectedByDropdown.get(dropdown);
-            Array.from(dropdown.options).forEach(option => {
-                option.selected = selected.includes(option.value);
+        // jQuery's trigger() also calls the inline onchange handler, which would copy this
+        // dropdown's selection to all checked rows. Block it (see updateCheckedDropdownsMultiple).
+        updatingDropdownsMultiple = true;
+        try {
+            userDropdowns.forEach(dropdown => {
+                const selected = selectedByDropdown.get(dropdown);
+                Array.from(dropdown.options).forEach(option => {
+                    option.selected = selected.includes(option.value);
+                });
+                $(dropdown).trigger('change.select2');
             });
-            $(dropdown).trigger('change.select2');
-        });
+        } finally {
+            updatingDropdownsMultiple = false;
+        }
     })
     .catch(error => {
         console.error('Error:', error);
