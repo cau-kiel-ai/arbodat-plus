@@ -648,8 +648,9 @@ public class MigrationService {
                                     String site_ = line.getString("Projekt");
                                     String feature_ = line.getString("Befu");
 
-                                    if (site_.equals(siteLabel) && feature_.equals(featureLabel)) {
-                                        excavationYears.add(line.getShort("Jahr").intValue());
+                                    Short year = line.getShort("Jahr");
+                                    if (year != null && Objects.equals(site_, siteLabel) && Objects.equals(feature_, featureLabel)) {
+                                        excavationYears.add(year.intValue());
                                     }
                                 }
                                 newFeature.setExcavationYears(excavationYears);
@@ -957,7 +958,7 @@ public class MigrationService {
                                     String site_ = line.getString("Projekt");
                                     String feature_ = line.getString("Befu");
 
-                                    if (site_.equals(siteLabel) && feature_.equals(featureLabel)) {
+                                    if (Objects.equals(site_, siteLabel) && Objects.equals(feature_, featureLabel)) {
                                         String botDetYear = line.getString("BestJa");
                                         if (botDetYear != null) {
                                             newSample.setBotanicalDeterminationYear(botDetYear);
@@ -1114,7 +1115,7 @@ public class MigrationService {
                                         String site_ = line.getString("Projekt");
                                         String feature_ = line.getString("Befu");
 
-                                        if (site_.equals(siteLabel) && feature_.equals(featureLabel)) {
+                                        if (Objects.equals(site_, siteLabel) && Objects.equals(feature_, featureLabel)) {
                                             // Add user info to userList -------------------------------------------
                                             String userLabel = line.getString("BotBest");
                                             if (userLabel != null) {
