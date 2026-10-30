@@ -191,21 +191,17 @@ function openCreateFractionModal(item, resultRow) {
     const sieveInput   = document.getElementById("fractionAnalyzedModalSieveSize");
     const submitButton = document.getElementById("fractionAnalyzedModalSubmitButton");
 
-    // Reset form ---------------------------------------------------
+    // Reset form and prefill orgOrMin and sieveSize from the result row ---
+    const orgOrMin  = item.fractionAnalyzed.orgOrMin;
+    const sieveSize = item.fractionAnalyzed.sieveSize;
+
     select.value = "";
-    orgRadio.checked = false;
-    minRadio.checked = false;
-    sieveInput.value = "";
-    [orgRadio, minRadio, sieveInput].forEach(el => { el.disabled = true; el.required = false; });
+    orgRadio.checked = orgOrMin === "org";
+    minRadio.checked = orgOrMin === "min";
+    sieveInput.value = sieveSize ?? "";
 
     document.getElementById("fractionAnalyzedModalInfo").innerHTML =
         `${siteLabel}<br>${result.sample.feature.label}<br>${result.sample.label}`;
-
-    // Enable orgOrMin and sieveSize when fractionAnalyzed is selected
-    select.onchange = function () {
-        const enabled = select.value !== "";
-        [orgRadio, minRadio, sieveInput].forEach(el => { el.disabled = !enabled; el.required = enabled; });
-    };
 
     // Show Popup ---------------------------------------------------
     modal.style.display = "block";
