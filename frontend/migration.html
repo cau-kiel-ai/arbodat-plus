@@ -175,6 +175,55 @@
         font-weight: 200;
         line-height: 24px;
       }
+      /* Table filters (tableFilter.js): Select2 in an extra header row above the filtered columns.
+         .table-filter-select gives other Select2 dropdowns (e.g. results taxonomy) the same look */
+      .table-filter-bar {
+        color: #000000;
+      }
+      /* 'group by': same font as the text above the table, the dropdown directly behind the label text */
+      .table-filter-bar label {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        padding: 0;
+        margin: 0;
+        font: inherit;
+      }
+      .table-filter-bar label select {
+        width: auto;
+        padding: 4px 8px;
+        font: inherit;
+      }
+      .table-filter-row th {
+        font-weight: normal;
+        padding-top: 4px;
+        padding-bottom: 4px;
+      }
+      .table-filter-row .select2-container,
+      .table-filter-select .select2-container {
+        min-width: 110px;
+      }
+      .table-filter-row .select2-container .select2-selection--single,
+      .table-filter-select .select2-container .select2-selection--single {
+        height: 34px !important;
+      }
+      .table-filter-row .select2-container .select2-selection--single .select2-selection__rendered,
+      .table-filter-select .select2-container .select2-selection--single .select2-selection__rendered {
+        padding: 4px 8px;
+        font-size: 13px;
+      }
+      .table-filter-row .select2-container .select2-selection--single .select2-selection__arrow,
+      .table-filter-select .select2-container .select2-selection--single .select2-selection__arrow {
+        height: 32px;
+      }
+      .table-filter-row .select2-container .select2-selection--single .select2-selection__clear,
+      .table-filter-select .select2-container .select2-selection--single .select2-selection__clear {
+        transform: translateX(10%) translateY(-2px);
+      }
+      /* The dropdown list may be wider than a narrow column */
+      .table-filter-dropdown {
+        min-width: 220px;
+      }
     </style>
 
   </head>
@@ -261,7 +310,7 @@
 
                     <div class="row">
                       <div class="col-25">
-                        <label for="license" data-tooltip="Please choose from the list." >license:</label>
+                        <label for="licenseDropdown" data-tooltip="Please choose from the list." >license:</label>
                       </div>
                       <div class="col-75">
                         <select id="licenseDropdown" style="width: 100%;">
@@ -680,7 +729,7 @@
           </div>
         </div>
 
-        <!-- Dante Attributes -->
+        <!-- Non-matching Attributes -->
         <div class="accordion-item">
           <h2 class="accordion-header">
             <button class="accordion-button" type="button" data-bs-toggle="collapse" data-bs-target="#panelsStayOpen-collapseFive" aria-expanded="false" aria-controls="panelsStayOpen-collapseFive">
@@ -694,7 +743,8 @@
                 - Update attributes by selecting 'danteLabels' from the dropdowns.<br>
                 - If attributes you are looking for are not in the central thesauri lists (dropdowns), you can use the ‘Add to JSON’ option to save non matching attributes at the bottom of the page.<br>
                 - To select danteLabels or update attributes in several rows simultaneously select multiple rows.<br>
-                - To select or deselect a row use the checkbox on the left. To select or deselect <u>all</u> rows use the checkbox at the top left of a table.
+                - To select or deselect a row use the checkbox on the left. To select or deselect <u>all</u> rows use the checkbox at the top left of a table.<br>
+                - To filter rows by nonMatchingLabel use the dropdown in the table header.
               </p>
               </p>
 
@@ -826,46 +876,6 @@
                   </tbody>
                 </table>
 
-                <!-- <table class="table table-striped">
-                  <caption style="caption-side: top;">
-                    archaeologicalDating
-                  </caption>
-                  <thead>
-                      <tr>
-                          <th>
-                            <input type="checkbox" onclick="toggleAllCheckboxes(this, 'archaeologicalDatingTableBody')">
-                          </th>
-                          <th>Type</th>
-                          <th>Label</th>
-                          <th>nonMatchingLabel</th>
-                          <th style="min-width: 200px;">danteLabels</th>
-                          <th></th>
-                      </tr>
-                  </thead>
-                  <tbody id="archaeologicalDatingTableBody">
-                  </tbody>
-                </table>
-
-                <table class="table table-striped">
-                  <caption style="caption-side: top;">
-                    culturalGroup
-                  </caption>
-                  <thead>
-                    <tr>
-                      <th>
-                        <input type="checkbox" onclick="toggleAllCheckboxes(this, 'culturalGroupTableBody')">
-                      </th>
-                      <th>Type</th>
-                      <th>Label</th>
-                      <th>nonMatchingLabel</th>
-                      <th style="min-width: 200px;">danteLabels</th>
-                      <th></th>
-                    </tr>
-                  </thead>
-                  <tbody id="culturalGroupTableBody">
-                  </tbody>
-                </table> -->
-
                 <table class="table table-striped">
                   <caption style="caption-side: top;">
                     seedsAndFruits
@@ -995,7 +1005,8 @@
                 - The longitude and latitude WGS 84 fields are computed and filled in automatically (except for the coordinate systems 'DHDN / 3-degree Gauss' and 'local').<br>
                 - If ‘local’ is selected as coordinate system, this can be described in the ‘remarks’ text field.<br>
                 - To select coordinate systems or create coordinates in several rows simultaneously select multiple rows.<br>
-                - To select or deselect a row use the checkbox on the left. To select or deselect <u>all</u> rows use the checkbox at the top left of a table.
+                - To select or deselect a row use the checkbox on the left. To select or deselect <u>all</u> rows use the checkbox at the top left of a table.<br>
+                - To filter rows by coordinateSystem use the dropdown in the table header.
               </p>
 
               <form>
@@ -1069,7 +1080,8 @@
                 - To select multiple users use the shift key.<br>
                 - To select users in several rows simultaneously select multiple rows.<br>
                 - To update with selected users in several rows simultaneously select multiple rows.<br>
-                - To select or deselect a row use the checkbox on the left. To select or deselect <u>all</u> rows use the checkbox at the top left of a table.
+                - To select or deselect a row use the checkbox on the left. To select or deselect <u>all</u> rows use the checkbox at the top left of a table.<br>
+                - To filter rows by userRole and/or userLabel use the dropdowns in the table header.
               </p>
 
               <!-- User Table -->
@@ -1261,7 +1273,7 @@
             <div class="accordion-body">
 
               <form id="fractionAnalyzedForm">
-                <p>
+                <p style="margin-bottom: 0;">
                   List of the fractions analyzed from the samples taken at the selected sites.<br>
                   - To sort the rows by sieveSize click on 'sieveSize' in the table header.<br>
                   - To edit orgOrMin and sieveSize in several rows simultaneously select multiple rows.<br>
@@ -1453,7 +1465,8 @@
                   - If attributes you are looking for are not in the central thesauri lists (dropdowns), you can use the ‘Add to JSON’ option to save non matching attributes at the bottom of the page.<br>
                   - Before using the ‘Add to JSON’ option, please fill in all applicable fields(dante taxCode, dante restType, dante stateOfPreservation).<br>
                   - To select dropdown options or create results in several rows simultaneously select multiple rows.<br>
-                  - To select or deselect a row use the checkbox on the left. To select or deselect <u>all</u> rows use the checkbox at the top left of a table.
+                  - To select or deselect a row use the checkbox on the left. To select or deselect <u>all</u> rows use the checkbox at the top left of a table.<br>
+                  - To filter rows by taxCode and/or restType and/or stateOfPreservation use the dropdowns in the table header.
                 </p>
                 
                 <!-- Tables will be dynamically added here by migrateSites -> populateResults function -->
@@ -1498,7 +1511,8 @@
     <script src="js/stickyAccordion.js"></script>
     <script src="js/confirm.js"></script>
 
-    <!-- migration specific -->    
+    <!-- migration specific -->
+    <script src="js/migration/tableFilter.js"></script>
     <script src="js/migration/getSites.js"></script>
     <script src="js/migration/researchProject-dropdown.js"></script>
     <script src="js/migration/migrateSites.js"></script>

@@ -8,8 +8,6 @@ function populateNonMatchingDanteAttributes(nonMatchingDanteAttributeList) {
     // Sample attributes
     const sampleTypeTableBody = document.getElementById("sampleTypeTableBody");
     const chronozoneTableBody = document.getElementById("chronozoneTableBody");
-    const archaeologicalDatingTableBody = document.getElementById("archaeologicalDatingTableBody");
-    const culturalGroupTableBody = document.getElementById("culturalGroupTableBody");
     const seedsAndFruitsTableBody = document.getElementById("seedsAndFruitsTableBody");
     const charcoalInvestigatedTableBody = document.getElementById("charcoalInvestigatedTableBody");
     const woodSubfossileTableBody = document.getElementById("woodSubfossileTableBody");
@@ -25,6 +23,7 @@ function populateNonMatchingDanteAttributes(nonMatchingDanteAttributeList) {
         const attribute = item.attribute;
         row.dataset.id        = id;
         row.dataset.attribute = attribute;
+        row.dataset.nonMatchingLabel = item.nonMatchingLabel;
 
         let dropdown;
 
@@ -260,82 +259,6 @@ function populateNonMatchingDanteAttributes(nonMatchingDanteAttributeList) {
 
                 break;
 
-            // case ("archaeologicalDating"):
-
-            //     dropdown = `<select id="danteDropdown_${id}_${attribute}"
-            //                         style="width: 100%"
-            //                         onchange="updateCheckedDropdowns(this.value, 'archaeologicalDatingTableBody', 'danteDropdown_')">
-            //                         <option value=""></option>
-            //                 </select>`;
-
-            //     // Add columns
-            //     row.innerHTML = `
-            //         <td><input type="checkbox"></td>
-            //         <td>${item.type}</td>
-            //         <td>${item.label}</td>
-            //         <td>
-            //             ${item.nonMatchingLabel}
-            //             <br>
-            //             <button type="button"
-            //                     onclick="addLabelToJSON('${id}', '${attribute}', '${item.nonMatchingLabel}', event.currentTarget)">
-            //                     Add&#8239to&#8239JSON
-            //             </button>
-            //         </td>
-            //         <td>${dropdown}</td>
-            //         <td>
-            //             <button type="button"
-            //                     onclick="updateAttribute('${id}', '${attribute}', this.closest('tr'))">
-            //                     Update
-            //             </button>
-            //         </td>
-            //     `;
-
-            //     archaeologicalDatingTableBody.appendChild(row);
-
-            //     // Populate Dropdown
-            //     await fetchDanteAttribute(attribute);
-            //     populateDanteDropdown (attribute, document.getElementById(`danteDropdown_${id}_${attribute}`));
-
-            //     break;
-
-            // case ("culturalGroup"):
-
-            //     dropdown = `<select id="danteDropdown_${id}_${attribute}"
-            //                         style="width: 100%"
-            //                         onchange="updateCheckedDropdowns(this.value, 'culturalGroupTableBody', 'danteDropdown_')">
-            //                         <option value=""></option>
-            //                 </select>`;
-
-            //     // Add columns
-            //     row.innerHTML = `
-            //         <td><input type="checkbox"></td>
-            //         <td>${item.type}</td>
-            //         <td>${item.label}</td>
-            //         <td>
-            //             ${item.nonMatchingLabel}
-            //             <br>
-            //             <button type="button"
-            //                     onclick="addLabelToJSON('${id}', '${attribute}', '${item.nonMatchingLabel}', event.currentTarget)">
-            //                     Add&#8239to&#8239JSON
-            //             </button>
-            //         </td>
-            //         <td>${dropdown}</td>
-            //         <td>
-            //             <button type="button"
-            //                     onclick="updateAttribute('${id}', '${attribute}', this.closest('tr'))">
-            //                     Update
-            //             </button>
-            //         </td>
-            //     `;
-
-            //     culturalGroupTableBody.appendChild(row);
-
-            //     // Populate Dropdown
-            //     await fetchDanteAttribute(attribute);
-            //     populateDanteDropdown (attribute, document.getElementById(`danteDropdown_${id}_${attribute}`));
-
-            //     break;
-
             case ("seedsAndFruits"):
 
                 dropdown = `<select id="danteDropdown_${id}_${attribute}"
@@ -557,8 +480,7 @@ function populateNonMatchingDanteAttributes(nonMatchingDanteAttributeList) {
     // else display
     tbodyList = [siteTypeTableBody, naturalUnitTableBody, featureTypeTableBody,
                  preservationConditionTableBody, sampleTypeTableBody, chronozoneTableBody,
-                 seedsAndFruitsTableBody, charcoalInvestigatedTableBody, woodSubfossileTableBody,
-                 archaeologicalDatingTableBody, culturalGroupTableBody,
+                 seedsAndFruitsTableBody, charcoalInvestigatedTableBody, woodSubfossileTableBody,,
                  materialTableBody, datingMethodTableBody];
     tbodyList.forEach(tbody => {
         hideTableIfTbodyEmpty(tbody);
@@ -665,16 +587,6 @@ async function updateAttribute(id, attribute, row, triggerNext=true) {
                 tableBodyId = "chronozoneTableBody";
                 break;
 
-            // case ("archaeologicalDating"):
-            //     url = `api/samples/${id}/updateArchaeologicalDating`;
-            //     tableBodyId = "archaeologicalDatingTableBody";
-            //     break;
-
-            // case ("culturalGroup"):
-            //     url = `api/samples/${id}/updateCulturalGroup`;
-            //     tableBodyId = "culturalGroupTableBody";
-            //     break;
-
             case ("seedsAndFruits"):
                 url = `api/samples/${id}/updateSeedsAndFruits`;
                 tableBodyId = "seedsAndFruitsTableBody";
@@ -771,3 +683,20 @@ async function updateCheckedAttributes(tableBodyId, siteType=false) {
         }
     }
 }
+
+// Filter each non-matching attribute table by nonMatchingLabel (see tableFilter.js)
+[
+    "siteTypeTableBody", "naturalUnitTableBody", "featureTypeTableBody", "preservationConditionTableBody",
+    "sampleTypeTableBody", "chronozoneTableBody", "seedsAndFruitsTableBody", "charcoalInvestigatedTableBody",
+    "woodSubfossileTableBody", "materialTableBody", "datingMethodTableBody"
+].forEach(tableBodyId => {
+    createTableFilter({
+        tbody: tableBodyId,
+        counterColumns: [1, 3],
+        fields: [{
+            key: "nonMatchingLabel",
+            label: "nonMatchingLabel",
+            getValue: row => row.dataset.nonMatchingLabel ?? ""
+        }]
+    });
+});

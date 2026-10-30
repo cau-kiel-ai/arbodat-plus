@@ -1,12 +1,15 @@
 function toggleAllCheckboxes(masterCheckbox, tableBodyId) {
     const tableBody = document.getElementById(tableBodyId);
     if (tableBody) {
-      const checkboxes = tableBody.querySelectorAll('input[type="checkbox"]');
+      // Rows hidden by a table filter (tableFilter.js) and group header checkboxes are skipped
+      const checkboxes = tableBody.querySelectorAll('input[type="checkbox"]:not(.group-select)');
       checkboxes.forEach(checkbox => {
-        if (!checkbox.disabled) {
+        if (!checkbox.disabled && !checkbox.closest('tr.filter-hidden')) {
           checkbox.checked = masterCheckbox.checked;
         }
       });
+      // Let the table filter update its group header checkboxes
+      tableBody.dispatchEvent(new Event('change'));
     }
 }
 

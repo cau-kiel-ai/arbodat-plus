@@ -17,6 +17,7 @@ function populateResults(resultList) {
         labelDropdownContainer.style.display = "flex";        // Flexbox for horizontal arrangement
         labelDropdownContainer.style.alignItems = "center";   // Align vertically
         labelDropdownContainer.style.gap = "20px";            // Space between texts and dropdown
+        labelDropdownContainer.style.marginBottom = "12px";  // Space between this row and the table
 
         // Create 'span' for "Site label: ""
         const span_text = document.createElement("span");
@@ -39,9 +40,8 @@ function populateResults(resultList) {
                                       </select>
                                      `;
             // Style
-        taxonomyDropdown.style.transform = "scale(0.8)";
-        taxonomyDropdown.style.fontSize  = "0.9em"; // 90% of normal font size
-        taxonomyDropdown.style.width     = "width: 300px;"
+        taxonomyDropdown.className   = "table-filter-select"; // same look as the filter dropdowns
+        taxonomyDropdown.style.width = "250px";
 
         labelDropdownContainer.appendChild(span_text);
         labelDropdownContainer.appendChild(span_siteLabel);
@@ -115,6 +115,10 @@ function populateResults(resultList) {
 
             resultMap.set(item.id, item);
             row.dataset.itemId = item.id;
+            // Original values for the table filter
+            row.dataset.taxCode             = item.result.taxCode?.label ?? item.nonMatchingTaxCode;
+            row.dataset.restType            = restType;
+            row.dataset.stateOfPreservation = stateOfPreservation;
             
             // Add columns ----------------------------------------------------
             let columns = `
@@ -228,17 +232,25 @@ function populateResults(resultList) {
         siteResultsContainer.appendChild(resultTable);
 
         resultForm.appendChild(siteResultsContainer);
+
+        // Filter the results of this site (see tableFilter.js)
+        createTableFilter({
+            tbody: resultTableBody,
+            counterColumns: [1, 3],
+            fields: [
+                { key: "taxCode",             label: "taxCode",             getValue: row => row.dataset.taxCode ?? "" },
+                { key: "restType",            label: "restType",            getValue: row => row.dataset.restType ?? "" },
+                { key: "stateOfPreservation", label: "stateOfPreservation", getValue: row => row.dataset.stateOfPreservation ?? "" }
+            ]
+        });
         
         // Select2 taxonomy dropdown ----------------
         $(`#taxonomyDropdown_${siteLabelSafe}`).select2({
             placeholder: 'select Taxonomy',
             allowClear: true,
+            width: '100%',
+            dropdownCssClass: 'table-filter-dropdown',
         });
-        // remove arrow
-        $(`#taxonomyDropdown_${siteLabelSafe}`)
-            .next('.select2-container')
-            .find('.select2-selection__arrow')
-            .remove();
         // ------------------------------------------
 
         // Populate taxonomyDropdown

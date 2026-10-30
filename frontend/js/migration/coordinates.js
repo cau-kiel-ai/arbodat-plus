@@ -9,6 +9,7 @@ function populateCoordinates(coordinateList) {
         const row = document.createElement("tr");
         row.dataset.itemType = type;
         row.dataset.itemId = item.id;
+        row.dataset.coordinateSystem = item.coordinateSystem;
 
         if (type == "site") {
 
@@ -425,3 +426,16 @@ async function createCheckedCoordinates(tableBodyId) {
         }
     }
 }
+
+// Filter the site and sample coordinates by coordinateSystem (see tableFilter.js)
+["siteCoordinateTableBody", "sampleCoordinateTableBody"].forEach(tableBodyId => {
+    createTableFilter({
+        tbody: tableBodyId,
+        counterColumns: [1, 3],
+        fields: [{
+            key: "coordinateSystem",
+            label: "coordinateSystem",
+            getValue: row => row.dataset.coordinateSystem ?? ""
+        }]
+    });
+});

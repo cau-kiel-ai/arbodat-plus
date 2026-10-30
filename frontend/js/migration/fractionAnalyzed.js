@@ -80,7 +80,7 @@ let sieveSizeSortState = 0;
 function sortBySieveSize() {
     const tableBody = document.getElementById("fractionAnalyzedTableBody");
     const header = document.getElementById("sieveSizeHeader");
-    const rows = Array.from(tableBody.querySelectorAll("tr"));
+    const rows = Array.from(tableBody.querySelectorAll("tr:not(.group-header)"));
 
     sieveSizeSortState = (sieveSizeSortState + 1) % 3;
 
@@ -291,7 +291,7 @@ async function updateCheckedFractionAnalyzed() {
     const tableBody = document.getElementById('fractionAnalyzedTableBody');
     if (tableBody) {
         const checkboxes = Array.from(
-            tableBody.querySelectorAll('input[type="checkbox"]:checked')
+            tableBody.querySelectorAll('input[type="checkbox"]:checked:not(.group-select)')
         );
         const concurrencyLimit = 100;
         showLoading();
@@ -330,3 +330,35 @@ async function updateCheckedFractionAnalyzed() {
         }
     }
 }
+
+// Group by orgOrMin and sieveSize (e.g. 'org 0.5') or by sieveSize only, see tableFilter.js.
+// The values are read live, because both are editable.
+const fractionOrgOrMin  = row => row.querySelector('select[id^="orgOrMin_"]')?.value ?? "";
+const fractionSieveSize = row => row.querySelector('input[id^="sieveSize_"]')?.value.trim() ?? "";
+const fractionKey       = row => `${fractionOrgOrMin(row)} ${fractionSieveSize(row)}`.trim();
+
+const compareFractionSieveSize = (a, b) => {
+    const diff = (parseFloat(fractionSieveSize(a)) || 0) - (parseFloat(fractionSieveSize(b)) || 0);
+    return sieveSizeSortState === 2 ? -diff : diff;
+};
+
+createTableFilter({
+    tbody: "fractionAnalyzedTableBody",
+    groups: [
+        {
+            label: "orgOrMin and sieveSize",
+            getKey: fractionKey,
+            // orgOrMin, then sieveSize (ascending, or descending if the sieveSize header sort is 'descending')
+            compare: (a, b) => {
+                const byOrgOrMin = fractionOrgOrMin(a).localeCompare(fractionOrgOrMin(b));
+                if (byOrgOrMin !== 0) return byOrgOrMin;
+                return compareFractionSieveSize(a, b) || fractionKey(a).localeCompare(fractionKey(b)); // keep equal keys together
+            }
+        },
+        {
+            label: "sieveSize",
+            getKey: fractionSieveSize,
+            compare: (a, b) => compareFractionSieveSize(a, b) || fractionSieveSize(a).localeCompare(fractionSieveSize(b))
+        }
+    ]
+});

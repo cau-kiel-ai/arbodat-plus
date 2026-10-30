@@ -7,9 +7,10 @@ function populateUsers(userList) {
     userList.forEach(item => {
 
         const row = document.createElement("tr");
-        row.dataset.type     = item.type;
-        row.dataset.id       = item.id;
-        row.dataset.userRole = item.userRole;
+        row.dataset.type      = item.type;
+        row.dataset.id        = item.id;
+        row.dataset.userRole  = item.userRole;
+        row.dataset.userLabel = item.userLabel;
         
         // Add columns
         row.innerHTML = `
@@ -251,3 +252,13 @@ async function updateCheckedUsers() {
         }
     }
 }
+
+// Filter the users by userRole and/or userLabel (see tableFilter.js)
+createTableFilter({
+    tbody: "userTableBody",
+    counterColumns: [1, 2],
+    fields: [
+        { key: "userRole",  label: "userRole",  getValue: row => row.dataset.userRole ?? "" },
+        { key: "userLabel", label: "userLabel", getValue: row => row.dataset.userLabel ?? "" }
+    ]
+});
