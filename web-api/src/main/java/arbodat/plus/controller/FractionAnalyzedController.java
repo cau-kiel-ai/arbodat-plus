@@ -31,10 +31,10 @@ public class FractionAnalyzedController {
                                     fractionAnalyzed.getOrgOrMin(),
                                     fractionAnalyzed.getSieveSize());
         if (existingFractionAnalyzed.isPresent()) {
-            return "fractionAnalyzed already exists";
+            return "fraction analyzed already exists";
         } else {
             fractionAnalyzedRepository.save(fractionAnalyzed);
-            return "fractionAnalyzed is created";
+            return "fraction analyzed is created";
         }
     }
 }

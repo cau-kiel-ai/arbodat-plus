@@ -139,9 +139,7 @@ async function postFractionAnalyzed(payload) {
     if (!response.ok) {
         throw new Error(`HTTP Error! Status: ${response.status}`);
     }
-    const data = await response.text();
-    console.log(data);
-    return data;
+    return await response.text();
 }
 
 // Fill fractionAnalyzed, orgOrMin and sieveSize in all matching result rows
@@ -223,7 +221,7 @@ function openCreateFractionModal(item, resultRow) {
         }
 
         try {
-            await postFractionAnalyzed({
+            const responseMessage = await postFractionAnalyzed({
                 fractionAnalyzed: fractionAnalyzed,
                 orgOrMin: orgOrMin,
                 sieveSize: sieveSize,
@@ -232,11 +230,16 @@ function openCreateFractionModal(item, resultRow) {
                 }
             });
 
-            fillResultFractionCells(siteLabel, sampleId, originalFraction, fractionAnalyzed, orgOrMin, sieveSize);
-            closeModal();
+            if (responseMessage === "fraction analyzed already exists") {
+                toast.info("fraction analyzed already exists.");
 
-            // Continue with creating the result
-            createResult(resultRow.dataset.itemId, resultRow);
+            } else if (responseMessage === "fraction analyzed is created") {
+                fillResultFractionCells(siteLabel, sampleId, originalFraction, fractionAnalyzed, orgOrMin, sieveSize);
+                closeModal();
+
+                // Continue with creating the result
+                createResult(resultRow.dataset.itemId, resultRow);
+            }
         } catch (error) {
             console.error('Error:', error);
             alert("Failed to create FractionAnalyzed.");
@@ -262,19 +265,24 @@ async function createFractionAnalyzed (orgOrMin, sieveSize, row, triggerNext=tru
         };
 
         try {
-            await postFractionAnalyzed(payload);
+            const responseMessage = await postFractionAnalyzed(payload);
 
-            fillResultFractionCells(siteLabel, sampleId, originalFraction, fractionAnalyzed, orgOrMin, sieveSize);
-
-            row.remove();
-            if (triggerNext) { updateCheckedFractionAnalyzed(); }
-            return true;
-
+            if (responseMessage === "fraction analyzed already exists") {
+                if (triggerNext) {
+                    toast.info("fraction analyzed already exists.");
+                }
+                return false;
+        
+            } else if (responseMessage === "fraction analyzed is created") {
+                fillResultFractionCells(siteLabel, sampleId, originalFraction, fractionAnalyzed, orgOrMin, sieveSize);    
+                row.remove();
+                if (triggerNext) { updateCheckedFractionAnalyzed(); }
+                return true;                
+            }
         } catch (error) {
             console.error('Error:', error);
             alert("Failed to create FractionAnalyzed.");
         }
-
     } else {
         if (triggerNext) {
             toast.info(`No orgOrMin selected and/or sieveSize entered.`);
