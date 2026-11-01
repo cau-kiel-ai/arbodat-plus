@@ -133,4 +133,3 @@ function getFractions() {
   return fraction_list;
 }
 
-document.addEventListener("DOMContentLoaded", () => addFraction());

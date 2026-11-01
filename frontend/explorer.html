@@ -110,6 +110,21 @@
             
         </div>
 
+        <!-- Fractions popup (opened by clicking a cell of the sample table) -->
+        <div id="fractionModal" class="fraction-modal">
+            <div class="fraction-modal-content">
+                <span class="fraction-modal-close">&times;</span>
+                <h2>Fractions Analyzed</h2>
+                <div id="fractionModalSample"></div>
+                <form id="fractionModalForm" role="form">
+                    <!-- keep this fieldset empty (no whitespace): the "no fractions" note uses :empty -->
+                    <fieldset id="fractions"></fieldset>
+                    <button type="button" class="fraction-modal-button" onclick="addFraction()">add fraction</button>
+                    <button type="button" class="fraction-modal-button fraction-modal-save" id="fractionModalSave">save</button>
+                </form>
+            </div>
+        </div>
+
         <!-- scripts --> 
         <script src="js/explorer/renderTable.js"></script>
         <script src="js/explorer/helper.js"></script>
@@ -121,6 +136,7 @@
         <script src="js/explorer/literature-table.js"></script>
         <script src="js/explorer/site-table.js"></script>
         <script src="js/explorer/feature-table.js"></script>
+        <script src="js/input/sample-fraction-boxes.js"></script>
         <script src="js/explorer/sample-table.js"></script>
         <script src="js/explorer/dating-table.js"></script>
         <script src="js/explorer/result-table.js"></script>

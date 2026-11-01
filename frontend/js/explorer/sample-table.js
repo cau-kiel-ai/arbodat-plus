@@ -1,4 +1,5 @@
 let sampleTable;
+let fractionModalEscapeHandler; // document listener of the fractions popup, replaced on each table build
 
 async function buildSampleTable() {
     const container = document.getElementById("table");
@@ -321,6 +322,8 @@ async function buildSampleTable() {
                 },
                 formatter: cell => formatFrac(cell.getValue()),
                 accessorDownload: value => formatFrac(value),
+                cssClass: "fraction-cell",
+                cellClick: (e, cell) => openFractionModal(cell.getRow()),
             },
             {title:"sample type", titleDownload:"sampleType", field:"sampleType.id", headerSortTristate:true,
                 editor:"list", editorParams:{
@@ -598,7 +601,125 @@ async function buildSampleTable() {
     activeTable = "sampleTable";
 
 
+    // Fractions popup -----------------------------------------------------
+    // Opened by clicking a cell of the fractions column, edits the fractions of that one row.
+    const fractionModal = document.getElementById("fractionModal");
+    let fractionModalRow = null;
+
+    function openFractionModal(row) {
+        fractionModalRow = row;
+        const sample = row.getData();
+        // site, feature and sample, values start at the same horizontal point
+        const sampleInfo = document.getElementById("fractionModalSample");
+        sampleInfo.innerHTML = "";
+        [
+            ["site",    sample.feature?.site?.label],
+            ["feature", sample.feature?.label],
+            ["sample",  sample.label],
+        ].forEach(([name, value]) => {
+            const line = document.createElement("div");
+            const nameSpan = document.createElement("span");
+            nameSpan.className = "fraction-modal-sample-name";
+            nameSpan.textContent = name + ":";
+            line.append(nameSpan, value ?? "");
+            sampleInfo.appendChild(line);
+        });
+        // Boxes of sample-fraction-boxes.js; none for a sample without fractions ("no fractions" note, see explorer.scss)
+        document.getElementById("fractions").innerHTML = "";
+        (sample.fractionAnalyzedList || []).forEach(id => {
+            const fraction = fractions.find(f => f.id === id);
+            if (fraction) addFraction(fraction);
+        });
+        fractionModal.classList.add("open");
+    }
+
+    function closeFractionModal() {
+        fractionModal.classList.remove("open");
+        fractionModalRow = null;
+    }
+
+    // onclick (not addEventListener): the table is built more than once
+    fractionModal.querySelector(".fraction-modal-close").onclick = closeFractionModal;
+    fractionModal.onclick = e => {
+        if (e.target === fractionModal) closeFractionModal();
+    };
+    document.removeEventListener("keydown", fractionModalEscapeHandler);
+    fractionModalEscapeHandler = e => {
+        if (e.key === "Escape") closeFractionModal();
+    };
+    document.addEventListener("keydown", fractionModalEscapeHandler);
+
+    document.getElementById("fractionModalSave").onclick = async function() {
+        const row = fractionModalRow;
+        if (!row) return;
+        if (!document.getElementById("fractionModalForm").reportValidity()) return;
+
+        // Only this row is updated (not the selected rows). Fractions without id replace the old list on the server.
+        const sample = JSON.parse(JSON.stringify(row.getData()));
+        sample.fractionAnalyzedList = getFractions();
+        const payload = buildSamplePayload(sample);
+
+        try {
+            await axios.put(`api/samples/${sample.id}`, JSON.stringify(payload), {
+                headers: {
+                    "Content-Type": 'application/json'
+                }
+            });
+            // The saved fractions have new ids: reload them
+            const response = await axios.get("api/fractions_analyzed");
+            fractions = response.data;
+            row.update({
+                fractionAnalyzedList: fractions.filter(f => f.sample?.id === sample.id).map(f => f.id)
+            });
+            closeFractionModal();
+            toast.success("fractions saved");
+        } catch (error) {
+            console.error("Error updating fractions:", error);
+            toast.error("fractions could not be saved");
+        }
+    };
+
     // PUT: update samples -------------------------------------------------
+    // Payload of the sample PUT. fractionAnalyzedList may contain ids or objects.
+    function buildSamplePayload(sample) {
+        // Map ids back to objects
+        const crs = cachedCoordinateSystems.find(crs => crs.uri === sample.coordinate.coordinateSystem.id);
+        const coordinateSystemAsObject = crs
+        ? {
+            id: crs.uri,
+            label: [crs.prefLabel?.en, crs.notation].filter(Boolean).join(" - ")
+          }
+        : null;
+        const botanicalDeterminationByAsObjects = (sample.botanicalDeterminationBy || []).map(item => typeof item === "string"
+            ? { id: item }
+            : item);
+        const fractionsAsObjects = (sample.fractionAnalyzedList || []).map(item => typeof item === "string"
+        ? { id: item,
+            fractionAnalyzed: fractions.find(frac => frac.id === item).fractionAnalyzed,
+            orgOrMin: fractions.find(frac => frac.id === item).orgOrMin,
+            sieveSize: fractions.find(frac => frac.id === item).sieveSize,
+            standardMultiplier: fractions.find(frac => frac.id === item).standardMultiplier,
+         }
+        : item);
+
+        const payload = {
+            ...sample,
+            feature: sample.feature ? { id: sample.feature.id } : null,
+            coordinate: {
+                coordinateSystem: coordinateSystemAsObject,
+                longitude: sample.coordinate.longitude,
+                longitudeWgs84: sample.coordinate.longitudeWgs84,
+                latitude: sample.coordinate.latitude,
+                latitudeWgs84: sample.coordinate.latitudeWgs84,
+                altitude: sample.coordinate.altitude,
+            },
+            botanicalDeterminationBy: botanicalDeterminationByAsObjects,
+            fractionAnalyzedList: fractionsAsObjects,
+        };
+
+        return payload;
+    }
+
     sampleTable.on("cellEdited", async function(cell){
 
         const editedField = cell.getField();
@@ -617,40 +738,7 @@ async function buildSampleTable() {
             setNestedValue(sample, editedField, newValue); // other selected rows do not contain the new value yet
             const sampleId = sample.id;
 
-            // Map ids back to objects
-            const crs = cachedCoordinateSystems.find(crs => crs.uri === sample.coordinate.coordinateSystem.id);
-            const coordinateSystemAsObject = crs
-            ? {
-                id: crs.uri,
-                label: [crs.prefLabel?.en, crs.notation].filter(Boolean).join(" - ")
-              }
-            : null;
-            const botanicalDeterminationByAsObjects = (sample.botanicalDeterminationBy || []).map(item => typeof item === "string"
-                ? { id: item }
-                : item);
-            const fractionsAsObjects = (sample.fractionAnalyzedList || []).map(item => typeof item === "string"
-            ? { id: item,
-                fractionAnalyzed: fractions.find(frac => frac.id === item).fractionAnalyzed,
-                orgOrMin: fractions.find(frac => frac.id === item).orgOrMin,
-                sieveSize: fractions.find(frac => frac.id === item).sieveSize,
-                standardMultiplier: fractions.find(frac => frac.id === item).standardMultiplier,
-             }
-            : item);
-
-            const payload = {
-                ...sample,
-                feature: sample.feature ? { id: sample.feature.id } : null,
-                coordinate: {
-                    coordinateSystem: coordinateSystemAsObject,
-                    longitude: sample.coordinate.longitude,
-                    longitudeWgs84: sample.coordinate.longitudeWgs84,
-                    latitude: sample.coordinate.latitude,
-                    latitudeWgs84: sample.coordinate.latitudeWgs84,
-                    altitude: sample.coordinate.altitude,
-                },
-                botanicalDeterminationBy: botanicalDeterminationByAsObjects,
-                fractionAnalyzedList: fractionsAsObjects,
-            };
+            const payload = buildSamplePayload(sample);
     
             axios.put(`api/samples/${sampleId}`, JSON.stringify(payload), {
                 headers: {

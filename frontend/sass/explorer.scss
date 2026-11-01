@@ -310,3 +310,169 @@ footer li a:hover{
     align-items: center;
     justify-content: center;
 }
+
+
+// Fractions popup of the sample table (own class names: Bootstrap's .modal has different markup)
+.fraction-cell {
+    cursor: pointer;
+}
+
+.fraction-modal {
+    display: none;
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.5);
+    z-index: 100000;
+
+    &.open {
+        display: block;
+    }
+
+    .fraction-modal-content {
+        position: absolute;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        max-height: 80vh;
+        width: 850px;
+        max-width: 95vw;
+        overflow-y: auto;
+        background: white;
+        padding: 20px;
+        border-radius: 10px;
+        box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+        font-family: arial;
+    }
+
+    #fractionModalSample {
+        margin-bottom: 15px;
+
+        .fraction-modal-sample-name {
+            display: inline-block;
+            width: 70px; // values of site, feature and sample start at the same point
+        }
+    }
+
+    .fraction-modal-close {
+        position: absolute;
+        top: 10px;
+        right: 15px;
+        font-size: 30px;
+        cursor: pointer;
+    }
+
+    // same layout as the fraction fieldset of input.html
+    fieldset {
+        border-radius: 5px;
+        background-color: white;
+        overflow: visible;
+
+        // note shown while there are no fraction boxes
+        &:empty::before {
+            content: "no fractions";
+            color: #776c78;
+        }
+    }
+
+    label {
+        padding: 12px 12px 12px 0;
+        display: inline-block;
+    }
+
+    // Bootstrap's grid is imported here: neutralise its .row (flex, negative margins, gutter padding on children)
+    .row {
+        display: block;
+        margin: 0;
+        overflow: visible;
+
+        > * {
+            padding: 0;
+            margin-top: 0;
+        }
+    }
+
+    .col-25 {
+        float: left;
+        width: 35%;
+        margin-top: 6px;
+    }
+
+    .col-75 {
+        float: left;
+        width: 64%;
+        margin-top: 6px;
+    }
+
+    select, input[type=number] {
+        padding: 12px;
+        border: 2px solid #ccc;
+        border-radius: 4px;
+    }
+
+    select {
+        width: 100%;
+    }
+
+    input[type=number] {
+        width: 30%;
+    }
+
+    // Bootstrap's .form-check floats the radio into a left gutter: put it inline next to its label instead
+    .form-check {
+        display: inline-block;
+        min-height: 0;
+        padding-left: 0;
+        margin: 0 1rem 0 0;
+
+        .form-check-input {
+            float: none;
+            margin: 0 0 0 4px;
+            vertical-align: middle;
+        }
+    }
+
+    legend {
+        float: none;
+        width: auto;
+        margin-bottom: 24px;
+        margin-top: 6px;
+    }
+
+    #one_fraction {
+        margin-bottom: 10px;
+        padding: 12px;
+        line-height: 75%;
+        border: 2px #ccc solid;
+        background-color: rgb(240, 248, 246);
+        border-radius: 5px;
+        overflow: auto;
+
+        // remove-fraction button (inline-styled in sample-fraction-boxes.js)
+        .Remove {
+            float: right;
+            cursor: pointer;
+            border-radius: 5px;
+            background-color: rgb(37, 16, 193);
+            color: #FFFFFF;
+        }
+    }
+
+    .fraction-modal-button {
+        height: 42px;
+        padding: 0 10px;
+        margin-top: 10px;
+        margin-right: 10px;
+        cursor: pointer;
+        border-radius: 5px;
+        background-color: rgb(37, 16, 193);
+        color: #FFFFFF;
+    }
+
+    .fraction-modal-save {
+        float: right;
+        margin-right: 0;
+    }
+}
