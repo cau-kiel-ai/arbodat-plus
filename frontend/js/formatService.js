@@ -90,68 +90,68 @@ function formatFraction(item) {
     // + `${standardMultiplier ? ` (standard multiplier: ${standardMultiplier})` : ''}`
 }
 
-function formatDendroDating(item) {
+// function formatDendroDating(item) {
 
-  const lab = item.laboratory?.label;
-  const num = item.number;
-  const age = item.dendrochronologicalAge;
-  const waneyEdge = item.waneyEdge;
+//   const lab = item.laboratory?.label;
+//   const num = item.number;
+//   const age = item.dendrochronologicalAge;
+//   const waneyEdge = item.waneyEdge;
 
-  // Lab + num
-  const prefix = [lab, num].filter(Boolean).join(' ');
+//   // Lab + num
+//   const prefix = [lab, num].filter(Boolean).join(' ');
 
-  return (
-    prefix +
-    (age && prefix ? ', ' : '') +
-    `${age ? `age: ${age ?? 'undefined'}` : ''}` +
-    `${waneyEdge === true ? ' (waneyEdge)' : ''}`
-  );
-}
+//   return (
+//     prefix +
+//     (age && prefix ? ', ' : '') +
+//     `${age ? `age: ${age ?? 'undefined'}` : ''}` +
+//     `${waneyEdge === true ? ' (waneyEdge)' : ''}`
+//   );
+// }
 
-function formatC14Dating(item) {
+// function formatC14Dating(item) {
 
-  const c14lab = item.c14Laboratory?.label;
-  const num = item.number;
+//   const c14lab = item.c14Laboratory?.label;
+//   const num = item.number;
 
-  const c14AgeBp = item.c14AgeBp;
-  const c14StdDev = item.c14StdDev;
+//   const c14AgeBp = item.c14AgeBp;
+//   const c14StdDev = item.c14StdDev;
 
-  const c14CalibrationBcAd2s = item.c14CalibrationBcAd2s;
+//   const c14CalibrationBcAd2s = item.c14CalibrationBcAd2s;
 
-  const deltaC13 = item.deltaC13;
-  const deltaC13Uncertainty = item.deltaC13Uncertainty;
+//   const deltaC13 = item.deltaC13;
+//   const deltaC13Uncertainty = item.deltaC13Uncertainty;
 
-  const pmc = item.pmc;
-  const pmcUncertainty = item.pmcUncertainty;
+//   const pmc = item.pmc;
+//   const pmcUncertainty = item.pmcUncertainty;
 
-  // Lab + num
-  const prefix = [c14lab, num].filter(Boolean).join(' ');
+//   // Lab + num
+//   const prefix = [c14lab, num].filter(Boolean).join(' ');
 
-  return (
-    prefix +
-    (c14AgeBp && prefix ? ', ' : '') +
-    `${c14AgeBp ? `C14-age BP: ${c14AgeBp} ± ${c14StdDev}` : ''}` +
-    `${c14CalibrationBcAd2s ? `, C14 cal BC/AD (2s): ${c14CalibrationBcAd2s}` : ''}` +
-    `${deltaC13 ? `, Delta C13: ${deltaC13} ± ${deltaC13Uncertainty}` : ''}` +
-    `${pmc ? `, pMC: ${pmc} ± ${pmcUncertainty}` : ''}`
-  );
-}
+//   return (
+//     prefix +
+//     (c14AgeBp && prefix ? ', ' : '') +
+//     `${c14AgeBp ? `C14-age BP: ${c14AgeBp} ± ${c14StdDev}` : ''}` +
+//     `${c14CalibrationBcAd2s ? `, C14 cal BC/AD (2s): ${c14CalibrationBcAd2s}` : ''}` +
+//     `${deltaC13 ? `, Delta C13: ${deltaC13} ± ${deltaC13Uncertainty}` : ''}` +
+//     `${pmc ? `, pMC: ${pmc} ± ${pmcUncertainty}` : ''}`
+//   );
+// }
 
-function formatOtherDating(item) {
+// function formatOtherDating(item) {
 
-  const lab = item.laboratory?.label;
-  const num = item.number;
-  const age = item.ageDivers;
+//   const lab = item.laboratory?.label;
+//   const num = item.number;
+//   const age = item.ageDivers;
 
-  // Lab + num
-  const prefix = [lab, num].filter(Boolean).join(' ');
+//   // Lab + num
+//   const prefix = [lab, num].filter(Boolean).join(' ');
 
-  return (
-    prefix +
-    (age && prefix ? ', ' : '') +
-    `${age ? `age: ${age ?? 'undefined'}` : ''}`
-  );
-}
+//   return (
+//     prefix +
+//     (age && prefix ? ', ' : '') +
+//     `${age ? `age: ${age ?? 'undefined'}` : ''}`
+//   );
+// }
 
 function formatDatings(item) {
   return item.subSample

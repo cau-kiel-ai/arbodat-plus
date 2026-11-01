@@ -110,6 +110,17 @@ public class AbsoluteDatingController {
         return "absolute dating is created";
     }
 
+    // Resolves a transferred laboratory: existing lab by id, new lab (label only) is saved, no lab -> null
+    private Laboratory resolveLaboratory(Laboratory transferredLab) {
+        if (transferredLab == null) return null;
+        if (transferredLab.getId() != null) {
+            return laboratoryRepository.findById(transferredLab.getId())
+                    .orElseThrow(() -> new IllegalArgumentException("invalid laboratory id: " + transferredLab.getId()));
+        }
+        if (transferredLab.getLabel() == null || transferredLab.getLabel().isBlank()) return null;
+        return laboratoryRepository.save(transferredLab);
+    }
+
     @PutMapping("/{absoluteDatingId}")
     public String update(@RequestBody  AbsoluteDating transferredAbsoluteDating,
                          @PathVariable UUID           absoluteDatingId)
@@ -161,44 +172,35 @@ public class AbsoluteDatingController {
 
             absoluteDating.setDatingMethod(datingMethod);
 
+            // The dating is saved even without a laboratory (the lab stays null)
             // Dendro dating
             if (transferredAbsoluteDating.getDatingMethod().getLabel().equals("Dendrochronology")) {
-                if (transferredAbsoluteDating.getDendrochronologicalDating() != null &&
-                        transferredAbsoluteDating.getDendrochronologicalDating().getLaboratory() != null) {
-                    Laboratory lab;
-                    if (transferredAbsoluteDating.getDendrochronologicalDating().getLaboratory().getId() != null) {
-                        lab = laboratoryRepository.findById(transferredAbsoluteDating.getDendrochronologicalDating().getLaboratory().getId())
-                                .orElseThrow(() -> new IllegalArgumentException("invalid laboratory id: " + transferredAbsoluteDating.getDendrochronologicalDating().getLaboratory().getId()));
-                    } else {
-                        lab = laboratoryRepository.save(transferredAbsoluteDating.getDendrochronologicalDating().getLaboratory());
-                    }
-                    absoluteDating.setDendrochronologicalDating(transferredAbsoluteDating.getDendrochronologicalDating());
-                    absoluteDating.getDendrochronologicalDating().setLaboratory(lab);
+                DendrochronologicalDating dendroDating = transferredAbsoluteDating.getDendrochronologicalDating();
+                if (dendroDating != null) {
+                    dendroDating.setLaboratory(resolveLaboratory(dendroDating.getLaboratory()));
+                    absoluteDating.setDendrochronologicalDating(dendroDating);
                 }
             }
             // C14 dating
             else if (transferredAbsoluteDating.getDatingMethod().getLabel().equals("Radiocarbon Dating")) {
-                if (transferredAbsoluteDating.getC14Dating() != null &&
-                        transferredAbsoluteDating.getC14Dating().getC14Laboratory() != null) {
-                    C14Laboratory c14Lab = c14LaboratoryRepository.findById(transferredAbsoluteDating.getC14Dating().getC14Laboratory().getId())
-                            .orElseGet(() -> c14LaboratoryRepository.save(transferredAbsoluteDating.getC14Dating().getC14Laboratory()));
-                    absoluteDating.setC14Dating(transferredAbsoluteDating.getC14Dating());
-                    absoluteDating.getC14Dating().setC14Laboratory(c14Lab);
+                C14Dating c14Dating = transferredAbsoluteDating.getC14Dating();
+                if (c14Dating != null) {
+                    C14Laboratory transferredC14Lab = c14Dating.getC14Laboratory();
+                    if (transferredC14Lab != null && transferredC14Lab.getId() != null) {
+                        c14Dating.setC14Laboratory(c14LaboratoryRepository.findById(transferredC14Lab.getId())
+                                .orElseGet(() -> c14LaboratoryRepository.save(transferredC14Lab)));
+                    } else {
+                        c14Dating.setC14Laboratory(null);
+                    }
+                    absoluteDating.setC14Dating(c14Dating);
                 }
             }
             // Other dating
             else {
-                if (transferredAbsoluteDating.getOtherDating() != null &&
-                        transferredAbsoluteDating.getOtherDating().getLaboratory() != null) {
-                    Laboratory lab;
-                    if (transferredAbsoluteDating.getOtherDating().getLaboratory().getId() != null) {
-                        lab = laboratoryRepository.findById(transferredAbsoluteDating.getOtherDating().getLaboratory().getId())
-                                .orElseThrow(() -> new IllegalArgumentException("invalid laboratory id: " + transferredAbsoluteDating.getOtherDating().getLaboratory().getId()));
-                    } else {
-                        lab = laboratoryRepository.save(transferredAbsoluteDating.getOtherDating().getLaboratory());
-                    }
-                    absoluteDating.setOtherDating(transferredAbsoluteDating.getOtherDating());
-                    absoluteDating.getOtherDating().setLaboratory(lab);
+                OtherDating otherDating = transferredAbsoluteDating.getOtherDating();
+                if (otherDating != null) {
+                    otherDating.setLaboratory(resolveLaboratory(otherDating.getLaboratory()));
+                    absoluteDating.setOtherDating(otherDating);
                 }
             }
         } else {

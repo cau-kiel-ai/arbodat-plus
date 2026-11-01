@@ -312,6 +312,12 @@ footer li a:hover{
 }
 
 
+// Dating table: cells of a dating type that does not match the row's dating method
+.tabulator .tabulator-row .tabulator-cell.dating-na {
+    background-color: #cecece;
+}
+
+
 // Fractions popup of the sample table (own class names: Bootstrap's .modal has different markup)
 .fraction-cell {
     cursor: pointer;
