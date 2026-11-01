@@ -112,16 +112,7 @@ document.addEventListener("DOMContentLoaded", () => {
             year_of_bot_det_input.value = '';
 
             // Reset fractions --------------------------------------
-            // fraction 1
-            document.getElementById("fraction_analyzed_1").value = '';
-            document.getElementById("org_1").checked = false;
-            document.getElementById("min_1").checked = false;
-            document.getElementById("sieveSize_1").value  = '';
-            document.getElementById("multiplier_1").value = '';
-            // all further fractions
-            while (frac_counter > 1) {
-                removeFraction();
-            } // ----------------------------------------------------
+            resetFractions(); // ----------------------------------------------------
 
             $('#sample_type').val(null).trigger('change');
             sample_storage_checkbox.checked = false;
@@ -204,34 +195,9 @@ document.addEventListener("DOMContentLoaded", () => {
         }); // ------------------------------------------
         year_of_bot_det_input.value = item.botanicalDeterminationYear;
 
-        // Reset fractions -----------------------------------------
-        // fraction 1
-        document.getElementById("fraction_analyzed_1").value = '';
-        document.getElementById("org_1").checked = false;
-        document.getElementById("min_1").checked = false;
-        document.getElementById("sieveSize_1").value  = '';
-        document.getElementById("multiplier_1").value = '';
-        // all further fractions
-        while (frac_counter > 1) {
-            removeFraction();
-        }
-        // Populate fractions --------------------------------------
-        item.fractionAnalyzedList?.forEach((fraction, index) => {
-            if (index === 0) {  // fraction 1
-                document.getElementById("fraction_analyzed_1").value = fraction.fractionAnalyzed;
-                document.getElementById("org_1").checked = fraction.orgOrMin === "org";
-                document.getElementById("min_1").checked = fraction.orgOrMin === "min";
-                document.getElementById("sieveSize_1").value  = fraction.sieveSize;
-                document.getElementById("multiplier_1").value = fraction.standardMultiplier;
-            } else {  // all further fractions
-                addFraction();
-                document.getElementById("fraction_analyzed_" + frac_counter).value = fraction.fractionAnalyzed;
-                document.getElementById("org_" + frac_counter).checked = fraction.orgOrMin === "org";
-                document.getElementById("min_" + frac_counter).checked = fraction.orgOrMin === "min";
-                document.getElementById("sieveSize_" + frac_counter).value  = fraction.sieveSize;
-                document.getElementById("multiplier_" + frac_counter).value = fraction.standardMultiplier;
-            }
-        }); // -----------------------------------------------------
+        // Reset and populate fractions ----------------------------
+        setFractions(item.fractionAnalyzedList);
+        // ---------------------------------------------------------
 
         $('#sample_type').val(item.sampleType?.id ?? "").trigger('change');
         sample_storage_checkbox.checked = item.sampleStorage;
@@ -285,16 +251,7 @@ document.addEventListener("DOMContentLoaded", () => {
         year_of_bot_det_input.value = '';
         
         // Reset fractions --------------------------------------
-        // fraction 1
-        document.getElementById("fraction_analyzed_1").value = '';
-        document.getElementById("org_1").checked = false;
-        document.getElementById("min_1").checked = false;
-        document.getElementById("sieveSize_1").value  = '';
-        document.getElementById("multiplier_1").value = '';
-        // c
-        while (frac_counter > 1) {
-            removeFraction();
-        } // ----------------------------------------------------
+        resetFractions(); // ----------------------------------------------------
 
         $('#sample_type').val(null).trigger('change');
         sample_storage_checkbox.checked = false;

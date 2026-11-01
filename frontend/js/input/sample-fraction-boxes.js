@@ -1,38 +1,38 @@
 
-function handleRequiredAndEnableInputsForFraction(frac_counter) {
-  const fractionSelect = document.getElementById(`fraction_analyzed_${frac_counter}`);
-  const orgOrMinRadios = document.querySelectorAll(`input[name="orgOrMin_${frac_counter}"]`);
-  const sieveSizeInput = document.getElementById(`sieveSize_${frac_counter}`);
-  const stdMultiplierInput = document.getElementById(`multiplier_${frac_counter}`);
+// Unique id suffix for the elements of a fraction box. It is never decremented,
+// so ids stay unique even if intermediate fractions are removed.
+let fraction_id_counter = 0;
 
-  fractionSelect.addEventListener('change', () => {
-    if (fractionSelect.value !== '') {
-      // orgOrMin and sieveSize required
-      orgOrMinRadios.forEach(radio => radio.required = true);
-      sieveSizeInput.required = true;
+// orgOrMin and sieveSize are required if a fraction analyzed value is selected.
+// The inputs are only enabled here, never disabled again.
+function updateRequiredAndEnableInputsForFraction(fraction_id) {
+  const isRequired = document.getElementById(`fraction_analyzed_${fraction_id}`).value !== '';
+  const orgOrMinRadios = document.querySelectorAll(`input[name="orgOrMin_${fraction_id}"]`);
+  const sieveSizeInput = document.getElementById(`sieveSize_${fraction_id}`);
+  const stdMultiplierInput = document.getElementById(`multiplier_${fraction_id}`);
 
-      // enable inputs
-      orgOrMinRadios.forEach(radio => radio.disabled = false);
-      sieveSizeInput.disabled = false;
-      stdMultiplierInput.disabled = false;
-    }
-  });
+  orgOrMinRadios.forEach(radio => radio.required = isRequired);
+  sieveSizeInput.required = isRequired;
+  if (isRequired) {
+    orgOrMinRadios.forEach(radio => radio.disabled = false);
+    sieveSizeInput.disabled = false;
+    stdMultiplierInput.disabled = false;
+  }
 }
 
-let frac_counter = 1;
-
-function addFraction() {
-  frac_counter+=1;  
-  html='\
-  <div id="one_fraction">\
-    <br>\
-    <legend>fraction '+frac_counter+':</legend>\
+function addFraction(fraction = null) {
+  fraction_id_counter += 1;
+  const id = fraction_id_counter;
+  const html='\
+  <div id="one_fraction" class="fraction-box" data-fraction-id="'+id+'">\
+    <button type="button" class="Remove" style="width: auto; height: auto; padding: 4px 10px; margin: 0;" onclick="removeFraction(this)">remove fraction</button>\
+    <legend>fraction:</legend>\
     <div class="row">\
       <div class="col-25">\
-        <label for="fraction_analyzed_'+frac_counter+'">fraction analyzed:</label>\
+        <label for="fraction_analyzed_'+id+'">fraction analyzed:</label>\
       </div>\
       <div class="col-75">\
-        <select id="fraction_analyzed_'+frac_counter+'">\
+        <select id="fraction_analyzed_'+id+'">\
           <option value="" hidden selected> </option>\
           <option value="yes">yes</option>\
           <option value="no">no</option>\
@@ -46,46 +46,91 @@ function addFraction() {
       </div>\
       <div class="col-75">\
         <div class="form-check form-check-inline">\
-          <label class="form-check-label" for="org_'+frac_counter+'">ORG</label>\
-          <input class="form-check-input" type="radio" name="orgOrMin_'+frac_counter+'" id="org_'+frac_counter+'" value="org" disabled>\
+          <label class="form-check-label" for="org_'+id+'">ORG</label>\
+          <input class="form-check-input" type="radio" name="orgOrMin_'+id+'" id="org_'+id+'" value="org" disabled>\
         </div>\
         <div class="form-check form-check-inline">\
-          <label class="form-check-label" for="min_'+frac_counter+'">MIN</label>\
-          <input class="form-check-input" type="radio" name="orgOrMin_'+frac_counter+'" id="min_'+frac_counter+'" value="min" disabled>\
+          <label class="form-check-label" for="min_'+id+'">MIN</label>\
+          <input class="form-check-input" type="radio" name="orgOrMin_'+id+'" id="min_'+id+'" value="min" disabled>\
         </div>\
       </div>\
     </div>\
     <div class="row">\
       <div class="col-25">\
-        <label for="sieveSize">sieve size:</label>\
+        <label for="sieveSize_'+id+'">sieve size [mm]:</label>\
       </div>\
       <div class="col-75">\
-        <input type="number" name="sieveSize" step="0.01" id="sieveSize_'+frac_counter+'" disabled>\
+        <input type="number" step="0.01" id="sieveSize_'+id+'" disabled>\
       </div>\
     </div>\
     <div class="row">\
       <div class="col-25"> \
-        <label for="multiplier">standard multiplier:</label>\
+        <label for="multiplier_'+id+'">standard multiplier:</label>\
       </div>\
       <div class="col-75">\
-        <input type="number" name="multiplier" step="0.01" id="multiplier_'+frac_counter+'" disabled>\
+        <input type="number" step="0.01" id="multiplier_'+id+'" min="1" disabled>\
       </div>\
     </div>\
   </div>'
-  var form=document.getElementById('fractions');
-  form.insertAdjacentHTML('beforeend',html);
-  updateRemoveFractionButtonVisibility()
-  handleRequiredAndEnableInputsForFraction(frac_counter);
+  document.getElementById('fractions').insertAdjacentHTML('beforeend', html);
+  document.getElementById(`fraction_analyzed_${id}`)
+    .addEventListener('change', () => updateRequiredAndEnableInputsForFraction(id));
+
+  if (fraction) {
+    document.getElementById("fraction_analyzed_" + id).value = fraction.fractionAnalyzed ?? '';
+    document.getElementById("org_" + id).checked = fraction.orgOrMin === "org";
+    document.getElementById("min_" + id).checked = fraction.orgOrMin === "min";
+    document.getElementById("sieveSize_" + id).value  = fraction.sieveSize ?? '';
+    document.getElementById("multiplier_" + id).value = fraction.standardMultiplier ?? '';
+    // programmatic changes fire no 'change' event, so update required/enabled here
+    updateRequiredAndEnableInputsForFraction(id);
+  }
+  renumberFractions();
 }
 
-function updateRemoveFractionButtonVisibility() {
-  const btn = document.getElementById('removeFractionButton');
-  btn.style.display = frac_counter > 0 ? 'inline-block' : 'none';
+function removeFraction(button) {
+  button.closest('.fraction-box').remove();
+  renumberFractions();
 }
 
-function removeFraction() {
-  frac_counter-=1;
-  var parent=document.getElementById('fractions')
-  parent.lastElementChild.remove();
-  updateRemoveFractionButtonVisibility()
+function renumberFractions() {
+  document.querySelectorAll('#fractions .fraction-box legend').forEach((legend, index) => {
+    legend.textContent = 'fraction ' + (index + 1) + ':';
+  });
 }
+
+// Remove all fractions and leave a single empty one
+function resetFractions() {
+  document.getElementById('fractions').innerHTML = '';
+  addFraction();
+}
+
+// Replace all fractions with the given list (one empty fraction if the list is empty)
+function setFractions(fraction_list) {
+  resetFractions();
+  if (!fraction_list || fraction_list.length === 0) return;
+  document.getElementById('fractions').innerHTML = '';
+  fraction_list.forEach(fraction => addFraction(fraction));
+}
+
+// Fractions for the payload (fractions without 'fraction analyzed' are skipped)
+function getFractions() {
+  const fraction_list = [];
+  document.querySelectorAll('#fractions .fraction-box').forEach(box => {
+    const id = box.dataset.fractionId;
+    const fraction_analyzed = document.getElementById("fraction_analyzed_" + id);
+    if (fraction_analyzed.value) {
+      const org = document.getElementById("org_" + id).checked;
+      const min = document.getElementById("min_" + id).checked;
+      fraction_list.push({
+        fractionAnalyzed: fraction_analyzed.value,
+        orgOrMin: org ? "org" : min ? "min" : null,
+        sieveSize: document.getElementById("sieveSize_" + id).value,
+        standardMultiplier: document.getElementById("multiplier_" + id).value
+      });
+    }
+  });
+  return fraction_list;
+}
+
+document.addEventListener("DOMContentLoaded", () => addFraction());

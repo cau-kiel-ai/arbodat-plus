@@ -414,22 +414,7 @@ function create_update_sample() {
             latitudeWgs84:  latitude_wgs84_input.value,
         }
         // Fractions ---------------------------------------------
-        fraction_list = []
-        for (let i = 1; i <= frac_counter; i++) {
-            const fraction_analyzed = document.getElementById("fraction_analyzed_" + i);
-            if (fraction_analyzed.value) {
-                org = document.getElementById("org_" + i).checked;
-                min = document.getElementById("min_" + i).checked;
-                fraction = {
-                    fractionAnalyzed: fraction_analyzed.value,
-                    orgOrMin: org ? "org" : min ? "min" : null,
-                    sieveSize: document.getElementById("sieveSize_" + i).value,
-                    standardMultiplier: document.getElementById("multiplier_" + i).value
-                }
-                fraction_list.push(fraction);
-            }
-        }
-        payload.fractionAnalyzedList = fraction_list;
+        payload.fractionAnalyzedList = getFractions();
 
         // Sample type -------------------------------------------
         if (sample_type_dropdown.value) {
