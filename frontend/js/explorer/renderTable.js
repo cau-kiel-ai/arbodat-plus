@@ -8,9 +8,16 @@ document.addEventListener("DOMContentLoaded", async function () {
     await updateBackendDanteAttributes();
 });
 
-const tableSelector = document.getElementById("tableSelector");
+const tableSelector = $("#tableSelector");
 
-tableSelector.addEventListener("change", (e) => {
+tableSelector.select2({
+    placeholder: "",
+    width: "220px",
+    minimumResultsForSearch: Infinity
+});
+
+// select2 fires change through jQuery, native listeners are not called
+tableSelector.on("change", (e) => {
     const table = e.target.value;
     setTableInURL(table);
     renderTable(table);
@@ -35,7 +42,7 @@ function setTableInURL(table) {
 }
 
 function applyTable(table) {
-    tableSelector.value = table;
+    tableSelector.val(table).trigger("change.select2");
     renderTable(table);
 }
 

@@ -18,6 +18,14 @@
         </script>
         <!-- axios -->
         <script src="https://unpkg.com/axios@1.8.4/dist/axios.min.js"></script>
+        <!-- jquery -->
+        <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.7.1/jquery.min.js"></script>
+        <!-- Select2 -->
+        <link
+          href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css"
+          rel="stylesheet"
+        >
+        <script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
         <!-- tabulator -->
         <link
           href="https://unpkg.com/tabulator-tables@6.3.1/dist/css/tabulator.min.css"
@@ -69,19 +77,22 @@
 
                 <div class="dropdown-container">
                     Select&nbsp;Table:&nbsp;&nbsp;
-                    <select id="tableSelector" style="padding-top: 4px; padding-bottom: 4px;">
-                        <option value="" disabled selected hidden></option>
-                        <option value="institution">institutions</option>
-                        <option value="user">users</option>
-                        <option value="author">authors</option>
-                        <option value="literature">literature</option>
-                        <option value="" disabled>-----------------</option>
-                        <option value="researchProject">research projects</option>
-                        <option value="site">sites</option>
-                        <option value="feature">features</option>
-                        <option value="sample">samples</option>
-                        <option value="dating">datings</option>
-                        <option value="result">results</option>
+                    <select id="tableSelector">
+                        <option></option>
+                        <optgroup label="">
+                            <option value="institution">institutions</option>
+                            <option value="user">users</option>
+                            <option value="author">authors</option>
+                            <option value="literature">literature</option>
+                        </optgroup>
+                        <optgroup label="">
+                            <option value="researchProject">research projects</option>
+                            <option value="site">sites</option>
+                            <option value="feature">features</option>
+                            <option value="sample">samples</option>
+                            <option value="dating">datings</option>
+                            <option value="result">results</option>
+                        </optgroup>
                     </select>
                 </div>
 

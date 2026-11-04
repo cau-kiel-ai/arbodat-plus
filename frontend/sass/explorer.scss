@@ -68,6 +68,51 @@ html, body {
     margin: 0 auto;
 }
 
+/* ------------ Select2 --------------- */
+
+.dropdown-container .select2-container--default {
+    .select2-selection--single {
+        height: auto;
+        border: 2px solid #ccc;
+        border-radius: 4px;
+
+        .select2-selection__rendered {
+            padding: 4px 20px 4px 6px;
+            line-height: normal;
+
+            // empty placeholder has no line box, keep the same height as with a selection
+            .select2-selection__placeholder::before {
+                content: "\00a0";
+            }
+        }
+
+        .select2-selection__arrow {
+            height: 100%;
+        }
+    }
+}
+
+// dropdown is appended to body, so these cannot be nested in .dropdown-container
+.select2-container--default .select2-dropdown {
+    .select2-results > .select2-results__options {
+        max-height: 400px;
+    }
+
+    // left align options (select2 indents options nested in a group)
+    .select2-results__option .select2-results__option {
+        padding-left: 7px;
+    }
+
+    // groups without labels, separated by a light grey band
+    .select2-results__group {
+        display: none;
+    }
+
+    .select2-results__option--group + .select2-results__option--group {
+        border-top: 6px solid #eee;
+    }
+}
+
 /* ------------ Input types --------------- */
 
 input[type=text], input[type=email], select, textarea {
