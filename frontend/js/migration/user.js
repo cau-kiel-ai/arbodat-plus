@@ -24,7 +24,7 @@ function populateUsers(userList) {
             </td>
             <td>
                 <button type="button"
-                        onclick="openUserWindow('${item.userLabel}')">
+                        onclick="openUserWindow('${escapeJsArg(item.userLabel)}')">
                         Create
                 </button>
             </td>

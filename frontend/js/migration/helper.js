@@ -102,265 +102,335 @@ function updateCheckedInputs(value, tableBodyId, inputIdPrefix) {
     }
 }
 
-function addLabelToJSON(itemId, attribute, nonMatchingLabel, button) {
-    const data = {
-        attribute: attribute,
-        nonMatchingLabel: nonMatchingLabel,
-        itemId: itemId
-    };
-
-    jsonData.push(data);
-    console.log(`non matching ${attribute} is added to JSON`);
-
-    const row = button.closest("tr");
-    row.remove();
-
-    displayJSON();
+// Escape a value for a single quoted JS string inside an inline handler (onclick="fn('${escapeJsArg(value)}')"):
+// first for the JS string, then for the HTML attribute
+function escapeJsArg(value) {
+    return String(value ?? "")
+        .replace(/\\/g, "\\\\")
+        .replace(/'/g, "\\'")
+        .replace(/\n/g, "\\n")
+        .replace(/\r/g, "\\r")
+        .replace(/&/g, "&amp;")
+        .replace(/"/g, "&quot;")
+        .replace(/</g, "&lt;");
 }
 
-function addLabelToJSONWithItem(button, attribute, nonMatchingLabel) {    
-    // attributes: 'taxCode', 'restType', 'stateOfPreservation',
-    //             'coordinateSystemSite', 'coordinateSystemSample',
-    //             'C14LabCode'
+// Encode an item for the single quoted data-item attribute of the 'Add to JSON' button.
+// encodeURIComponent keeps the apostrophe, which would end the attribute value.
+function encodeRowItem(item) {
+    return encodeURIComponent(JSON.stringify(item)).replace(/'/g, "%27");
+}
 
-    // Get row from button
+// Decode the item stored in the 'Add to JSON' button of a row (see data-item)
+function getRowItem(row) {
+    const button = row.querySelector("button[data-item]");
+    return button ? JSON.parse(decodeURIComponent(button.getAttribute("data-item"))) : null;
+}
+
+// Add one grouped entry to the JSON, remove all rows it covers and tell the user
+// how many rows were added and how many rows with the same label had to be skipped
+function addGroupToJSON(entry, rows, skippedReasons = []) {
+    jsonData.push(entry);
+    rows.forEach(row => row.remove());
+    displayJSON();
+    console.log(`${rows.length} row(s) added to JSON`);
+
+    if (rows.length > 1 || skippedReasons.length > 0) {
+        let message = `${rows.length} ${rows.length === 1 ? "row" : "rows"} added to JSON.`;
+        if (skippedReasons.length > 0) {
+            const reasons = [...new Set(skippedReasons)].join(", ");
+            message += ` ${skippedReasons.length} more with the same label skipped (${reasons}).`;
+        }
+        toast.success(message);
+    }
+}
+
+// Adds all rows with the same attribute and nonMatchingLabel as the clicked row
+function addLabelToJSON(itemId, attribute, button) {
+    const clickedRow = button.closest("tr");
+    const label = clickedRow.dataset.nonMatchingLabel;
+
+    const rows = Array.from(document.querySelectorAll("tr[data-attribute]"))
+        .filter(row => row.dataset.attribute === attribute && row.dataset.nonMatchingLabel === label);
+    if (!rows.includes(clickedRow)) {
+        rows.push(clickedRow);
+    }
+
+    addGroupToJSON({
+        attribute: attribute,
+        nonMatchingLabel: label,
+        itemIds: rows.map(row => row.dataset.id ?? itemId)
+    }, rows);
+}
+
+function addLabelToJSONWithItem(button, attribute) {
+    // attributes: 'result', 'coordinateSystemSite', 'coordinateSystemSample', 'C14LabCode'
     const row = button.closest("tr");
 
-    // Decode item
-    let jsonString = decodeURIComponent(button.getAttribute('data-item'));
-    let item = JSON.parse(jsonString);
-    
-    if (attribute == "result") {
-
-        let result = item.result;
-
-        // Get Taxonomy
-        const siteLabel = result.sample.feature.site.label;
-        const siteLabelSafe = siteLabel.replace(/\s+/g, '_');
-        const taxonomyDropdown = document.getElementById(`taxonomyDropdown_${siteLabelSafe}`);
-        const taxonomyLabel = taxonomyDropdown ? taxonomyDropdown.options[taxonomyDropdown.selectedIndex].text : null;
-
-        if (taxonomyLabel != "select Taxonomy") {
-
-            // Get and set fractionAnalyzed ------------------------------
-            const fractionAnalyzedCell  = row.cells[5];
-            const orgOrMinCell          = row.cells[6];
-            const sieveSizeCell         = row.cells[7];
-
-            if (fractionAnalyzedCell.textContent != "null") {
-                // Set fractionAnalyzed in result
-                result.fractionAnalyzed = fractionAnalyzedCell.textContent;
-                result.orgOrMin         = orgOrMinCell.textContent
-                result.sieveSize        = parseFloat(sieveSizeCell.textContent);
-
-                const data = {
-                    itemType: "result",
-                };
-                
-                // Get and set TaxCode
-                let taxCodeIsSet = true;
-                if (result.taxCode == null) {
-                    
-                    const taxCodeDropdown = document.getElementById(`taxCodeDropdown_${item.id}`);
-                    const taxCodeId = taxCodeDropdown ? taxCodeDropdown.value : null;
-                    const taxCodeLabel = taxCodeDropdown ? taxCodeDropdown.options[taxCodeDropdown.selectedIndex].text.trim() : null;
-                    
-                    if (taxCodeId && taxCodeLabel) {
-                        // Set taxCode
-                        result.taxCode = {
-                            id: taxCodeId,
-                            label: taxCodeLabel,
-                            taxonomy: taxonomyLabel
-                        };
-                    } else {
-                        taxCodeIsSet = false;
-                        // Add to JSON
-                        const taxCodeCell  = row.cells[3];
-                        const nonMatchingLabel = taxCodeCell.textContent;
-                        data.nonMatching_taxCode = {
-                            nonMatching_taxCode: nonMatchingLabel,
-                            taxonomy: taxonomyLabel
-                        };
-                    }
-                }
-
-                // Get and set ClassificationConfer
-                // if (result.classificationConfer == null) {
-                //     const cfDropdown = document.getElementById(`cfDropdown_${item.id}`);
-                //     const cfId = cfDropdown ? cfDropdown.value : null;
-                //     const cfLabel = cfDropdown ? cfDropdown.options[cfDropdown.selectedIndex].text : null;
-
-                //     if (cfId && cfLabel) {
-                //         // Set ClassificationConfer
-                //         result.classificationConfer = {
-                //             id: cfId,
-                //             label: cfLabel
-                //         };
-                //     } else {
-                //         // Add to JSON
-                //         const cfCell  = row.cells[9];
-                //         nonMatchingLabel = cfCell.textContent;
-                //         data.nonMatching_classificationConfer = nonMatchingLabel;
-                //     }
-                // }
-
-                // Get and set RestType
-                let restTypeIsSet = true;
-                if (result.restType == null) {                    
-                    const restTypeDropdown = document.getElementById(`restTypeDropdown_${item.id}`);
-                    const restTypeId = restTypeDropdown ? restTypeDropdown.value : null;
-                    const restTypeLabel = restTypeDropdown ? restTypeDropdown.options[restTypeDropdown.selectedIndex].text.trim() : null;
-                    
-                    if (restTypeId && restTypeLabel) {
-                        // Set RestType
-                        result.restType = {
-                            id: restTypeId,
-                            label: restTypeLabel
-                        };
-                    } else {
-                        restTypeIsSet = false;
-                        // Add to JSON
-                        const restTypeCell  = row.cells[9];
-                        nonMatchingLabel = restTypeCell.textContent;
-                        data.nonMatching_restType = nonMatchingLabel;
-                    }
-                }
-
-                // Get and set StateOfPreservation
-                let stateOfPreservationIsSet = true;
-                if (result.stateOfPreservation == null) {                    
-                    const stateOfPreservationDropdown = document.getElementById(`stateOfPreservationDropdown_${item.id}`);
-                    const stateOfPreservationId = stateOfPreservationDropdown ? stateOfPreservationDropdown.value : null;
-                    const stateOfPreservationLabel = stateOfPreservationDropdown ? stateOfPreservationDropdown.options[stateOfPreservationDropdown.selectedIndex].text : null;
-                    
-                    if (stateOfPreservationId && stateOfPreservationLabel) {
-                        // Set StateOfPreservation
-                        result.stateOfPreservation = {
-                            id: stateOfPreservationId,
-                            label: stateOfPreservationLabel
-                        };
-                    } else {
-                        stateOfPreservationIsSet = false;
-                        // Add to JSON
-                        const stateOfPreservationCell  = row.cells[11];
-                        nonMatchingLabel = stateOfPreservationCell.textContent;
-                        data.nonMatching_stateOfPreservation = nonMatchingLabel;
-                    }
-                }
-
-                if (taxCodeIsSet && restTypeIsSet && stateOfPreservationIsSet) {
-                    toast.info("Everything to create a result is set correctly. Please use 'Create' option instead of 'Add to JSON'.");
-                } else {
-                    // Only use sampleId to parse JSON in backend correct
-                    const resultPayload = {
-                        ...result,
-                        sample: {
-                            id: result.sample.id
-                        }
-                    };
-
-                    // Add result to data
-                    data.item = resultPayload;
-
-                    jsonData.push(data);
-                    displayJSON();
-                    console.log(`Result with non matching attributes is added to JSON`);
-
-                    row.remove();
-                }
-
-            } else {
-                toast.info("Before you can 'Add to JSON', you must create the corresponding fraction analysed for the corresponding sample in the ‘Fraction Analyzed’ accordion.");
-            }
-        } else {
-            toast.info("Before you can 'Add to JSON', you must select a 'Taxonomy' for this site.");
-        }
+    if (attribute === "result") {
+        addResultsToJSON(row);
     }
 
     if (attribute == "coordinateSystemSite" || attribute == "coordinateSystemSample") {
-
-        // Get latitude, longitude, altitude, remarks from input ---------------
-        const longitude = parseFloat(row.cells[2].querySelector("input").value);
-        const latitude  = parseFloat(row.cells[3].querySelector("input").value);
-        const altitude  = parseFloat(row.cells[4].querySelector("input").value);
-        
-        let remarks;   
-        let data;
-        if (attribute == "coordinateSystemSite") {
-            const longitudeWgs84 = parseFloat(row.cells[7].querySelector("input").value);
-            const latitudeWgs84  = parseFloat(row.cells[8].querySelector("input").value);
-            const remarks        = row.cells[9].querySelector("textarea").value
-
-            data = {
-                itemType: "coordinateSite",
-                siteId: item.id,
-                item: {
-                    latitude:       latitude,
-                    longitude:      longitude,
-                    altitude:       altitude,
-                    longitudeWgs84: longitudeWgs84,
-                    latitudeWgs84:  latitudeWgs84,
-                    remarks:        remarks,
-                },
-                nonMatching_coordinateSystem: nonMatchingLabel
-            };
-        } else if (attribute == "coordinateSystemSample") {
-            const longitudeWgs84 = parseFloat(row.cells[8].querySelector("input").value);
-            const latitudeWgs84  = parseFloat(row.cells[9].querySelector("input").value);
-            const remarks        = row.cells[10].querySelector("textarea").value
-
-            data = {
-                itemType: "coordinateSample",
-                sampleId: item.id,
-                item: {
-                    latitude:       latitude,
-                    longitude:      longitude,
-                    altitude:       altitude,
-                    longitudeWgs84: longitudeWgs84,
-                    latitudeWgs84:  latitudeWgs84,
-                    remarks:        remarks,
-                },
-                nonMatching_coordinateSystem: nonMatchingLabel
-            }
-        }        
-
-        jsonData.push(data);
-        displayJSON();
-        console.log(`non matching ${attribute} is added to JSON`);
-
-        row.remove();                
+        addCoordinatesToJSON(row, attribute);
     }
 
     if (attribute == "C14LabCode") {
-        // Get number
-        const numberInput  = row.cells[5].querySelector("input");
-        const number = numberInput.value.trim();
+        addC14LabCodesToJSON(row);
+    }
+}
 
-        if (number) {
-            // Get labelInput
-            const newC14LabCode  = row.cells[4].querySelector("input").value.trim();
+// Results -------------------------------------------------------------------
 
-            if (newC14LabCode && newC14LabCode.trim() !== "") {
-                data = {
-                    itemType: "C14Dating",
-                    absoluteDatingId: item.absoluteDatingId,
-                    number: number,
-                    nonMatching_C14LabCode: newC14LabCode
-                }       
-    
-                jsonData.push(data);
-                displayJSON();
-                console.log(`non matching ${attribute} is added to JSON`);
+const NO_FRACTION_ANALYZED = "no fraction analyzed";
 
-                row.remove();                
-            
-            } else {
-                toast.info(`No new C14Laboratory entered.`);
-            }
+// Checks one result row and collects its non matching values.
+// Returns { data, payload } or { message, reason } if the row can not be added to the JSON.
+// 'data' (itemType + the not set non matching values) is also returned with a message,
+// except if the taxonomy is missing.
+function buildResultEntry(row) {
+    const item   = getRowItem(row);
+    const result = item.result;
+
+    // Get Taxonomy
+    const siteLabel = result.sample.feature.site.label;
+    const siteLabelSafe = siteLabel.replace(/\s+/g, '_');
+    const taxonomyDropdown = document.getElementById(`taxonomyDropdown_${siteLabelSafe}`);
+    const taxonomyLabel = taxonomyDropdown ? taxonomyDropdown.options[taxonomyDropdown.selectedIndex].text : null;
+
+    // The empty option of the dropdown has no text, "select Taxonomy" is only the select2 placeholder
+    if (!taxonomyLabel) {
+        return {
+            message: "Before you can 'Add to JSON', you must select a 'Taxonomy' for this site.",
+            reason: "no taxonomy selected"
+        };
+    }
+
+    const data = {
+        itemType: "result",
+    };
+
+    // Get and set TaxCode
+    let taxCodeIsSet = true;
+    if (result.taxCode == null) {
+
+        const taxCodeDropdown = document.getElementById(`taxCodeDropdown_${item.id}`);
+        const taxCodeId = taxCodeDropdown ? taxCodeDropdown.value : null;
+        const taxCodeLabel = taxCodeDropdown ? taxCodeDropdown.options[taxCodeDropdown.selectedIndex].text.trim() : null;
+
+        if (taxCodeId && taxCodeLabel) {
+            // Set taxCode
+            result.taxCode = {
+                id: taxCodeId,
+                label: taxCodeLabel,
+                taxonomy: taxonomyLabel
+            };
         } else {
-            toast.info(`No number entered.`);
+            taxCodeIsSet = false;
+            // Add to JSON
+            data.nonMatching_taxCode = {
+                nonMatching_taxCode: row.cells[3].textContent.trim(),
+                taxonomy: taxonomyLabel
+            };
         }
     }
+
+    // Get and set RestType
+    let restTypeIsSet = true;
+    if (result.restType == null) {
+        const restTypeDropdown = document.getElementById(`restTypeDropdown_${item.id}`);
+        const restTypeId = restTypeDropdown ? restTypeDropdown.value : null;
+        const restTypeLabel = restTypeDropdown ? restTypeDropdown.options[restTypeDropdown.selectedIndex].text.trim() : null;
+
+        if (restTypeId && restTypeLabel) {
+            // Set RestType
+            result.restType = {
+                id: restTypeId,
+                label: restTypeLabel
+            };
+        } else {
+            restTypeIsSet = false;
+            // Add to JSON
+            data.nonMatching_restType = row.cells[9].textContent.trim();
+        }
+    }
+
+    // Get and set StateOfPreservation
+    let stateOfPreservationIsSet = true;
+    if (result.stateOfPreservation == null) {
+        const stateOfPreservationDropdown = document.getElementById(`stateOfPreservationDropdown_${item.id}`);
+        const stateOfPreservationId = stateOfPreservationDropdown ? stateOfPreservationDropdown.value : null;
+        const stateOfPreservationLabel = stateOfPreservationDropdown ? stateOfPreservationDropdown.options[stateOfPreservationDropdown.selectedIndex].text : null;
+
+        if (stateOfPreservationId && stateOfPreservationLabel) {
+            // Set StateOfPreservation
+            result.stateOfPreservation = {
+                id: stateOfPreservationId,
+                label: stateOfPreservationLabel
+            };
+        } else {
+            stateOfPreservationIsSet = false;
+            // Add to JSON
+            data.nonMatching_stateOfPreservation = row.cells[11].textContent.trim();
+        }
+    }
+
+    // Get and set fractionAnalyzed ------------------------------
+    const fractionAnalyzedCell  = row.cells[5];
+    const orgOrMinCell          = row.cells[6];
+    const sieveSizeCell         = row.cells[7];
+
+    // 'data' is returned with the messages, so the caller can still compare the non matching values
+    if (fractionAnalyzedCell.textContent === "") {
+        return {
+            data: data,
+            message: "Before you can 'Add to JSON', you must create the corresponding fraction analysed for the corresponding sample in the ‘Fraction Analyzed’ accordion.",
+            reason: NO_FRACTION_ANALYZED
+        };
+    }
+
+    result.fractionAnalyzed = fractionAnalyzedCell.textContent;
+    result.orgOrMin         = orgOrMinCell.textContent;
+    result.sieveSize        = parseFloat(sieveSizeCell.textContent);
+
+    if (taxCodeIsSet && restTypeIsSet && stateOfPreservationIsSet) {
+        return {
+            data: data,
+            message: "Everything to create a result is set correctly. Please use 'Create' option instead of 'Add to JSON'.",
+            reason: "everything is set, use 'Create'"
+        };
+    }
+
+    return {
+        data: data,
+        // Only use sampleId to parse JSON in backend correct
+        payload: {
+            ...result,
+            sample: {
+                id: result.sample.id
+            }
+        }
+    };
+}
+
+// Adds the clicked result and all results with the same non matching values
+// (and the same taxonomy) to the JSON
+function addResultsToJSON(row) {
+    const clicked = buildResultEntry(row);
+    if (clicked.message) {
+        const item = getRowItem(row);
+        // No fraction analyzed and nothing to create it from: offer to create it, then add again
+        if (clicked.reason === NO_FRACTION_ANALYZED &&
+            !hasPendingFractionAnalyzedRow(item.result.sample.feature.site.label, item.result.sample.id, item.fractionAnalyzed.fraction)) {
+            openCreateFractionModal(item, row, () => addResultsToJSON(row));
+        } else {
+            toast.info(clicked.message);
+        }
+        return;
+    }
+
+    const signature = JSON.stringify(clicked.data);
+    const rows     = [row];
+    const payloads = [clicked.payload];
+    const skippedReasons = [];
+
+    document.querySelectorAll('tbody[id^="resultTableBody_"] tr').forEach(otherRow => {
+        if (otherRow === row) return;
+
+        // Only rows with the same not set values (and taxonomy); values set by a dropdown are not compared
+        const other = buildResultEntry(otherRow);
+        if (!other.data || JSON.stringify(other.data) !== signature) return;
+
+        if (other.message) {
+            skippedReasons.push(other.reason);
+        } else {
+            rows.push(otherRow);
+            payloads.push(other.payload);
+        }
+    });
+
+    addGroupToJSON({ ...clicked.data, items: payloads }, rows, skippedReasons);
+}
+
+// Coordinates ---------------------------------------------------------------
+
+function readCoordinateRow(row, attribute) {
+    // Get latitude, longitude, altitude, remarks from input
+    const longitude = parseFloat(row.cells[2].querySelector("input").value);
+    const latitude  = parseFloat(row.cells[3].querySelector("input").value);
+    const altitude  = parseFloat(row.cells[4].querySelector("input").value);
+
+    // WGS84 and remarks are shifted by one cell in the sample table
+    const offset = attribute == "coordinateSystemSite" ? 0 : 1;
+    const longitudeWgs84 = parseFloat(row.cells[7 + offset].querySelector("input").value);
+    const latitudeWgs84  = parseFloat(row.cells[8 + offset].querySelector("input").value);
+    const remarks        = row.cells[9 + offset].querySelector("textarea").value;
+
+    return {
+        [attribute == "coordinateSystemSite" ? "siteId" : "sampleId"]: row.dataset.itemId,
+        latitude:       latitude,
+        longitude:      longitude,
+        altitude:       altitude,
+        longitudeWgs84: longitudeWgs84,
+        latitudeWgs84:  latitudeWgs84,
+        remarks:        remarks,
+    };
+}
+
+// Adds the clicked coordinate and all coordinates of the same table with the same coordinate system
+function addCoordinatesToJSON(row, attribute) {
+    const label = row.dataset.coordinateSystem;
+
+    const rows = Array.from(row.closest("tbody").rows)
+        .filter(otherRow => otherRow === row || otherRow.dataset.coordinateSystem === label);
+
+    addGroupToJSON({
+        itemType: attribute === "coordinateSystemSite" ? "coordinateSite" : "coordinateSample",
+        nonMatching_coordinateSystem: label,
+        items: rows.map(otherRow => readCoordinateRow(otherRow, attribute))
+    }, rows);
+}
+
+// C14 laboratories ----------------------------------------------------------
+
+// Adds the clicked C14 dating and all C14 datings with the same new laboratory entered
+function addC14LabCodesToJSON(row) {
+    // Get number
+    const number = row.cells[5].querySelector("input").value.trim();
+    if (!number) {
+        toast.info(`No number entered.`);
+        return;
+    }
+
+    // Get labelInput
+    const newC14LabCode = row.cells[4].querySelector("input").value.trim();
+    if (!newC14LabCode) {
+        toast.info(`No new C14Laboratory entered.`);
+        return;
+    }
+
+    const rows  = [row];
+    const items = [{ absoluteDatingId: row.dataset.absoluteDatingId, number: number }];
+    const skippedReasons = [];
+
+    Array.from(row.closest("tbody").rows).forEach(otherRow => {
+        if (otherRow === row) return;
+        if (otherRow.cells[4].querySelector("input").value.trim() !== newC14LabCode) return;
+
+        const otherNumber = otherRow.cells[5].querySelector("input").value.trim();
+        if (!otherNumber) {
+            skippedReasons.push("no number entered");
+            return;
+        }
+        rows.push(otherRow);
+        items.push({ absoluteDatingId: otherRow.dataset.absoluteDatingId, number: otherNumber });
+    });
+
+    addGroupToJSON({
+        itemType: "C14Dating",
+        nonMatching_C14LabCode: newC14LabCode,
+        items: items
+    }, rows, skippedReasons);
 }
 
 function hideTableIfTbodyEmpty(tbody) {

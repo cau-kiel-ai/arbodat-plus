@@ -35,7 +35,7 @@ function populateResults(resultList) {
         // Create taxonomy dropdown
         const taxonomyDropdown = document.createElement("div");
         taxonomyDropdown.innerHTML = `<select id="taxonomyDropdown_${siteLabelSafe}"
-                                              onchange="handleTaxonomyChange(this.value, '${siteLabel}')">
+                                              onchange="handleTaxonomyChange(this.value, '${escapeJsArg(siteLabel)}')">
                                               <option value=""></option>
                                       </select>
                                      `;
@@ -69,7 +69,7 @@ function populateResults(resultList) {
         thead.innerHTML = `
         <tr>
             <th>
-                <input type="checkbox" onclick="toggleAllCheckboxes(this, 'resultTableBody_${siteLabel}')">
+                <input type="checkbox" onclick="toggleAllCheckboxes(this, 'resultTableBody_${escapeJsArg(siteLabel)}')">
             </th>
 
             <th scope="col">Feature</th>
@@ -140,7 +140,7 @@ function populateResults(resultList) {
             } else {
                 const taxCodeDropdown = `<select
                                             id="taxCodeDropdown_${item.id}"
-                                            onchange="updateCheckedDropdowns(this.value, 'resultTableBody_${siteLabel}', 'taxCodeDropdown_')"
+                                            onchange="updateCheckedDropdowns(this.value, 'resultTableBody_${escapeJsArg(siteLabel)}', 'taxCodeDropdown_')"
                                             style="appearance: none;"
                                         >
                                             <option value="">select</option>
@@ -155,18 +155,8 @@ function populateResults(resultList) {
             columns += `<td data-originalFraction="${item.fractionAnalyzed.fraction}">${item.fractionAnalyzed.sieveSize ?? ''}</td>`;
 
             // ClassificationConfer
-            if (item.nonMatchingClassificationConfer == "") {
-                columns += `<td>${item.result.classificationConfer.label}</td>`;
             // INFO: No extension in ArboDat2018 possible
-            //     columns += `<td></td>`;
-            // } else {
-            //     const cfDropdown = `<select id="cfDropdown_${item.id}"
-            //                                 onchange="updateCheckedDropdowns(this.value, 'resultTableBody_${siteLabel}', 'cfDropdown_')">
-            //                                 <option value="">select cf</option>
-            //                         </select>`;
-            //     columns += `<td>${item.nonMatchingClassificationConfer}</td>`;
-            //     columns += `<td>${cfDropdown}</td>`;
-            }
+            columns += `<td>${item.nonMatchingClassificationConfer || (item.result.classificationConfer?.label ?? '')}</td>`;
 
             // RestType
             if (item.nonMatchingRestType == "") {
@@ -175,7 +165,7 @@ function populateResults(resultList) {
             } else {
                 const restTypeDropdown = `<select
                                             id="restTypeDropdown_${item.id}"
-                                            onchange="updateCheckedDropdowns(this.value, 'resultTableBody_${siteLabel}', 'restTypeDropdown_')"
+                                            onchange="updateCheckedDropdowns(this.value, 'resultTableBody_${escapeJsArg(siteLabel)}', 'restTypeDropdown_')"
                                             style="appearance: none;"
                                          >
                                             <option value="">select</option>
@@ -191,7 +181,7 @@ function populateResults(resultList) {
             } else {
                 const stateOfPreservationDropdown = `<select
                                                         id="stateOfPreservationDropdown_${item.id}"
-                                                        onchange="updateCheckedDropdowns(this.value, 'resultTableBody_${siteLabel}', 'stateOfPreservationDropdown_')"
+                                                        onchange="updateCheckedDropdowns(this.value, 'resultTableBody_${escapeJsArg(siteLabel)}', 'stateOfPreservationDropdown_')"
                                                         style="appearance: none;"
                                                      >
                                                         <option value="">select</option>
@@ -204,7 +194,7 @@ function populateResults(resultList) {
             columns += `<td>
                             <button
                                 type="button"
-                                onclick="createResult('${item.id}', this.closest('tr'))"
+                                onclick="createResult('${escapeJsArg(item.id)}', this.closest('tr'))"
                             >
                                 Create
                             </button>
@@ -212,7 +202,7 @@ function populateResults(resultList) {
                             <button
                                 type="button"
                                 style="margin-top: 6px;"
-                                data-item='${encodeURIComponent(JSON.stringify(item))}'
+                                data-item='${encodeRowItem(item)}'
                                 onclick="addLabelToJSONWithItem(this, 'result')"
                             >
                                 Add&#8239to&#8239JSON

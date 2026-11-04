@@ -46,7 +46,7 @@ function populateLabsAndNumbers(labAndNumberList) {
                     <button
                         type="button"
                         style="margin-top: 6px;"
-                        data-item='${encodeURIComponent(JSON.stringify(item))}'
+                        data-item='${encodeRowItem(item)}'
                         onclick="addLabelToJSONWithItem(this, 'C14LabCode')"
                     >
                         Add&#8239to&#8239JSON

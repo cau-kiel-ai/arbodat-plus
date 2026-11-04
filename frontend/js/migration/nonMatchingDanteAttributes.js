@@ -48,7 +48,7 @@ function populateNonMatchingDanteAttributes(nonMatchingDanteAttributeList) {
                         ${item.nonMatchingLabel}
                         <br>
                         <button type="button"
-                                onclick="addLabelToJSON('${id}', '${attribute}', '${item.nonMatchingLabel}', event.currentTarget)">
+                                onclick="addLabelToJSON('${id}', '${attribute}', event.currentTarget)">
                                 Add&#8239to&#8239JSON
                         </button>
                     </td>
@@ -86,7 +86,7 @@ function populateNonMatchingDanteAttributes(nonMatchingDanteAttributeList) {
                         ${item.nonMatchingLabel}
                         <br>
                         <button type="button"
-                                onclick="addLabelToJSON('${id}', '${attribute}', '${item.nonMatchingLabel}', event.currentTarget)">
+                                onclick="addLabelToJSON('${id}', '${attribute}', event.currentTarget)">
                                 Add&#8239to&#8239JSON
                         </button>
                     </td>
@@ -124,7 +124,7 @@ function populateNonMatchingDanteAttributes(nonMatchingDanteAttributeList) {
                         ${item.nonMatchingLabel}
                         <br>
                         <button type="button"
-                                onclick="addLabelToJSON('${id}', '${attribute}', '${item.nonMatchingLabel}', event.currentTarget)">
+                                onclick="addLabelToJSON('${id}', '${attribute}', event.currentTarget)">
                                 Add&#8239to&#8239JSON
                         </button>
                     </td>
@@ -162,7 +162,7 @@ function populateNonMatchingDanteAttributes(nonMatchingDanteAttributeList) {
                         ${item.nonMatchingLabel}
                         <br>
                         <button type="button"
-                                onclick="addLabelToJSON('${id}', '${attribute}', '${item.nonMatchingLabel}', event.currentTarget)">
+                                onclick="addLabelToJSON('${id}', '${attribute}', event.currentTarget)">
                                 Add&#8239to&#8239JSON
                         </button>
                     </td>
@@ -200,7 +200,7 @@ function populateNonMatchingDanteAttributes(nonMatchingDanteAttributeList) {
                         ${item.nonMatchingLabel}
                         <br>
                         <button type="button"
-                                onclick="addLabelToJSON('${id}', '${attribute}', '${item.nonMatchingLabel}', event.currentTarget)">
+                                onclick="addLabelToJSON('${id}', '${attribute}', event.currentTarget)">
                                 Add&#8239to&#8239JSON
                         </button>
                     </td>
@@ -238,7 +238,7 @@ function populateNonMatchingDanteAttributes(nonMatchingDanteAttributeList) {
                         ${item.nonMatchingLabel}
                         <br>
                         <button type="button"
-                                onclick="addLabelToJSON('${id}', '${attribute}', '${item.nonMatchingLabel}', event.currentTarget)">
+                                onclick="addLabelToJSON('${id}', '${attribute}', event.currentTarget)">
                                 Add&#8239to&#8239JSON
                         </button>
                     </td>
@@ -276,7 +276,7 @@ function populateNonMatchingDanteAttributes(nonMatchingDanteAttributeList) {
                         ${item.nonMatchingLabel}
                         <br>
                         <button type="button"
-                                onclick="addLabelToJSON('${id}', '${attribute}', '${item.nonMatchingLabel}', event.currentTarget)">
+                                onclick="addLabelToJSON('${id}', '${attribute}', event.currentTarget)">
                                 Add&#8239to&#8239JSON
                         </button>
                     </td>
@@ -314,7 +314,7 @@ function populateNonMatchingDanteAttributes(nonMatchingDanteAttributeList) {
                         ${item.nonMatchingLabel}
                         <br>
                         <button type="button"
-                                onclick="addLabelToJSON('${id}', '${attribute}', '${item.nonMatchingLabel}', event.currentTarget)">
+                                onclick="addLabelToJSON('${id}', '${attribute}', event.currentTarget)">
                                 Add&#8239to&#8239JSON
                         </button>
                     </td>
@@ -352,7 +352,7 @@ function populateNonMatchingDanteAttributes(nonMatchingDanteAttributeList) {
                         ${item.nonMatchingLabel}
                         <br>
                         <button type="button"
-                                onclick="addLabelToJSON('${id}', '${attribute}', '${item.nonMatchingLabel}', event.currentTarget)">
+                                onclick="addLabelToJSON('${id}', '${attribute}', event.currentTarget)">
                                 Add&#8239to&#8239JSON
                         </button>
                     </td>
@@ -390,7 +390,7 @@ function populateNonMatchingDanteAttributes(nonMatchingDanteAttributeList) {
                         ${item.nonMatchingLabel}
                         <br>
                         <button type="button"
-                                onclick="addLabelToJSON('${id}', '${attribute}', '${item.nonMatchingLabel}', event.currentTarget)">
+                                onclick="addLabelToJSON('${id}', '${attribute}', event.currentTarget)">
                                 Add&#8239to&#8239JSON
                         </button>
                     </td>
@@ -428,7 +428,7 @@ function populateNonMatchingDanteAttributes(nonMatchingDanteAttributeList) {
                         ${item.nonMatchingLabel}
                         <br>
                         <button type="button"
-                                onclick="addLabelToJSON('${id}', '${attribute}', '${item.nonMatchingLabel}', event.currentTarget)">
+                                onclick="addLabelToJSON('${id}', '${attribute}', event.currentTarget)">
                                 Add&#8239to&#8239JSON
                         </button>
                     </td>

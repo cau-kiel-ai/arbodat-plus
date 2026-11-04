@@ -44,8 +44,8 @@ function populateCoordinates(coordinateList) {
                     ${item.coordinateSystem}
                     <br>
                         <button type="button"
-                                data-item='${encodeURIComponent(JSON.stringify(item))}'
-                                onclick="addLabelToJSONWithItem(this, 'coordinateSystemSite', '${item.coordinateSystem}')">
+                                data-item='${encodeRowItem(item)}'
+                                onclick="addLabelToJSONWithItem(this, 'coordinateSystemSite')">
                                 Add&#8239to&#8239JSON
                         </button>
                 </td>
@@ -170,8 +170,8 @@ function populateCoordinates(coordinateList) {
                     ${item.coordinateSystem}
                     <br>
                     <button type="button"
-                                data-item='${encodeURIComponent(JSON.stringify(item))}'
-                                onclick="addLabelToJSONWithItem(this, 'coordinateSystemSample', '${item.coordinateSystem}')">
+                                data-item='${encodeRowItem(item)}'
+                                onclick="addLabelToJSONWithItem(this, 'coordinateSystemSample')">
                                 Add&#8239to&#8239JSON
                     </button>
                 </td>

@@ -16,7 +16,7 @@ function populateLiterature(literatureList) {
             <td>${item.publicationYear}</td>
             <td>
                 <button type="button"
-                        onclick="openLiteraturWindow('${rowId}', '${item.siteId}', '${item.author}', '${item.publicationYear}')">
+                        onclick="openLiteraturWindow('${escapeJsArg(rowId)}', '${escapeJsArg(item.siteId)}', '${escapeJsArg(item.author)}', '${escapeJsArg(item.publicationYear)}')">
                         Create
                 </button>
             </td>

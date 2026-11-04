@@ -132,14 +132,15 @@ public class MigrationController {
 //    public String parseJSON (JSON) {
     // ToDo: Dies ist eine parsing function -> danach die schon bestehenden controller vom import nutzen
 
+        // One entry covers ALL rows with the same attribute and nonMatchingLabel.
         // JSONs:
         // const data = {
         //         attribute: attribute,
         //         nonMatchingLabel: nonMatchingLabel,
-        //         itemId: itemId
+        //         itemIds: [itemId, ...]
         // };
 
-        // 'itemId'     'attribute'
+        // 'itemIds'    'attribute'
         // -----------------------------------
         // site:        siteType
         //              naturalUnit
@@ -162,52 +163,48 @@ public class MigrationController {
         //              restType
         //              stateOfPreservation
 
-        // ToDo: update 'attribute' vom item mithilfe von 'itemId' mit 'nonMatchingLabel'
+        // ToDo: update 'attribute' vom jedem item aus 'itemIds' mit 'nonMatchingLabel'
 
 
-        // JSONs with Item:       --------------------------------------------------------
+        // JSONs with Items:      --------------------------------------------------------
+        // One entry covers all rows with the same nonMatching_* value(s); every row has its own element in 'items'.
 
         // const data = {
         //          itemType: "result",
-        //          auxiliaryId: item.id,
-        //          item: item.result,
-        //          nonMatching_taxCode: nonMatchingLabel
+        //          nonMatching_taxCode: { nonMatching_taxCode: label, taxonomy: taxonomy } *(optional)
         //          nonMatching_cf                  *(optional)
         //          nonMatching_restType            *(optional)
         //          nonMatching_stateOfPreservation *(optional)
+        //          items: [result, ...]   // sample only contains the id
         // };
-        // ToDO: result item gibt es noch nicht -> soll neu angelegt werden. 'auxiliaryId' kann ignoriert werden.
+        // ToDO: result items gibt es noch nicht -> sollen neu angelegt werden.
 
         //    data = {
         //        itemType: "coordinateSite",
-        //        siteId: item.id,
-        //        item: { latitude:  latitude,
-        //                longitude: longitude,
-        //                altitude:  altitude,
-        //                remarks:   remarks
-        //               },
-        //        nonMatching_coordinateSystem: nonMatchingLabel
+        //        nonMatching_coordinateSystem: nonMatchingLabel,
+        //        items: [{ siteId:         siteId,
+        //                  latitude:       latitude,
+        //                  longitude:      longitude,
+        //                  altitude:       altitude,
+        //                  latitudeWgs84:  latitudeWgs84,
+        //                  longitudeWgs84: longitudeWgs84,
+        //                  remarks:        remarks
+        //                }, ...]
         //    };
         //    data = {
         //        itemType: "coordinateSample",
-        //        sampleId: item.id,
-        //        item: { latitude:  latitude,
-        //                longitude: longitude,
-        //                altitude:  altitude,
-        //                remarks:   remarks
-        //               },
-        //        nonMatching_coordinateSystem: nonMatchingLabel
+        //        nonMatching_coordinateSystem: nonMatchingLabel,
+        //        items: [{ sampleId: sampleId, ...same fields as above }, ...]
         //    }
-        // ToDO: coordinate item gibt es noch nicht -> soll neu angelegt
+        // ToDO: coordinate items gibt es noch nicht -> sollen neu angelegt
         //       und mit site/sample verknüpft werden (gibt es schon controller in site und sample!)
 
         //    data = {
         //        itemType: "C14Dating",
-        //        absoluteDatingId: item.absoluteDatingId,
-        //        number: number,
-        //        nonMatching_C14LabCode: newC14LabCode
+        //        nonMatching_C14LabCode: newC14LabCode,
+        //        items: [{ absoluteDatingId: absoluteDatingId, number: number }, ...]
         //    }
-        // ToDo: update absoluteDating.C14Dating mit 'C14LabCode' + 'number'
+        // ToDo: update absoluteDating.C14Dating mit 'C14LabCode' + 'number' (für jedes item)
 
 //    }
 }

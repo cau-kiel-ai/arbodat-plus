@@ -175,8 +175,9 @@ function hasPendingFractionAnalyzedRow(siteLabel, sampleId, fraction) {
     );
 }
 
-// Open popup to create a fraction analyzed for a result row without pending fraction analyzed row
-function openCreateFractionModal(item, resultRow) {
+// Open popup to create a fraction analyzed for a result row without pending fraction analyzed row.
+// onCreated: what to continue with after the fraction analyzed is created (default: create the result)
+function openCreateFractionModal(item, resultRow, onCreated = () => createResult(resultRow.dataset.itemId, resultRow)) {
     const result           = item.result;
     const siteLabel        = result.sample.feature.site.label;
     const sampleId         = String(result.sample.id);
@@ -237,8 +238,8 @@ function openCreateFractionModal(item, resultRow) {
                 fillResultFractionCells(siteLabel, sampleId, originalFraction, fractionAnalyzed, orgOrMin, sieveSize);
                 closeModal();
 
-                // Continue with creating the result
-                createResult(resultRow.dataset.itemId, resultRow);
+                // Continue with creating the result (or adding it to the JSON)
+                onCreated();
             }
         } catch (error) {
             console.error('Error:', error);
