@@ -165,7 +165,7 @@ $('#siteInstitutions').on('select2:opening', async function (e) {
         .prop('disabled', true); // Disable
 
     try {
-        await getLiterature();
+        await getInstitutions();
     } finally {
         // Enable and reset dropdown
         $('#siteInstitutions')
