@@ -60,6 +60,9 @@ let cachedTaxCodesForURI = new Map(); //   Key       value
 // ----------------------------------------
 
 
+// A DANTE request which hangs (instead of failing) must not block the page forever
+const DANTE_TIMEOUT_MS = 30000;
+
 async function fetchDanteAttribute(attribute) {
 
     // Set URL based on attribute if (attribute_loaded == false)
@@ -215,7 +218,7 @@ async function fetchDanteAttribute(attribute) {
 
     // Send GET request and cache vocabulary of attribute
     try {        
-        const response = await axios.get(url);
+        const response = await axios.get(url, { timeout: DANTE_TIMEOUT_MS });
         const displayOrder = await loadDisplayOrder(); // custom order of hierarchical dropdowns (displayOrder.js)
 
         // - Cache Atributes
@@ -637,7 +640,7 @@ async function fetchDanteTaxCodes(uri) {
             let partialResponse = [];
             let offset = 0;
             do {
-                partialResponse = await axios.get(`https://api.dante.gbv.de/search?voc=arbodat_taxonomy&limit=1000&offset=${offset}&sort&query=*&properties=notation,hiddenLabel,ancestors`);
+                partialResponse = await axios.get(`https://api.dante.gbv.de/search?voc=arbodat_taxonomy&limit=1000&offset=${offset}&sort&query=*&properties=notation,hiddenLabel,ancestors`, { timeout: DANTE_TIMEOUT_MS });
                 response.push(...partialResponse.data);
                 offset += 1000;
             } while (partialResponse.data.length > 0)

@@ -1,9 +1,38 @@
 
 let danteAttributesJSON = {};
 
+// Fetch the DANTE vocabularies and send them to the backend, which keeps them for the other pages.
+// Never throws: if DANTE is not reachable (or a vocabulary is broken) the vocabularies which could be loaded are
+// still sent, the backend keeps what it stored earlier for the others. Returns false if one was missing.
 async function updateBackendDanteAttributes() {
+    let complete = true;
+
+    try {
+        complete = await collectDanteAttributes();
+    } catch (error) {
+        console.error('Error during preparation of dante attributes: ', error);
+        complete = false;
+    }
+
+    // POST -----------------------------------------------------------------------------
+    if (Object.keys(danteAttributesJSON).length > 0) {
+        try {
+            await axios.post("api/dante_attributes", danteAttributesJSON);
+
+        } catch (error) {
+            console.error('Error during post dante attributes: ', error);
+            complete = false;
+        }
+    }
+
+    return complete;
+}
+
+// Fills danteAttributesJSON; resolves to false if a vocabulary could not be loaded
+async function collectDanteAttributes() {
 
     let cachedData = [];
+    const missing = [];
 
     const attributes = ["license",                                                                    // research project
                         "taxonomy", "siteType", "naturalUnit",                                        // site
@@ -112,6 +141,12 @@ async function updateBackendDanteAttributes() {
                 return;
         }        
         
+        // The vocabulary could not be loaded (DANTE not reachable): do not send an empty list
+        if (!cachedData || cachedData.length === 0) {
+            missing.push(attribute);
+            continue;
+        }
+
         // create JSON-Arrays -----------------------------------------------------------
         const attributeList = [];        
         let isNarrower = false;
@@ -210,11 +245,8 @@ async function updateBackendDanteAttributes() {
         }
     }
 
-    // POST -----------------------------------------------------------------------------
-    try {
-        await axios.post("api/dante_attributes", danteAttributesJSON);
-
-    } catch (error) {
-        console.error('Error during post dante attributes: ', error);
+    if (missing.length > 0) {
+        console.error('Dante attributes not loaded: ', missing.join(', '));
     }
+    return missing.length === 0;
 }
