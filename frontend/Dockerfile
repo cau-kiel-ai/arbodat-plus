@@ -6,17 +6,21 @@ WORKDIR /app
 
 ARG APP_VERSION=0.0.0
 
-# Copy the SCSS files into the container
+# Install dart-sass (pinned in package-lock.json); node_modules is not part of the image.
+COPY package.json package-lock.json .npmrc ./
+RUN npm ci
+
+# Copy the SCSS files and the vendored libraries into the container
 COPY ./sass ./sass
-COPY ./bootstrap-scss ./bootstrap-scss
+COPY ./vendor ./vendor
 
 RUN find ./sass -name "*.scss" ! -name "_*" -exec sh -c 'mv "$1" "${1%.scss}.min.scss"' _ {} \;
 
-# Install dart-sass globally
-RUN npm install -g sass@1.62.1
+# Compile SCSS to CSS. Bootstrap's SCSS still uses Sass's deprecated if(); our own files use @import.
+RUN npx sass --style=compressed --quiet-deps --silence-deprecation=import,if-function ./sass:./css
 
-# Compile SCSS to CSS
-RUN sass --style=compressed ./sass:./css
+# Bootstrap's SCSS was build input only; the browser never needs it.
+RUN rm -rf vendor/*/scss
 
 # Stamp the release version into the shared footer component and a machine-readable version.json
 # (read by the desktop app and by ops to confirm which version is actually running after an update).
@@ -34,13 +38,14 @@ COPY nginx/templates /etc/nginx/templates
 
 WORKDIR /usr/share/nginx/html
 
-# Only the files actually served: HTML pages, JS, components and the compiled
-# CSS/version.json from the build stage, and the 6 images referenced by the pages
+# Only the files actually served: HTML pages, JS, components, the vendored third-party libraries
+# (without Bootstrap's SCSS) and the compiled CSS/version.json from the build stage, and the
+# images referenced by the pages
 COPY js ./js
+COPY --from=build-stage /app/vendor ./vendor
 COPY --from=build-stage /app/components ./components
 COPY --from=build-stage /app/css ./css
 COPY --from=build-stage /app/*.html /app/version.json ./
-COPY img/favicon.png img/banner.png img/logo_arbodat_plus.png \
-     img/logo_cau.png.png img/logo_nfdi4objects.png.png \
-     img/logo_nihk.png \
+COPY img/favicon.png img/logo_arbodat_plus.png img/logo_cau.png \
+     img/logo_nfdi4objects.png img/logo_nihk.png \
      ./img/

@@ -8,3 +8,6 @@ gradlew     text eol=lf
 *.conf      text eol=lf
 *.template  text eol=lf
 .env*       text eol=lf
+
+# Generated copies of third-party libraries (npm run vendor): keep them out of language stats and diffs.
+frontend/vendor/** linguist-vendored linguist-generated

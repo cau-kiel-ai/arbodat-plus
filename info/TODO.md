@@ -28,9 +28,6 @@ Each entry says what to do and why.
 
 ## Frontend
 
-- [ ] **Vendor the CDN libraries.** jQuery, axios, Bootstrap, Leaflet, Tabulator, SheetJS, select2 and proj4 load from
-  5 CDNs (axios and SheetJS unpinned). As a result the UI doesn't work offline, every page view sends the user's IP
-  address to third parties, and an unpinned CDN update can break the app. Ship pinned copies in `frontend/vendor/`.
 - [ ] **Replace `alert()`.** There are 28 `alert()` calls. macOS WKWebView ignores `alert()`, so the desktop app injects
   a shim. In-page notifications (e.g. Bootstrap toasts) work everywhere.
 - [ ] **Clean up assets.** Remove the unused images in `frontend/img` (~81 MB, e.g. `banner.tif`) and the dead

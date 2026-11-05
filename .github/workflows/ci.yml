@@ -51,6 +51,32 @@ jobs:
         if: always()
         run: docker compose --profile prod down
 
+  frontend-vendor:
+    # frontend/vendor/ is committed, generated output: it must match package-lock.json (run `npm run vendor`).
+    runs-on: ubuntu-24.04
+    defaults:
+      run:
+        working-directory: frontend
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 24
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+      - run: npm ci
+      - run: npm run vendor
+      - name: Vendored libraries are committed and current
+        run: |
+          # status (not diff) so that new, untracked files are caught too
+          changes=$(git status --porcelain -- vendor '*.html' 'sass/*.scss')
+          if [ -n "$changes" ]; then
+            echo "::error::frontend/vendor is out of date - run 'npm run vendor' in frontend/ and commit the result"
+            echo "$changes"
+            exit 1
+          fi
+      - run: npm audit --omit=dev --audit-level=high
+
   desktop:
     # Tauri app: lint + tests on every OS it ships for; type checks and binding drift once (Linux).
     strategy:

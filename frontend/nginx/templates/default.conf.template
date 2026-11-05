@@ -41,9 +41,18 @@ server {
 
     # Defense in depth: the production image only ever contains the files actually served (see
     # frontend/Dockerfile), but in dev the whole frontend/ folder is bind-mounted as the web root,
-    # so nginx's own config and the SCSS/Docker build sources would otherwise be reachable too.
-    location ~ ^/(nginx|sass|bootstrap-scss)(/|$) { return 404; }
-    location ~ ^/(Dockerfile|\.dockerignore)$ { return 404; }
+    # so nginx's own config and the SCSS/Docker/npm build sources would otherwise be reachable too.
+    location ~ ^/(nginx|sass|scripts|node_modules)(/|$) { return 404; }
+    location ~ ^/(Dockerfile|\.dockerignore|\.npmrc|package(-lock)?\.json)$ { return 404; }
+    location ~ \.scss$ { return 404; }
+
+    # Vendored third-party libraries live in versioned folders (vendor/<package>@<version>/), so a
+    # file never changes under the same URL and browsers may cache it for good. (Regex locations
+    # above take precedence over this prefix match, so vendor/*/scss stays hidden in dev.)
+    location /vendor/ {
+        try_files $uri =404;
+        add_header Cache-Control "public, max-age=31536000, immutable" always;
+    }
 
     # Static pages. Files are not fingerprinted, so browsers must revalidate after an update.
     location / {

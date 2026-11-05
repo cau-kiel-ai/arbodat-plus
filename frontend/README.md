@@ -26,14 +26,13 @@ DANTE vocabulary lists used across Data Input and Migration).
 
 `nginx/templates/default.conf.template` is what actually makes the app work: it serves these
 static files *and* reverse-proxies `/api/` to the `web-api` container and `/nominatim-reverse` to
-OpenStreetMap (see the comments in that file for why, and `../info/TODO.md` for the CDN
-dependencies this still has). Both `docker-compose.yml` (dev) and `Dockerfile` (prod) use it, so
+OpenStreetMap (see the comments in that file for why). Both `docker-compose.yml` (dev) and `Dockerfile` (prod) use it, so
 dev and prod route requests identically. It is not optional glue — always run this app behind that
 nginx config, whether via the Dockerfile below or `docker compose --profile dev up`.
 
 ## Building the CSS
 
-SCSS lives in `sass/` (+ `bootstrap-scss/`) and compiles to `css/*.min.css`. `css/` is git-ignored
+SCSS lives in `sass/` (+ Bootstrap's SCSS in `vendor/bootstrap@<version>/scss/`) and compiles to `css/*.min.css`. `css/` is git-ignored
 except for `.gitkeep` — it's build output, not source. `Dockerfile` compiles it automatically; for
 local editing without Docker, see the *Live Sass Compiler* settings in the top-level
 [`../README.md`](../README.md#frontend).
@@ -43,6 +42,37 @@ compiled to their own CSS file, only pulled into a page stylesheet via `@import`
 `@import 'stickyAccordion';` in `input.scss`). Use a partial for styles shared
 by several pages. `Dockerfile` renames `*.scss` to `*.min.scss` before compiling (to get the
 `.min.css` output names) but skips partials, so that `@import` still finds them by their original name.
+
+## Third-party libraries (`vendor/`)
+
+No library is loaded from a CDN: the pages reference pinned copies under `vendor/<package>@<version>/`,
+so the UI works offline and no visitor data goes to third parties. (Only the map tiles and reverse
+geocoding still need the internet.)
+
+- `package.json` / `package-lock.json` are the single source of truth for the versions (exact pins).
+- `npm run vendor` (`scripts/vendor.mjs`) copies the needed files from `node_modules/` into `vendor/`
+  and rewrites every `vendor/<package>@<version>/` reference in `*.html` and `sass/*.scss`.
+- `vendor/` is **committed**, so running the app (dev bind mount, Live Sass) needs no Node. CI re-runs
+  the script and fails if the committed files differ from the lockfile.
+- Because the folder name contains the version, nginx serves `/vendor/` with `Cache-Control: immutable`.
+
+Add or bump a library:
+
+```
+cd frontend
+npm install --save-exact <package>@<version>     # or edit package.json, then: npm install
+# new library only: add its files to the `manifest` in scripts/vendor.mjs and the tags to the pages
+npm run vendor
+```
+
+Then commit `package.json`, `package-lock.json`, `vendor/` and the changed pages.
+
+Notes:
+- **SheetJS (`xlsx`)** is installed from SheetJS's own server (`https://cdn.sheetjs.com/xlsx-<version>/...tgz`),
+  because the copy on the npm registry is outdated and vulnerable.
+- **select2** is still on `4.1.0-rc.0` (no final release exists) and needs jQuery, so load jQuery first.
+- Bootstrap's SCSS in `vendor/` is build input only: the Dockerfile deletes it from the image and nginx
+  never serves `*.scss`.
 
 ## Version stamping
 
