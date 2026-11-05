@@ -6,8 +6,8 @@ database/data/*
 
 frontend/css/*
 !frontend/css/.gitkeep
-frontend/sass/*.css
-frontend/sass/*.css.map
+frontend/scss/*.css
+frontend/scss/*.css.map
 
 web-api/bin/
 

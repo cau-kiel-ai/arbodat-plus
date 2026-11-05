@@ -11,13 +11,13 @@ COPY package.json package-lock.json .npmrc ./
 RUN npm ci
 
 # Copy the SCSS files and the vendored libraries into the container
-COPY ./sass ./sass
+COPY ./scss ./scss
 COPY ./vendor ./vendor
 
-RUN find ./sass -name "*.scss" ! -name "_*" -exec sh -c 'mv "$1" "${1%.scss}.min.scss"' _ {} \;
+RUN find ./scss -name "*.scss" ! -name "_*" -exec sh -c 'mv "$1" "${1%.scss}.min.scss"' _ {} \;
 
 # Compile SCSS to CSS. Bootstrap's SCSS still uses Sass's deprecated if(); our own files use @import.
-RUN npx sass --style=compressed --quiet-deps --silence-deprecation=import,if-function ./sass:./css
+RUN npx sass --style=compressed --quiet-deps --silence-deprecation=import,if-function ./scss:./css
 
 # Bootstrap's SCSS was build input only; the browser never needs it.
 RUN rm -rf vendor/*/scss

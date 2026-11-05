@@ -32,7 +32,7 @@ web-api and `/nominatim-reverse` to OpenStreetMap Nominatim (reverse geocoding).
 │   ├── css
 │   ├── img
 │   ├── js
-│   ├── sass
+│   ├── scss
 │   │   └── scss files       # are compiled to css files
 │   ├── nginx/templates      # nginx config: static files + /api/ and /nominatim-reverse proxies
 │   ├── scripts              # vendor.mjs: copies the npm libraries into vendor/
@@ -123,7 +123,7 @@ Web API (backend) is built with *Spring Boot 3.3*, using *Gradle 8.8* as the bui
             "savePath": "/frontend/css"
         }
     ],
-    "liveSassCompile.settings.forceBaseDirectory": "/frontend/sass"
+    "liveSassCompile.settings.forceBaseDirectory": "/frontend/scss"
     ``` 
   - *Live Sass Compiler -> Watch Sass* (to generate css files)
 

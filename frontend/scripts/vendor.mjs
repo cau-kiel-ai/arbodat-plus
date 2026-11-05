@@ -52,7 +52,7 @@ for (const [pkg, paths] of Object.entries(manifest)) {
 const refs = new RegExp(`vendor/(${Object.keys(manifest).join('|')})@[^/"')\\s]+/`, 'g');
 const sources = [
   ...readdirSync(root).filter((f) => f.endsWith('.html')),
-  ...readdirSync(join(root, 'sass')).filter((f) => f.endsWith('.scss')).map((f) => `sass/${f}`),
+  ...readdirSync(join(root, 'scss')).filter((f) => f.endsWith('.scss')).map((f) => `scss/${f}`),
 ];
 for (const file of sources) {
   const path = join(root, file);

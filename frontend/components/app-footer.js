@@ -1,5 +1,5 @@
 // Shared page footer: <app-footer></app-footer>
-// Styles live in sass/_footer.scss. The Dockerfile replaces __APP_VERSION__ at build time.
+// Styles live in scss/_footer.scss. The Dockerfile replaces __APP_VERSION__ at build time.
 class AppFooter extends HTMLElement {
     connectedCallback() {
         this.setAttribute('role', 'contentinfo');

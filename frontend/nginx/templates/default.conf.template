@@ -42,7 +42,7 @@ server {
     # Defense in depth: the production image only ever contains the files actually served (see
     # frontend/Dockerfile), but in dev the whole frontend/ folder is bind-mounted as the web root,
     # so nginx's own config and the SCSS/Docker/npm build sources would otherwise be reachable too.
-    location ~ ^/(nginx|sass|scripts|node_modules)(/|$) { return 404; }
+    location ~ ^/(nginx|scss|scripts|node_modules)(/|$) { return 404; }
     location ~ ^/(Dockerfile|\.dockerignore|\.npmrc|package(-lock)?\.json)$ { return 404; }
     location ~ \.scss$ { return 404; }
 

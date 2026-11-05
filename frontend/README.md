@@ -32,12 +32,12 @@ nginx config, whether via the Dockerfile below or `docker compose --profile dev 
 
 ## Building the CSS
 
-SCSS lives in `sass/` (+ Bootstrap's SCSS in `vendor/bootstrap@<version>/scss/`) and compiles to `css/*.min.css`. `css/` is git-ignored
+SCSS lives in `scss/` (+ Bootstrap's SCSS in `vendor/bootstrap@<version>/scss/`) and compiles to `css/*.min.css`. `css/` is git-ignored
 except for `.gitkeep` — it's build output, not source. `Dockerfile` compiles it automatically; for
 local editing without Docker, see the *Live Sass Compiler* settings in the top-level
 [`../README.md`](../README.md#frontend).
 
-Files starting with `_` (e.g. `sass/_stickyAccordion.scss`) are Sass *partials*: they are never
+Files starting with `_` (e.g. `scss/_stickyAccordion.scss`) are Sass *partials*: they are never
 compiled to their own CSS file, only pulled into a page stylesheet via `@import` (e.g.
 `@import 'stickyAccordion';` in `input.scss`). Use a partial for styles shared
 by several pages. `Dockerfile` renames `*.scss` to `*.min.scss` before compiling (to get the
@@ -51,7 +51,7 @@ geocoding still need the internet.)
 
 - `package.json` / `package-lock.json` are the single source of truth for the versions (exact pins).
 - `npm run vendor` (`scripts/vendor.mjs`) copies the needed files from `node_modules/` into `vendor/`
-  and rewrites every `vendor/<package>@<version>/` reference in `*.html` and `sass/*.scss`.
+  and rewrites every `vendor/<package>@<version>/` reference in `*.html` and `scss/*.scss`.
 - `vendor/` is **committed**, so running the app (dev bind mount, Live Sass) needs no Node. CI re-runs
   the script and fails if the committed files differ from the lockfile.
 - Because the folder name contains the version, nginx serves `/vendor/` with `Cache-Control: immutable`.
@@ -86,7 +86,7 @@ literal placeholder.
 
 Markup used on several pages is a native Web Component in `components/` (no build step). A page loads
 the component with `<script src="components/<name>.js"></script>` in its `<head>` and uses the element
-where it belongs. Components render into the normal DOM (no shadow root); their styles are a `sass/_<name>.scss`
+where it belongs. Components render into the normal DOM (no shadow root); their styles are a `scss/_<name>.scss`
 partial, imported by every page stylesheet that uses the component (`stub.scss` serves the plain content
 pages `report`/`contact`/`license`).
 

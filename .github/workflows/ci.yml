@@ -69,7 +69,7 @@ jobs:
       - name: Vendored libraries are committed and current
         run: |
           # status (not diff) so that new, untracked files are caught too
-          changes=$(git status --porcelain -- vendor '*.html' 'sass/*.scss')
+          changes=$(git status --porcelain -- vendor '*.html' 'scss/*.scss')
           if [ -n "$changes" ]; then
             echo "::error::frontend/vendor is out of date - run 'npm run vendor' in frontend/ and commit the result"
             echo "$changes"

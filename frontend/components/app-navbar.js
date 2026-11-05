@@ -1,5 +1,5 @@
 // Shared page navbar: <app-navbar></app-navbar>
-// Needs Bootstrap's JS bundle (burger menu) and sass/_navbar.scss, which sets the burger breakpoint.
+// Needs Bootstrap's JS bundle (burger menu) and scss/_navbar.scss, which sets the burger breakpoint.
 const NAV_ENTRIES = [
     ['Data Input', 'input.html'],
     ['Data Migration', 'migration.html'],
