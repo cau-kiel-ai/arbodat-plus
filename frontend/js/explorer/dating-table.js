@@ -587,9 +587,10 @@ async function buildDatingTable() {
     });
 
     // onclick (not addEventListener): the button is shared by all tables
-    deleteButton.onclick = function() {
-        
+    deleteButton.onclick = async function() {
         const selectedRows = datingTable.getSelectedRows();
+        if (!await confirmDelete("dating", selectedRows.length)) return;
+
         selectedRows.forEach(row => {
             // Get id
             const absoluteDatingId = row.getData().id;

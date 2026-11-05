@@ -661,8 +661,11 @@ function attachResultDeleteHandler(table, deleteButton) {
     table.on("rowSelectionChanged", updateDeleteButton);
 
     // onclick (not addEventListener): the button is reused when the table is rebuilt
-    deleteButton.onclick = function() {
-        table.getSelectedRows().forEach(row => {
+    deleteButton.onclick = async function() {
+        const selectedRows = table.getSelectedRows();
+        if (!await confirmDelete("result", selectedRows.length)) return;
+
+        selectedRows.forEach(row => {
             const resultId = row.getData().id;
 
             axios.delete(`api/results/${resultId}`)

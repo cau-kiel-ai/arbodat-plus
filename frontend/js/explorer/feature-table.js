@@ -324,9 +324,10 @@ async function buildFeatureTable() {
     });
 
     // onclick (not addEventListener): the button is shared by all tables
-    deleteButton.onclick = function() {
-        
+    deleteButton.onclick = async function() {
         const selectedRows = featureTable.getSelectedRows();
+        if (!await confirmDelete("feature", selectedRows.length)) return;
+
         selectedRows.forEach(row => {
             // Get id
             const featureId = row.getData().id;

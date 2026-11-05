@@ -222,9 +222,10 @@ async function buildResearchProjectTable() {
     });
 
     // onclick (not addEventListener): the button is shared by all tables
-    deleteButton.onclick = function() {
-        
+    deleteButton.onclick = async function() {
         const selectedRows = researchProjectTable.getSelectedRows();
+        if (!await confirmDelete("research project", selectedRows.length)) return;
+
         selectedRows.forEach(row => {
             // Get id
             const researchProjectId = row.getData().id;

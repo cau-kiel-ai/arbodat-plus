@@ -190,9 +190,10 @@ async function buildLiteratureTable() {
     });
 
     // onclick (not addEventListener): the button is shared by all tables
-    deleteButton.onclick = function() {
-        
+    deleteButton.onclick = async function() {
         const selectedRows = literatureTable.getSelectedRows();
+        if (!await confirmDelete("literature entry", selectedRows.length, "literature entries")) return;
+
         selectedRows.forEach(row => {
             // Get id
             const literatureId = row.getData().id;

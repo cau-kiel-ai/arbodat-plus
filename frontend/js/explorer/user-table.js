@@ -144,9 +144,10 @@ async function buildUserTable() {
     });
 
     // onclick (not addEventListener): the button is shared by all tables
-    deleteButton.onclick = function() {
-        
+    deleteButton.onclick = async function() {
         const selectedRows = userTable.getSelectedRows();
+        if (!await confirmDelete("user", selectedRows.length)) return;
+
         selectedRows.forEach(row => {
             // Get id
             const userId = row.getData().id;

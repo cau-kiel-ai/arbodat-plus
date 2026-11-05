@@ -93,9 +93,10 @@ async function buildInstitutionTable() {
     });
 
     // onclick (not addEventListener): the button is shared by all tables
-    deleteButton.onclick = function() {
-        
+    deleteButton.onclick = async function() {
         const selectedRows = institutionTable.getSelectedRows();
+        if (!await confirmDelete("institution", selectedRows.length)) return;
+
         selectedRows.forEach(row => {
             // Get id
             const institutionId = row.getData().id;

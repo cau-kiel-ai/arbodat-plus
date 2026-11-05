@@ -1,6 +1,27 @@
-// Confirmation popup for updates.
+// Confirmation popups.
 // Usage: confirmUpdate("sample").then(confirmed => { if (!confirmed) return; ... });
+//        if (!await confirmDelete("sample", 3)) return;
 function confirmUpdate(entity) {
+    return confirmDialog({
+        title: `Update ${entity}?`,
+        text: `The existing ${entity} will be overwritten with the current values.`,
+        confirmLabel: 'Update'
+    });
+}
+
+function confirmDelete(entity, count, plural = `${entity}s`) {
+    const what = count === 1 ? `the selected ${entity}` : `the ${count} selected ${plural}`;
+    return confirmDialog({
+        title: `Delete ${count === 1 ? entity : `${count} ${plural}`}?`,
+        text: `This permanently deletes ${what}. This cannot be undone.`,
+        confirmLabel: 'Delete',
+        confirmColor: 'rgb(200, 30, 30)',
+        focusCancel: true // Enter must not delete by accident
+    });
+}
+
+// Resolves to true (confirm button) or false (cancel, Escape, click outside)
+function confirmDialog({ title: titleText, text: bodyText, confirmLabel, confirmColor = 'rgb(37, 16, 193)', focusCancel = false }) {
     return new Promise(resolve => {
         const previouslyFocused = document.activeElement;
 
@@ -33,11 +54,11 @@ function confirmUpdate(entity) {
         });
 
         const title = document.createElement('h3');
-        title.textContent = `Update ${entity}?`;
+        title.textContent = titleText;
         title.style.marginTop = '0';
 
         const text = document.createElement('p');
-        text.textContent = `The existing ${entity} will be overwritten with the current values.`;
+        text.textContent = bodyText;
 
         const buttons = document.createElement('div');
         Object.assign(buttons.style, {
@@ -66,10 +87,10 @@ function confirmUpdate(entity) {
 
         const updateButton = document.createElement('button');
         updateButton.type = 'button';
-        updateButton.textContent = 'Update';
+        updateButton.textContent = confirmLabel;
         Object.assign(updateButton.style, baseButtonStyle, {
-            background: 'rgb(37, 16, 193)',
-            borderColor: 'rgb(37, 16, 193)',
+            background: confirmColor,
+            borderColor: confirmColor,
             color: '#fff'
         });
 
@@ -77,7 +98,7 @@ function confirmUpdate(entity) {
         dialog.append(title, text, buttons);
         overlay.appendChild(dialog);
         document.body.appendChild(overlay);
-        updateButton.focus();
+        (focusCancel ? cancelButton : updateButton).focus();
 
         // Close ---------------------------------------------
         function close(confirmed) {
