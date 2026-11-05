@@ -494,8 +494,13 @@ document.addEventListener('DOMContentLoaded', async function () {
 // --------------------------------------------------------------------------------
 function create_update_site() {
     const siteForm = document.getElementById('siteForm');
-    
-    if ( siteForm.checkValidity() && window.siteResearchProjectList.length > 0 ) {
+
+    // "At least one research project" is not a native constraint of the select: set (or clear) the message
+    // before the form is checked, otherwise the message of the last failed submit makes the next one fail too.
+    document.getElementById("siteResearchProjects").setCustomValidity(
+        window.siteResearchProjectList.length > 0 ? "" : "You must add at least one research project");
+
+    if ( siteForm.checkValidity() ) {
     
         // text
         const site_label = document.getElementById("site_label");
@@ -636,14 +641,6 @@ function create_update_site() {
         }
 
     } else {  // Report --------------------------------------
-        const siteResearchProjectDropdown = document.getElementById("siteResearchProjects");
-
-        if ( !(window.siteResearchProjectList.length > 0) ) {
-            siteResearchProjectDropdown.setCustomValidity("You must add at least one research project");
-        } else {
-            siteResearchProjectDropdown.setCustomValidity("");
-        }
-
         // open Accordion, if invalid Field is in it
         let openedAccordion = false;
         siteForm.querySelectorAll(":invalid").forEach(el => {
