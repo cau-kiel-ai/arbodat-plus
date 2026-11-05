@@ -485,7 +485,7 @@ function submitResult() {
             fractionAnalyzed: selectedFractionOption.getAttribute('data-fractionAnalyzed'),
             orgOrMin: selectedFractionOption.getAttribute('data-orgOrMin'),
             sieveSize: selectedFractionOption.getAttribute('data-sieveSize'),
-            multiplier:  selectedFractionOption.getAttribute('data-standardMultiplier'), // multiplierInput.value,
+            multiplier:  multiplierInput.value, // preset with the standard multiplier of the fraction, editable
             
             // General -------------------------------------------
             entryDate: entryDateInput.value,
