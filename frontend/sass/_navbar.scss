@@ -1,0 +1,88 @@
+/* ---------------- navbar (shared, see components/app-navbar.js) ---------------- */
+
+// Width from which the entries are shown inline; below it they collapse into the burger menu.
+// Bootstrap's navbar-expand-* classes have fixed breakpoints, so the expanded layout is defined below.
+$navbar-breakpoint: 778px !default;
+$navbar-divider-color: #000 !default;
+
+app-navbar {
+    display: block;
+    flex-shrink: 0;
+    position: sticky;
+    top: 0;
+    z-index: 1020;
+    font-family: arial;
+
+    .navbar {
+        --bs-navbar-padding-y: 0px;
+        --bs-navbar-color: white;
+        --bs-navbar-hover-color: white;
+        background-color: #776c78;
+    }
+
+    // more room on the right, so the burger button does not sit on the screen edge
+    .container-fluid {
+        padding-right: 56px;
+    }
+
+    .navbar-brand {
+        padding: 0;
+        margin-bottom: 6px;
+
+        img {
+            display: block;
+            height: 60px;
+        }
+    }
+
+    .navbar-collapse {
+        margin-bottom: 6px;
+        margin-left: 3px;
+    }
+
+    .navbar-toggler {
+        margin-top: -8px;
+    }
+
+    .navbar-nav {
+        --bs-nav-link-padding-y: 0.25rem;
+    }
+
+    .nav-link {
+        &:hover,
+        &.active {
+            background: #b4adb5;
+        }
+    }
+
+    // expanded layout: logo and entries in one row (what Bootstrap's navbar-expand-* would do)
+    @media (min-width: $navbar-breakpoint) {
+        .navbar {
+            flex-wrap: nowrap;
+            justify-content: flex-start;
+        }
+
+        .navbar-toggler {
+            display: none;
+        }
+
+        .navbar-collapse {
+            display: flex !important;
+            flex-basis: auto;
+            margin-top: 28px;
+        }
+
+        .navbar-nav {
+            flex-direction: row;
+        }
+
+        .nav-link {
+            padding-right: var(--bs-navbar-nav-link-padding-x);
+            padding-left: var(--bs-navbar-nav-link-padding-x);
+        }
+
+        .nav-item + .nav-item {
+            border-left: 1px solid $navbar-divider-color;
+        }
+    }
+}

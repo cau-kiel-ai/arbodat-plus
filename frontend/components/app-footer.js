@@ -3,10 +3,13 @@
 class AppFooter extends HTMLElement {
     connectedCallback() {
         this.setAttribute('role', 'contentinfo');
+        const current = location.pathname.split('/').pop();
+        const active = (href) => (href === current ? ' class="active" aria-current="page"' : '');
+
         this.innerHTML = `
-            <a href="contact.html">Contact<strong style="font-size: 16px;"> ☏ </strong></a>
+            <a href="contact.html"${active('contact.html')}>Contact<strong style="font-size: 16px;"> ☏ </strong></a>
             <span>Version __APP_VERSION__</span>
-            <a href="license.html"><strong style="font-size: 19px;"> ⚖ </strong>License</a>`;
+            <a href="license.html"${active('license.html')}><strong style="font-size: 19px;"> ⚖ </strong>License</a>`;
     }
 }
 

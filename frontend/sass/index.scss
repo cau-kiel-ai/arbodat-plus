@@ -1,5 +1,11 @@
-html, body {
+html {
     height: 100%;
+}
+
+// min-height, not height: the sticky navbar only sticks within its parent (body), so body must grow with the content.
+// Only body is a flex container: as a flex item of html it would shrink back to the viewport height.
+body {
+    min-height: 100%;
     display: flex;
     flex-direction: column;
 }
@@ -14,62 +20,11 @@ body, ul, li, h1, h2, a{
     padding: 0;
     font-family: arial;
    }
-   
-   header{
-       background-color: #776c78;
-       text-align: center;
-       position: fixed;
-       width: 100%;
-       z-index: 1;
-       top: 0;
-       left: 0;
-   }
-   
-   header h1{
-       padding: 6px 12px;
-       display: inline-block;
-   }
-   
-   /* relative - this parent element has to have a position property that ist not static! */
-   .banner{
-       position: relative;
-   }
-   
-   .banner img{
-       object-fit: cover;
-       height: 50%;//380px;
-       width: 100%;
-   }
-   
-   nav {
-       background-color: #F4F4F4;
-       padding: 30px;
-       position: sticky; /* the nav bar stays allways below the banner (=static) ... */
-       top: 250px; /* ...  but when it has reached a certain scrolling depth, it stays there (=fixed) */
-   }
-   
-   nav ul{
-       white-space: nowrap;
-       max-width: 90%;
-       margin: 0 auto; /* margin of automatic left and right --> centralizing all the list elements!
-       squeezes them together but keeps relative distances among them (and absolute towards the borders */
-   }
-   
-   nav li{
-       width: 20%;
-       display: inline-block;
-   }
-   nav li a{
-       font-size: 24px;
-       text-decoration: none;
-       color: #4b4b4b;
-   }
-   
+
    main{
        max-width: 100%; /* for smaller screens */
        width: 1200px; /* absolute maximum */
        margin: 80px auto; /* top and bottom as well as left and right -> margin is equally destributed  */
-       margin-top:300px;
        padding: 0 40px;
        box-sizing: border-box; /* this incoorporates the padding into the 100% */
    }
@@ -116,10 +71,7 @@ body, ul, li, h1, h2, a{
        max-width: 100%;
        opacity: 0.5;
    }
-   
 
-   
-   
    /* -------------- pseudo classes & elements (video 9)
    
    "selector:hover" 
@@ -141,11 +93,6 @@ body, ul, li, h1, h2, a{
    
    ---------------------- */
    
-   nav li a:hover{
-       text-decoration: underline;
-       //background-color: #c8c2c9;
-       padding: 10px;
-   }
    
    .images li:hover{
        position: relative;
@@ -156,9 +103,7 @@ body, ul, li, h1, h2, a{
        opacity: 1.0;
        cursor:pointer;
    }
-   
-   
-   
+
    /* --------------- Responsive Design
    Responsiveness or responsive Design/ Mobile First approach (and adopting later on for larger screens)
    media queries: how to style elements for different viewport-dimensions 
@@ -173,7 +118,6 @@ body, ul, li, h1, h2, a{
    
        main {
            margin: 25px auto;
-           margin-top:170px;
        }
    
        main .intro{ 
@@ -183,68 +127,29 @@ body, ul, li, h1, h2, a{
        article ul li{
            font-size: 14px;
        }
-   
-       nav {
-           background-color: #F4F4F4;
-           padding: 10px;
-           position: sticky;
-           top: 140px;
-       }
-   
-       header h1 img {
-           display: block;
-           margin-left: auto;
-           margin-right: auto;
-           width: 50%;
-       }
-   
-       nav li a{
-           font-size: 14px;
-       }
- 
+
        main .lower{ 
         font-size: 12px;
     }
 
-
-       
    }
    
    @media screen and (max-width: 700px){
-       nav li{
-           font-size: 18px;
-           position: relative;
-           display: block;
-           width: 100%;
-           margin: 12px 0;
-       }
-   
-       .banner {
-           display: none;
-       }
-   
-       header{
-           position:relative;
-       }
-   
+
        main {
            margin: 25px auto; 
        }
        
-       nav{
-           top: 0;
-       }
    
        .images li{
            width: 40%;
            margin: 40px auto;
            display: block;
        }
-   
 
-   
    }
    
 @import '../bootstrap-scss/bootstrap';
 @import 'footer';
+@import 'navbar';
    

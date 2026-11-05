@@ -54,10 +54,18 @@ literal placeholder.
 
 ## Shared components
 
-Markup used on several pages is a native Web Component in `components/` (no build step). The footer is
-`<app-footer></app-footer>`: a page needs `<script src="components/app-footer.js"></script>` in its `<head>`
-and the element where the footer belongs. The component renders into the normal DOM (no shadow root);
-its styles are the `sass/_footer.scss` partial, imported by every page stylesheet that has a footer.
+Markup used on several pages is a native Web Component in `components/` (no build step). A page loads
+the component with `<script src="components/<name>.js"></script>` in its `<head>` and uses the element
+where it belongs. Components render into the normal DOM (no shadow root); their styles are a `sass/_<name>.scss`
+partial, imported by every page stylesheet that uses the component (`stub.scss` serves the plain content
+pages `report`/`contact`/`license`).
+
+- `<app-footer>` (`components/app-footer.js`, `_footer.scss`): License / version / Contact. Has `margin-top: auto`,
+  which pins it to the bottom of short pages (the `<body>` is a flex column).
+- `<app-navbar>` (`components/app-navbar.js`, `_navbar.scss`): Bootstrap navbar with the logo as home link and the
+  module entries (edit `NAV_ENTRIES` to change them). Highlights the current page and collapses into a burger menu
+  below `$navbar-breakpoint` (top of `_navbar.scss`), so the page must load Bootstrap's JS bundle. It is sticky at
+  the top of the page; its height (66px) must match `--page-header-height` in `_stickyAccordion.scss`.
 
 ## Docker image
 

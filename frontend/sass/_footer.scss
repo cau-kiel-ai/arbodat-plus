@@ -26,7 +26,8 @@ app-footer {
             line-height: 1;
         }
 
-        &:hover {
+        &:hover,
+        &.active {
             background: var(--footer-link-hover);
         }
     }
