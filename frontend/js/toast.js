@@ -67,7 +67,7 @@ function showToast(type, message) {
         </div>
 
         <div style="flex:1; font-size:16px; color:#333">
-            ${message}
+            ${escapeHtml(message)}
         </div>
     `;
 

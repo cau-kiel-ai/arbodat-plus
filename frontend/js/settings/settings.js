@@ -87,12 +87,6 @@ function orderItemHtml(node, isNew) { // isNew: node -> bool
         </li>`;
 }
 
-function escapeHtml(text) {
-    const div = document.createElement("div");
-    div.textContent = text;
-    return div.innerHTML;
-}
-
 // (Re)build the sortable tree of a field; savedOrder: uris of the stored order, [] for the default order
 function renderOrderList(field, savedOrder) {
     const list = document.getElementById(orderListId(field));

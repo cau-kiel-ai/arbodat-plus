@@ -11,9 +11,9 @@ function populateLiterature(literatureList) {
 
         // Add columns
         row.innerHTML = `
-            <td>${item.siteLabel}</td>
-            <td>${item.author}</td>
-            <td>${item.publicationYear}</td>
+            <td>${escapeHtml(item.siteLabel)}</td>
+            <td>${escapeHtml(item.author)}</td>
+            <td>${escapeHtml(item.publicationYear)}</td>
             <td>
                 <button type="button"
                         onclick="openLiteraturWindow('${escapeJsArg(rowId)}', '${escapeJsArg(item.siteId)}', '${escapeJsArg(item.author)}', '${escapeJsArg(item.publicationYear)}')">

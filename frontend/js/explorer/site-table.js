@@ -117,7 +117,7 @@ async function buildSiteTable() {
     }
 
     // Create Table -------------------------------------------------------------
-    siteTable = new Tabulator("#table", {
+    siteTable = newTabulator("#table", {
         height: "100%",
         data: sites,
         columns:[
@@ -130,10 +130,10 @@ async function buildSiteTable() {
             {title:"activity numbers", titleDownload:"activityNumbers", field:"activityNumbers", headerSortTristate:true,
                 mutator: value => Array.isArray(value) ? value : [],
                 // HTML download passes the accessorDownload result (a string) to the formatter
-                formatter: cell => {
+                formatter: textFormatter(cell => {
                     const value = cell.getValue();
                     return Array.isArray(value) ? value.join(", ") : (value ?? "");
-                },
+                }),
                 accessorDownload: value => (value || []).join("; "),
                 // Free-text values are entered as a ';'-separated string
                 editor: function(cell, onRendered, success, cancel){
@@ -204,7 +204,7 @@ async function buildSiteTable() {
                 sorter:"array", sorterParams:{
                     valueMap:"label"
                 },
-                formatter: cell => formatResearchProjects(cell.getValue()),
+                formatter: textFormatter(cell => formatResearchProjects(cell.getValue())),
                 accessorDownload: value => formatResearchProjects(value),
             },
             {title: "literature list (multiple selection)", titleDownload:"literatureList", field:"literatureList", headerSortTristate:true,
@@ -236,7 +236,7 @@ async function buildSiteTable() {
                 sorter:"array", sorterParams:{
                     valueMap:"label"
                 },
-                formatter: cell => formatLit(literature, cell.getValue()),
+                formatter: textFormatter(cell => formatLit(literature, cell.getValue())),
                 accessorDownload: value => formatLit(literature, value),
             },
             {title:"taxonomy", field:"taxonomy.id", headerSort:false,
@@ -263,7 +263,7 @@ async function buildSiteTable() {
                     }
                     return headerValue.includes(rowValue);
                 },
-                formatter: cell => formatTaxonomy(cell.getValue()),
+                formatter: textFormatter(cell => formatTaxonomy(cell.getValue())),
                 accessorDownload: value => formatTaxonomy(value),
             },
             {title: "site types (multiple selection)", titleDownload:"siteTypeList", field: "siteTypeList", headerSortTristate:true,
@@ -297,7 +297,7 @@ async function buildSiteTable() {
                 sorter:"array", sorterParams:{
                     valueMap:"label"
                 },
-                formatter: cell => formatSiteTypes(cell.getValue()),
+                formatter: textFormatter(cell => formatSiteTypes(cell.getValue())),
                 accessorDownload: value => formatSiteTypes(value),
             },
             {title:"site type uncertain", titleDownload:"siteTypeUncertain", field:"siteTypeUncertain", hozAlign:"center", headerSortTristate:true,
@@ -367,7 +367,7 @@ async function buildSiteTable() {
                     }
                     return headerValue.includes(rowValue);
                 },
-                formatter: cell => formatNaturalUnit(cell.getValue()),
+                formatter: textFormatter(cell => formatNaturalUnit(cell.getValue())),
                 accessorDownload: value => formatNaturalUnit(value),
             },
             {title:"site condition undisturbed", titleDownload:"undisturbed", field:"undisturbed", hozAlign:"center", headerSortTristate:true,
@@ -442,7 +442,7 @@ async function buildSiteTable() {
                 sorter:"array", sorterParams:{
                     valueMap:"label"
                 },
-                formatter: cell => formatInst(institutions, cell.getValue()),
+                formatter: textFormatter(cell => formatInst(institutions, cell.getValue())),
                 accessorDownload: value => formatInst(institutions, value),
             },
             {title: "site directors (multiple selection)", titleDownload:"siteDirectors", field:"siteDirectors", headerSortTristate:true,
@@ -474,7 +474,7 @@ async function buildSiteTable() {
                 sorter:"array", sorterParams:{
                     valueMap:"label"
                 },
-                formatter: cell => formatUser(users, cell.getValue()),
+                formatter: textFormatter(cell => formatUser(users, cell.getValue())),
                 accessorDownload: value => formatUser(users, value),
             },
             {title: "archaeologists (multiple selection)", titleDownload:"archaeologists", field:"archaeologists", headerSortTristate:true,
@@ -506,7 +506,7 @@ async function buildSiteTable() {
                 sorter:"array", sorterParams:{
                     valueMap:"label"
                 },
-                formatter: cell => formatUser(users, cell.getValue()),
+                formatter: textFormatter(cell => formatUser(users, cell.getValue())),
                 accessorDownload: value => formatUser(users, value),
             },
             {title: "botanists (multiple selection)", titleDownload:"botanists", field:"botanists", headerSortTristate:true,
@@ -538,7 +538,7 @@ async function buildSiteTable() {
                 sorter:"array", sorterParams:{
                     valueMap:"label"
                 },
-                formatter: cell => formatUser(users, cell.getValue()),
+                formatter: textFormatter(cell => formatUser(users, cell.getValue())),
                 accessorDownload: value => formatUser(users, value),
             },
             {title:"remarks", field:"remarksSite", editor:"input", headerFilter:true, headerSort:false},
@@ -567,7 +567,7 @@ async function buildSiteTable() {
                     }
                     return headerValue.includes(rowValue);
                 },
-                formatter: cell => formatCoordinateSystem(cell.getValue()),
+                formatter: textFormatter(cell => formatCoordinateSystem(cell.getValue())),
                 accessorDownload: value => formatCoordinateSystem(value),
             },
             {title:"longitude", field:"coordinate.longitude", headerFilter:"input", headerSortTristate:true,

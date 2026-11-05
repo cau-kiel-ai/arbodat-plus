@@ -98,7 +98,7 @@ async function buildSampleTable() {
     }
 
     // Create Table -------------------------------------------------------------
-    sampleTable = new Tabulator("#table", {
+    sampleTable = newTabulator("#table", {
         height: "100%",
         data: samples,
         columns:[
@@ -138,7 +138,7 @@ async function buildSampleTable() {
                     }
                     return headerValue.includes(rowValue);
                 },
-                formatter: cell => formatFeature(features, cell.getValue()),
+                formatter: textFormatter(cell => formatFeature(features, cell.getValue())),
                 accessorDownload: value => formatFeature(features, value),
             },
             {title: "*site", titleDownload:"site", field:"feature.site.id", headerSortTristate:true, 
@@ -170,7 +170,7 @@ async function buildSampleTable() {
                     }
                     return headerValue.includes(rowValue);
                 },
-                formatter: cell => formatSite(sites, cell.getValue()),
+                formatter: textFormatter(cell => formatSite(sites, cell.getValue())),
                 accessorDownload: value => formatSite(sites, value),
             },
             {title:"stratum", field:"stratum", editor:"input", headerFilter:true, headerSortTristate:true},
@@ -214,7 +214,7 @@ async function buildSampleTable() {
                     }
                     return headerValue.includes(rowValue);
                 },
-                formatter: cell => formatCoordinateSystem(cell.getValue()),
+                formatter: textFormatter(cell => formatCoordinateSystem(cell.getValue())),
                 accessorDownload: value => formatCoordinateSystem(value),
             },
             {title:"longitude", field:"coordinate.longitude", headerFilter:"input", headerSortTristate:true,
@@ -278,7 +278,7 @@ async function buildSampleTable() {
                 sorter:"array", sorterParams:{
                     valueMap:"label"
                 },
-                formatter: cell => formatUser(users, cell.getValue()),
+                formatter: textFormatter(cell => formatUser(users, cell.getValue())),
                 accessorDownload: value => formatUser(users, value),
             },
             {title:"botanicalDeterminationYear", field:"botanicalDeterminationYear", headerSortTristate:true,
@@ -320,7 +320,7 @@ async function buildSampleTable() {
                         return label.includes(header) || id.toString().includes(header);
                     });
                 },
-                formatter: cell => formatFrac(cell.getValue()),
+                formatter: textFormatter(cell => formatFrac(cell.getValue())),
                 accessorDownload: value => formatFrac(value),
                 cssClass: "fraction-cell",
                 cellClick: (e, cell) => openFractionModal(cell.getRow()),
@@ -349,7 +349,7 @@ async function buildSampleTable() {
                     }
                     return headerValue.includes(rowValue);
                 },
-                formatter: cell => formatSampleType(cell.getValue()),
+                formatter: textFormatter(cell => formatSampleType(cell.getValue())),
                 accessorDownload: value => formatSampleType(value),
             },
             {title:"storage find", titleDownload:"storageFind", field:"sampleStorage", hozAlign:"center", headerSortTristate:true,
@@ -462,7 +462,7 @@ async function buildSampleTable() {
                     }
                     return headerValue.includes(rowValue);
                 },
-                formatter: cell => formatSampleInvestigated(cell.getValue()),
+                formatter: textFormatter(cell => formatSampleInvestigated(cell.getValue())),
                 accessorDownload: value => formatSampleInvestigated(value),
             },
             {title:"wood subfossile", titleDownload:"woodSubfossile", field:"woodSubfossile.id", headerSortTristate:true,
@@ -489,7 +489,7 @@ async function buildSampleTable() {
                     }
                     return headerValue.includes(rowValue);
                 },
-                formatter: cell => formatSampleInvestigated(cell.getValue()),
+                formatter: textFormatter(cell => formatSampleInvestigated(cell.getValue())),
                 accessorDownload: value => formatSampleInvestigated(value),
             },
             {title:"charcoal investigated", titleDownload:"charcoalInvestigated", field:"charcoalInvestigated.id", headerSortTristate:true,
@@ -516,7 +516,7 @@ async function buildSampleTable() {
                     }
                     return headerValue.includes(rowValue);
                 },
-                formatter: cell => formatSampleInvestigated(cell.getValue()),
+                formatter: textFormatter(cell => formatSampleInvestigated(cell.getValue())),
                 accessorDownload: value => formatSampleInvestigated(value),
             },
             {title:"charcoal total weight [g]", titleDownload:"totalWeight", field:"totalWeight", headerFilter:"input", headerSortTristate:true,
@@ -570,7 +570,7 @@ async function buildSampleTable() {
                     }
                     return headerValue.includes(rowValue);
                 },
-                formatter: cell => formatChronozone(cell.getValue()),
+                formatter: textFormatter(cell => formatChronozone(cell.getValue())),
                 accessorDownload: value => formatChronozone(value),
             },
             {title:"archaeological dating", titleDownload:"archaeologicalDating", field:"archaeologicalDating", editor:"input", headerFilter:true, headerSortTristate:true},
@@ -817,7 +817,7 @@ document.getElementById("download-json").addEventListener("click", function(){
             const formatFrac = sampleTable
                 .getColumn("fractionAnalyzedList")
                 .getDefinition()
-                .formatter;
+                .formatter.raw; // plain text, the formatter itself escapes HTML
             // Sample type
             const sampleTypeId = row.sampleType?.id ?? null;
             const sampleType = cachedSampleTypes.find(st => st.uri === sampleTypeId) || null;

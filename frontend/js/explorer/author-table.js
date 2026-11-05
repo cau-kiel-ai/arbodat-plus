@@ -18,7 +18,7 @@ async function buildAuthorTable() {
     }
 
     // Create Table -------------------------------------------------------------
-    authorTable = new Tabulator("#table", {
+    authorTable = newTabulator("#table", {
         height: "100%",
         data: authors,
         columns:[

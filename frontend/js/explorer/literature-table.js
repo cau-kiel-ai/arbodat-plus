@@ -49,7 +49,7 @@ async function buildLiteratureTable() {
     }
 
     // Create Table -------------------------------------------------------------
-    literatureTable = new Tabulator("#table", {
+    literatureTable = newTabulator("#table", {
         height: "100%",
         data: literature,
         columns:[
@@ -105,7 +105,7 @@ async function buildLiteratureTable() {
                 sorter:"array", sorterParams:{
                     valueMap:"label"
                 },
-                formatter: cell => formatAuth(cell.getValue()),
+                formatter: textFormatter(cell => formatAuth(cell.getValue())),
                 accessorDownload: value => formatAuth(value),
             },
             {title:"doi", field:"doi", editor:"input", headerFilter:true, headerSortTristate:true},

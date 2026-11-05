@@ -114,7 +114,7 @@ async function buildDatingTable() {
 
     // Dating column: editable only in rows whose dating method matches; other cells are blank and greyed out
     function datingColumn(type, definition){
-        const baseFormatter = definition.formatter ?? (cell => cell.getValue() ?? "");
+        const baseFormatter = definition.formatter ?? (cell => escapeHtml(cell.getValue()));
         return {
             headerSortTristate: true,
             headerFilter: true,
@@ -168,7 +168,7 @@ async function buildDatingTable() {
 
 
     // Create Table -------------------------------------------------------------
-    datingTable = new Tabulator("#table", {
+    datingTable = newTabulator("#table", {
         height: "100%",
         data: absoluteDatings,
         columns:[
@@ -208,7 +208,7 @@ async function buildDatingTable() {
                     }
                     return headerValue.includes(rowValue);
                 },
-                formatter: cell => formatSample(samples, cell.getValue()),
+                formatter: textFormatter(cell => formatSample(samples, cell.getValue())),
                 accessorDownload: value => formatSample(samples, value),
             },
             {title: "*feature", titleDownload:"feature", field:"sample.feature.id", headerSortTristate:true,
@@ -242,7 +242,7 @@ async function buildDatingTable() {
                     }
                     return headerValue.includes(rowValue);
                 },
-                formatter: cell => formatFeature(features, cell.getValue()),
+                formatter: textFormatter(cell => formatFeature(features, cell.getValue())),
                 accessorDownload: value => formatFeature(features, value),
             },
             {title: "*site", titleDownload:"site", field:"sample.feature.site.id", headerSortTristate:true,
@@ -274,7 +274,7 @@ async function buildDatingTable() {
                     }
                     return headerValue.includes(rowValue);
                 },
-                formatter: cell => formatSite(sites, cell.getValue()),
+                formatter: textFormatter(cell => formatSite(sites, cell.getValue())),
                 accessorDownload: value => formatSite(sites, value),
             },
             {title: "literature list (multiple selection)", titleDownload:"literatureList", field:"literatureList", headerSortTristate:true,
@@ -306,7 +306,7 @@ async function buildDatingTable() {
                 sorter:"array", sorterParams:{
                     valueMap:"label"
                 },
-                formatter: cell => formatLit(literature, cell.getValue()),
+                formatter: textFormatter(cell => formatLit(literature, cell.getValue())),
                 accessorDownload: value => formatLit(literature, value),
             },
             {title:"material", field:"material.id", headerSortTristate:true,
@@ -333,7 +333,7 @@ async function buildDatingTable() {
                     }
                     return headerValue.includes(rowValue);
                 },
-                formatter: cell => formatMaterial(cell.getValue()),
+                formatter: textFormatter(cell => formatMaterial(cell.getValue())),
                 accessorDownload: value => formatMaterial(value),
             },
             {title:"remarks", field:"remarks", editor:"input", headerFilter:true, headerSort:false},
@@ -357,7 +357,7 @@ async function buildDatingTable() {
                     }
                     return headerValue.includes(rowValue);
                 },
-                formatter: cell => formatDatingMethod(cell.getValue()),
+                formatter: textFormatter(cell => formatDatingMethod(cell.getValue())),
                 accessorDownload: value => formatDatingMethod(value),
             },
             {title:"dendrochronology", columns:[
@@ -392,7 +392,7 @@ async function buildDatingTable() {
                     headerFilterFunc: (headerValue, rowValue) =>
                         !headerValue || formatC14Laboratory(rowValue).toLowerCase().includes(headerValue.toString().toLowerCase()),
                     sorter: (a, b) => formatC14Laboratory(a).localeCompare(formatC14Laboratory(b)),
-                    formatter: cell => formatC14Laboratory(cell.getValue()),
+                    formatter: textFormatter(cell => formatC14Laboratory(cell.getValue())),
                     accessorDownload: value => formatC14Laboratory(value)}),
                 datingColumn("c14", {title:"number", titleDownload:"c14Number", field:"c14Dating.number", editor:"input"}),
                 datingColumn("c14", {title:"C14-age BP", titleDownload:"c14AgeBp", field:"c14Dating.c14AgeBp", sorter:"number",
@@ -641,7 +641,7 @@ document.getElementById("download-json").addEventListener("click", function(){
             const formatDatingMethod = datingTable
                 .getColumn("datingMethod.id")
                 .getDefinition()
-                .formatter;
+                .formatter.raw; // plain text, the formatter itself escapes HTML
             
             return {
                 id:        row.id,

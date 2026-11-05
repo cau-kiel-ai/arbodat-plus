@@ -23,18 +23,18 @@ function populateFractionsAnalyzed(fractionAnalyzedList) {
         // Add columns
         row.innerHTML = `
             <td><input type="checkbox"></td>
-            <td>${siteLabel}
+            <td>${escapeHtml(siteLabel)}
                 <br>
-                ${item.featureLabel}
+                ${escapeHtml(item.featureLabel)}
                 <br>
-                ${item.sampleLabel}
+                ${escapeHtml(item.sampleLabel)}
             </td>
-            <td>${fractionAnalyzed}</td>
-            <td>${item.modifiedFraction ? fraction : ''}</td>
+            <td>${escapeHtml(fractionAnalyzed)}</td>
+            <td>${escapeHtml(item.modifiedFraction ? fraction : '')}</td>
             <td>
                 <select id="orgOrMin_${sampleId}_${fraction.replace(/[^\w-]/g, '_')}"
                         onchange="updateCheckedDropdowns(this.value, 'fractionAnalyzedTableBody', 'orgOrMin_')"
-                        original-value="${originalFraction}">
+                        original-value="${escapeHtml(originalFraction)}">
                         <option value="org" ${orgOrMin === 'org' ? 'selected' : ''}>org</option>
                         <option value="min" ${orgOrMin === 'min' ? 'selected' : ''}>min</option>
                 </select>
@@ -43,8 +43,8 @@ function populateFractionsAnalyzed(fractionAnalyzedList) {
                 <input type="text" 
                         id="sieveSize_${sampleId}_${fraction.replace(/[^\w-]/g, '_')}"
                         onchange="updateCheckedInputs(this.value, 'fractionAnalyzedTableBody', 'sieveSize_')"
-                        value="${sieveSize ?? ''}"
-                        original-value="${originalFraction}">
+                        value="${escapeHtml(sieveSize ?? '')}"
+                        original-value="${escapeHtml(originalFraction)}">
             </td>
             <td>
                 <button 
@@ -200,7 +200,7 @@ function openCreateFractionModal(item, resultRow, onCreated = () => createResult
     sieveInput.value = sieveSize ?? "";
 
     document.getElementById("fractionAnalyzedModalInfo").innerHTML =
-        `${siteLabel}<br>${result.sample.feature.label}<br>${result.sample.label}`;
+        `${escapeHtml(siteLabel)}<br>${escapeHtml(result.sample.feature.label)}<br>${escapeHtml(result.sample.label)}`;
 
     // Show Popup ---------------------------------------------------
     modal.style.display = "block";

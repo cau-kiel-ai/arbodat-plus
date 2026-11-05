@@ -25,15 +25,15 @@ function populateLabsAndNumbers(labAndNumberList) {
             // Add columns
             row.innerHTML = `
                 <td><input type="checkbox"></td>
-                <td>${item.siteLabel}
+                <td>${escapeHtml(item.siteLabel)}
                     <br>
-                    ${item.featureLabel}
+                    ${escapeHtml(item.featureLabel)}
                     <br>
-                    ${item.sampleLabel}
+                    ${escapeHtml(item.sampleLabel)}
                     <br>
-                    ${item.subSample}
+                    ${escapeHtml(item.subSample)}
                 </td>
-                <td>${item.labAndNumber}</td>
+                <td>${escapeHtml(item.labAndNumber)}</td>
                 <td>${dropdown}</td>
                 <td>
                     <input
@@ -94,16 +94,16 @@ function populateLabsAndNumbers(labAndNumberList) {
             // Add columns
             row.innerHTML = `
                 <td><input type="checkbox"></td>
-                <td>${item.siteLabel}
+                <td>${escapeHtml(item.siteLabel)}
                     <br>
-                    ${item.featureLabel}
+                    ${escapeHtml(item.featureLabel)}
                     <br>
-                    ${item.sampleLabel}
+                    ${escapeHtml(item.sampleLabel)}
                     <br>
-                    ${item.subSample}
+                    ${escapeHtml(item.subSample)}
                 </td>
-                <td>${datingMethod}</td>
-                <td>${item.labAndNumber}</td>
+                <td>${escapeHtml(datingMethod)}</td>
+                <td>${escapeHtml(item.labAndNumber)}</td>
                 <td>
                     <input 
                         type="text"

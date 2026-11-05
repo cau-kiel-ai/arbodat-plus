@@ -48,7 +48,7 @@ async function buildResearchProjectTable() {
     }
 
     // Create Table -------------------------------------------------------------
-    researchProjectTable = new Tabulator("#table", {
+    researchProjectTable = newTabulator("#table", {
         height:"100%",
         data: researchProjects,
         columns:[
@@ -83,7 +83,7 @@ async function buildResearchProjectTable() {
                     }
                     return headerValue.includes(rowValue);
                 },
-                formatter: cell => formatLicense(cell.getValue()),
+                formatter: textFormatter(cell => formatLicense(cell.getValue())),
                 accessorDownload: value => formatLicense(value),
             },
             {title:"export file name", field:"exportFileName", titleDownload:"exportFileName", editor:"input", headerFilter:true, headerSortTristate:true},
@@ -114,7 +114,7 @@ async function buildResearchProjectTable() {
                 sorter:"array", sorterParams:{
                     valueMap:"label"
                 },
-                formatter: cell => formatSites(sites, cell.getValue()),
+                formatter: textFormatter(cell => formatSites(sites, cell.getValue())),
                 accessorDownload: value => formatSites(sites, value),
             }
         ],

@@ -27,7 +27,7 @@ async function buildUserTable() {
     }
 
     // Create Table -------------------------------------------------------------
-    userTable = new Tabulator("#table", {
+    userTable = newTabulator("#table", {
         height: "100%",
         data: users,
         columns:[
@@ -69,7 +69,7 @@ async function buildUserTable() {
                 sorter:"array", sorterParams:{
                     valueMap:"label"
                 },
-                formatter: cell => formatInst(institutions, cell.getValue()),
+                formatter: textFormatter(cell => formatInst(institutions, cell.getValue())),
                 accessorDownload: value => formatInst(institutions, value),
             },
         ],

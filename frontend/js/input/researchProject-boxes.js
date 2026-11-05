@@ -55,7 +55,7 @@ function addResearchProjectItemBox(itemText, index) {
             <span
                 style="overflow: hidden; text-overflow: ellipsis; white-space: nowrap; flex: 1; min-width: 0;"
             >
-                ${itemText}
+                ${escapeHtml(itemText)}
             </span>
             <button
                 type="button"

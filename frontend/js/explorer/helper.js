@@ -140,3 +140,34 @@ function handleDeleteError(entity, error) {
     console.error(`Error deleting ${entity}:`, error);
     reportExplorerError(`Could not delete ${entity}: ${getErrorMessage(error)}`);
 }
+
+
+// Tabulator puts the string a formatter returns into innerHTML: escape the text of a label formatter.
+// formatter.raw is the plain-text version, for code which needs the label itself (JSON download).
+function textFormatter(format) {
+    const formatter = (cell, formatterParams, onRendered) => {
+        const text = format(cell, formatterParams, onRendered);
+        return typeof text === "string" ? escapeHtml(text) : text;
+    };
+    formatter.raw = format;
+    return formatter;
+}
+
+// The same for the labels of the list editors and list header filters (Tabulator puts them into innerHTML as well)
+function escapeListLabels(columns) {
+    const withItemFormatter = params => {
+        const add = p => ({ itemFormatter: label => escapeHtml(label), ...p });
+        return typeof params === "function" ? (...args) => add(params(...args)) : add(params);
+    };
+    for (const column of columns) {
+        if (column.columns) escapeListLabels(column.columns);
+        if (column.editor === "list") column.editorParams = withItemFormatter(column.editorParams);
+        if (column.headerFilter === "list") column.headerFilterParams = withItemFormatter(column.headerFilterParams);
+    }
+}
+
+// new Tabulator(...) for the explorer tables
+function newTabulator(selector, options) {
+    escapeListLabels(options.columns);
+    return new Tabulator(selector, options);
+}

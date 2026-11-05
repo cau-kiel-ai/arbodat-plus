@@ -46,7 +46,7 @@ async function buildFeatureTable() {
     }
 
     // Create Table -------------------------------------------------------------
-    featureTable = new Tabulator("#table", {
+    featureTable = newTabulator("#table", {
         height: "100%",
         data: features,
         columns:[
@@ -86,7 +86,7 @@ async function buildFeatureTable() {
                     }
                     return headerValue.includes(rowValue);
                 },
-                formatter: cell => formatSite(sites, cell.getValue()),
+                formatter: textFormatter(cell => formatSite(sites, cell.getValue())),
                 accessorDownload: value => formatSite(sites, value),
             },
             {title:"excavation area", titleDownload:"excavationArea", field:"excavationArea", editor:"input", headerFilter:true, headerSortTristate:true},
@@ -157,7 +157,7 @@ async function buildFeatureTable() {
                     }
                     return headerValue.includes(rowValue);
                 },
-                formatter: cell => formatPreservationCondition(cell.getValue()),
+                formatter: textFormatter(cell => formatPreservationCondition(cell.getValue())),
                 accessorDownload: value => formatPreservationCondition(value),
             },
             {title:"feature type", titleDownload:"featureType", field:"featureType.id", headerSortTristate:true,
@@ -184,7 +184,7 @@ async function buildFeatureTable() {
                     }
                     return headerValue.includes(rowValue);
                 },
-                formatter: cell => formatFeatureType(cell.getValue()),
+                formatter: textFormatter(cell => formatFeatureType(cell.getValue())),
                 accessorDownload: value => formatFeatureType(value),
             },
             {title: "excavationYears", field:"excavationYears", headerSortTristate:true,

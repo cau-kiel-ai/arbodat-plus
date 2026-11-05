@@ -42,10 +42,10 @@ function populateNonMatchingDanteAttributes(nonMatchingDanteAttributeList) {
                 // Add columns
                 row.innerHTML = `
                     <td><input type="checkbox"></td>
-                    <td>${item.type}</td>
-                    <td>${item.label}</td>
+                    <td>${escapeHtml(item.type)}</td>
+                    <td>${escapeHtml(item.label)}</td>
                     <td>
-                        ${item.nonMatchingLabel}
+                        ${escapeHtml(item.nonMatchingLabel)}
                         <br>
                         <button type="button"
                                 onclick="addLabelToJSON('${id}', '${attribute}', event.currentTarget)">
@@ -80,10 +80,10 @@ function populateNonMatchingDanteAttributes(nonMatchingDanteAttributeList) {
                 // Add columns
                 row.innerHTML = `
                     <td><input type="checkbox"></td>
-                    <td>${item.type}</td>
-                    <td>${item.label}</td>
+                    <td>${escapeHtml(item.type)}</td>
+                    <td>${escapeHtml(item.label)}</td>
                     <td>
-                        ${item.nonMatchingLabel}
+                        ${escapeHtml(item.nonMatchingLabel)}
                         <br>
                         <button type="button"
                                 onclick="addLabelToJSON('${id}', '${attribute}', event.currentTarget)">
@@ -118,10 +118,10 @@ function populateNonMatchingDanteAttributes(nonMatchingDanteAttributeList) {
                 // Add columns
                 row.innerHTML = `
                     <td><input type="checkbox"></td>
-                    <td>${item.type}</td>
-                    <td>${item.label}</td>
+                    <td>${escapeHtml(item.type)}</td>
+                    <td>${escapeHtml(item.label)}</td>
                     <td>
-                        ${item.nonMatchingLabel}
+                        ${escapeHtml(item.nonMatchingLabel)}
                         <br>
                         <button type="button"
                                 onclick="addLabelToJSON('${id}', '${attribute}', event.currentTarget)">
@@ -156,10 +156,10 @@ function populateNonMatchingDanteAttributes(nonMatchingDanteAttributeList) {
                 // Add columns
                 row.innerHTML = `
                     <td><input type="checkbox"></td>
-                    <td>${item.type}</td>
-                    <td>${item.label}</td>
+                    <td>${escapeHtml(item.type)}</td>
+                    <td>${escapeHtml(item.label)}</td>
                     <td>
-                        ${item.nonMatchingLabel}
+                        ${escapeHtml(item.nonMatchingLabel)}
                         <br>
                         <button type="button"
                                 onclick="addLabelToJSON('${id}', '${attribute}', event.currentTarget)">
@@ -194,10 +194,10 @@ function populateNonMatchingDanteAttributes(nonMatchingDanteAttributeList) {
                 // Add columns
                 row.innerHTML = `
                     <td><input type="checkbox"></td>
-                    <td>${item.type}</td>
-                    <td>${item.label}</td>
+                    <td>${escapeHtml(item.type)}</td>
+                    <td>${escapeHtml(item.label)}</td>
                     <td>
-                        ${item.nonMatchingLabel}
+                        ${escapeHtml(item.nonMatchingLabel)}
                         <br>
                         <button type="button"
                                 onclick="addLabelToJSON('${id}', '${attribute}', event.currentTarget)">
@@ -232,10 +232,10 @@ function populateNonMatchingDanteAttributes(nonMatchingDanteAttributeList) {
                 // Add columns
                 row.innerHTML = `
                     <td><input type="checkbox"></td>
-                    <td>${item.type}</td>
-                    <td>${item.label}</td>
+                    <td>${escapeHtml(item.type)}</td>
+                    <td>${escapeHtml(item.label)}</td>
                     <td>
-                        ${item.nonMatchingLabel}
+                        ${escapeHtml(item.nonMatchingLabel)}
                         <br>
                         <button type="button"
                                 onclick="addLabelToJSON('${id}', '${attribute}', event.currentTarget)">
@@ -270,10 +270,10 @@ function populateNonMatchingDanteAttributes(nonMatchingDanteAttributeList) {
                 // Add columns
                 row.innerHTML = `
                     <td><input type="checkbox"></td>
-                    <td>${item.type}</td>
-                    <td>${item.label}</td>
+                    <td>${escapeHtml(item.type)}</td>
+                    <td>${escapeHtml(item.label)}</td>
                     <td>
-                        ${item.nonMatchingLabel}
+                        ${escapeHtml(item.nonMatchingLabel)}
                         <br>
                         <button type="button"
                                 onclick="addLabelToJSON('${id}', '${attribute}', event.currentTarget)">
@@ -308,10 +308,10 @@ function populateNonMatchingDanteAttributes(nonMatchingDanteAttributeList) {
                 // Add columns
                 row.innerHTML = `
                     <td><input type="checkbox"></td>
-                    <td>${item.type}</td>
-                    <td>${item.label}</td>
+                    <td>${escapeHtml(item.type)}</td>
+                    <td>${escapeHtml(item.label)}</td>
                     <td>
-                        ${item.nonMatchingLabel}
+                        ${escapeHtml(item.nonMatchingLabel)}
                         <br>
                         <button type="button"
                                 onclick="addLabelToJSON('${id}', '${attribute}', event.currentTarget)">
@@ -346,10 +346,10 @@ function populateNonMatchingDanteAttributes(nonMatchingDanteAttributeList) {
                 // Add columns
                 row.innerHTML = `
                     <td><input type="checkbox"></td>
-                    <td>${item.type}</td>
-                    <td>${item.label}</td>
+                    <td>${escapeHtml(item.type)}</td>
+                    <td>${escapeHtml(item.label)}</td>
                     <td>
-                        ${item.nonMatchingLabel}
+                        ${escapeHtml(item.nonMatchingLabel)}
                         <br>
                         <button type="button"
                                 onclick="addLabelToJSON('${id}', '${attribute}', event.currentTarget)">
@@ -384,10 +384,10 @@ function populateNonMatchingDanteAttributes(nonMatchingDanteAttributeList) {
                 // Add columns
                 row.innerHTML = `
                     <td><input type="checkbox"></td>
-                    <td>${item.type}</td>
-                    <td>${item.label}</td>
+                    <td>${escapeHtml(item.type)}</td>
+                    <td>${escapeHtml(item.label)}</td>
                     <td>
-                        ${item.nonMatchingLabel}
+                        ${escapeHtml(item.nonMatchingLabel)}
                         <br>
                         <button type="button"
                                 onclick="addLabelToJSON('${id}', '${attribute}', event.currentTarget)">
@@ -422,10 +422,10 @@ function populateNonMatchingDanteAttributes(nonMatchingDanteAttributeList) {
                 // Add columns
                 row.innerHTML = `
                     <td><input type="checkbox"></td>
-                    <td>${item.type}</td>
-                    <td>${item.label}</td>
+                    <td>${escapeHtml(item.type)}</td>
+                    <td>${escapeHtml(item.label)}</td>
                     <td>
-                        ${item.nonMatchingLabel}
+                        ${escapeHtml(item.nonMatchingLabel)}
                         <br>
                         <button type="button"
                                 onclick="addLabelToJSON('${id}', '${attribute}', event.currentTarget)">

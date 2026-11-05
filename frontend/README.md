@@ -98,6 +98,18 @@ pages `report`/`contact`/`license`).
   below `$navbar-breakpoint` (top of `_navbar.scss`), so the page must load Bootstrap's JS bundle. It is sticky at
   the top of the page; its height (66px) must match `--page-header-height` in `_stickyAccordion.scss`.
 
+## Escaping data in HTML
+
+Everything that comes from the database, an uploaded file or DANTE and is put into `innerHTML` or a template string must
+go through `escapeHtml()` (`js/escapeHtml.js`, loaded before `toast.js`), also inside quoted attribute values. Prefer
+`textContent` where no markup is needed. In the explorer:
+
+- Tabulator renders the string a formatter returns as HTML: wrap label formatters in `textFormatter(...)`
+  (`js/explorer/helper.js`; `formatter.raw` is the plain-text version, e.g. for the JSON download). Formatters which return
+  fixed markup, like the checkbox, are not wrapped.
+- Create explorer tables with `newTabulator(...)` instead of `new Tabulator(...)`: it escapes the labels of list editors and
+  list header filters, which Tabulator also renders as HTML.
+
 ## Docker image
 
 `Dockerfile` compiles the CSS and stamps the version in a `node:24-alpine` build stage, then copies

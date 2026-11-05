@@ -16,8 +16,8 @@ function populateUsers(userList) {
         row.innerHTML = `
             <td><input type="checkbox"></td>
             <td></td>
-            <td>${item.userRole}</td>
-            <td>${item.userLabel}</td>
+            <td>${escapeHtml(item.userRole)}</td>
+            <td>${escapeHtml(item.userLabel)}</td>
             <td></td>
             <td>
                 <button id="updateButton_${item.id}_${item.userRole}" type="button">Update</button>
@@ -36,7 +36,7 @@ function populateUsers(userList) {
             secondTd.textContent = item.label;
         }
         if (item.type == "sample") {
-            secondTd.innerHTML = `${item.siteLabel}<br>${item.featureLabel}<br>${item.label}`;
+            secondTd.innerHTML = `${escapeHtml(item.siteLabel)}<br>${escapeHtml(item.featureLabel)}<br>${escapeHtml(item.label)}`;
         }
 
         const dropdown = document.createElement("select");

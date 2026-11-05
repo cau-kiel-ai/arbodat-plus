@@ -188,10 +188,10 @@ function createExistingSiteList(existingSiteList) {
 
                 // Add columns
                 row.innerHTML = `
-                    <td>${item.label}</td>
-                    <td>${item.id}</td>
-                    <td>${item.researchProjectNames.join(", ")}</td>
-                    <td>${item.addedResearchProjectNames.join(", ")}</td>
+                    <td>${escapeHtml(item.label)}</td>
+                    <td>${escapeHtml(item.id)}</td>
+                    <td>${escapeHtml(item.researchProjectNames.join(", "))}</td>
+                    <td>${escapeHtml(item.addedResearchProjectNames.join(", "))}</td>
                 `;
 
                 tbody.appendChild(row);
@@ -218,10 +218,10 @@ function createExistingSiteList(existingSiteList) {
 
                 // Füge die Spalten hinzu
                 row.innerHTML = `
-                    <td>${item.label}</td>
-                    <td>${item.id}</td>
-                    <td>${item.researchProjectNames.join(", ")}</td>
-                    <td>${item.addedResearchProjectNames.join(", ")}</td>
+                    <td>${escapeHtml(item.label)}</td>
+                    <td>${escapeHtml(item.id)}</td>
+                    <td>${escapeHtml(item.researchProjectNames.join(", "))}</td>
+                    <td>${escapeHtml(item.addedResearchProjectNames.join(", "))}</td>
                 `;
 
                 tbody.appendChild(row);
@@ -281,9 +281,9 @@ function createExistingFeatureList(existingFeatureList) {
 
                 // Add columns
                 row.innerHTML = `
-                    <td>${item.label}</td>
-                    <td>${item.id}</td>
-                    <td>${item.siteLabel}</td>
+                    <td>${escapeHtml(item.label)}</td>
+                    <td>${escapeHtml(item.id)}</td>
+                    <td>${escapeHtml(item.siteLabel)}</td>
                 `;
 
                 tbody.appendChild(row);
@@ -301,9 +301,9 @@ function createExistingFeatureList(existingFeatureList) {
 
                 // Füge die Spalten hinzu
                 row.innerHTML = `
-                    <td>${item.label}</td>
-                    <td>${item.id}</td>
-                    <td>${item.siteLabel}</td>
+                    <td>${escapeHtml(item.label)}</td>
+                    <td>${escapeHtml(item.id)}</td>
+                    <td>${escapeHtml(item.siteLabel)}</td>
                 `;
 
                 tbody.appendChild(row);
@@ -353,10 +353,10 @@ function createExistingSampleList(existingSampleList) {
 
                 // Add columns
                 row.innerHTML = `
-                    <td>${item.label}</td>
-                    <td>${item.id}</td>
-                    <td>${item.siteLabel}</td>
-                    <td>${item.featureLabel}</td>
+                    <td>${escapeHtml(item.label)}</td>
+                    <td>${escapeHtml(item.id)}</td>
+                    <td>${escapeHtml(item.siteLabel)}</td>
+                    <td>${escapeHtml(item.featureLabel)}</td>
                 `;
 
                 tbody.appendChild(row);
@@ -374,10 +374,10 @@ function createExistingSampleList(existingSampleList) {
 
                 // Füge die Spalten hinzu
                 row.innerHTML = `
-                    <td>${item.label}</td>
-                    <td>${item.id}</td>
-                    <td>${item.siteLabel}</td>
-                    <td>${item.featureLabel}</td>
+                    <td>${escapeHtml(item.label)}</td>
+                    <td>${escapeHtml(item.id)}</td>
+                    <td>${escapeHtml(item.siteLabel)}</td>
+                    <td>${escapeHtml(item.featureLabel)}</td>
                 `;
 
                 tbody.appendChild(row);
@@ -428,11 +428,11 @@ function createExistingAbsoluteDatingList(existingAbsoluteDatingList) {
 
                 // Add columns
                 row.innerHTML = `
-                    <td>${item.subSample}</td>
-                    <td>${item.id}</td>
-                    <td>${item.siteLabel}</td>
-                    <td>${item.featureLabel}</td>
-                    <td>${item.sampleLabel}</td>
+                    <td>${escapeHtml(item.subSample)}</td>
+                    <td>${escapeHtml(item.id)}</td>
+                    <td>${escapeHtml(item.siteLabel)}</td>
+                    <td>${escapeHtml(item.featureLabel)}</td>
+                    <td>${escapeHtml(item.sampleLabel)}</td>
                 `;
 
                 tbody.appendChild(row);
@@ -450,11 +450,11 @@ function createExistingAbsoluteDatingList(existingAbsoluteDatingList) {
 
                 // Füge die Spalten hinzu
                 row.innerHTML = `
-                    <td>${item.subSample}</td>
-                    <td>${item.id}</td>
-                    <td>${item.siteLabel}</td>
-                    <td>${item.featureLabel}</td>
-                    <td>${item.sampleLabel}</td>
+                    <td>${escapeHtml(item.subSample)}</td>
+                    <td>${escapeHtml(item.id)}</td>
+                    <td>${escapeHtml(item.siteLabel)}</td>
+                    <td>${escapeHtml(item.featureLabel)}</td>
+                    <td>${escapeHtml(item.sampleLabel)}</td>
                 `;
 
                 tbody.appendChild(row);

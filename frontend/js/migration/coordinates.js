@@ -21,27 +21,27 @@ function populateCoordinates(coordinateList) {
             // Add columns
             row.innerHTML = `
                 <td><input type="checkbox"></td>
-                <td>${item.label}</td>
+                <td>${escapeHtml(item.label)}</td>
                 <td>
                     <input type="text" 
                            id="longitudeInput_${type}_${item.id}" 
-                           value="${item.longitude}"
+                           value="${escapeHtml(item.longitude)}"
                            style="font-size: 10px; padding-top: 16px; padding-bottom: 16px; ">
                 </td>
                 <td>
                     <input type="text" 
                            id="latitudeInput_${type}_${item.id}" 
-                           value="${item.latitude}"
+                           value="${escapeHtml(item.latitude)}"
                            style="font-size: 10px; padding-top: 16px; padding-bottom: 16px;">
                 </td>
                 <td>
                     <input type="text" 
                            id="altitudeInput_${type}_${item.id}" 
-                           value="${item.altitude}"
+                           value="${escapeHtml(item.altitude)}"
                            style="font-size: 10px; padding-top: 16px; padding-bottom: 16px;">
                 </td>
                 <td>
-                    ${item.coordinateSystem}
+                    ${escapeHtml(item.coordinateSystem)}
                     <br>
                         <button type="button"
                                 data-item='${encodeRowItem(item)}'
@@ -141,33 +141,33 @@ function populateCoordinates(coordinateList) {
             // Add columns
             row.innerHTML = `
                 <td><input type="checkbox"></td>
-                <td>${item.siteLabel}
+                <td>${escapeHtml(item.siteLabel)}
                     <br>
-                    ${item.featureLabel}
+                    ${escapeHtml(item.featureLabel)}
                     <br>
-                    ${item.label}
+                    ${escapeHtml(item.label)}
                 </td>                
                 <td>
                     <input type="text" 
                            id="longitudeInput_${type}_${item.id}" 
-                           value="${item.longitude}"
+                           value="${escapeHtml(item.longitude)}"
                            style="font-size: 10px; padding-top: 16px; padding-bottom: 16px; ">
                 </td>
                 <td>
                     <input type="text" 
                            id="latitudeInput_${type}_${item.id}" 
-                           value="${item.latitude}"
+                           value="${escapeHtml(item.latitude)}"
                            style="font-size: 10px; padding-top: 16px; padding-bottom: 16px; ">
                 </td>
                 <td>
                     <input type="text" 
                            id="altitudeInput_${type}_${item.id}" 
-                           value="${item.altitude}"
+                           value="${escapeHtml(item.altitude)}"
                            style="font-size: 10px; padding-top: 16px; padding-bottom: 16px; ">
                 </td>
-                <td style="padding-top: 20px;">${item.zcoordinate}</td>
+                <td style="padding-top: 20px;">${escapeHtml(item.zcoordinate)}</td>
                 <td>
-                    ${item.coordinateSystem}
+                    ${escapeHtml(item.coordinateSystem)}
                     <br>
                     <button type="button"
                                 data-item='${encodeRowItem(item)}'

@@ -91,7 +91,7 @@ function createTableFilter({ tbody, fields = [], groups = [], counterColumns = n
         const label = document.createElement('label');
         label.innerHTML = `- group by <select>
             <option value="">-</option>
-            ${groups.map((entry, index) => `<option value="${index}">${entry.label}</option>`).join('')}
+            ${groups.map((entry, index) => `<option value="${index}">${escapeHtml(entry.label)}</option>`).join('')}
         </select>`;
         groupSelect = label.querySelector('select');
         bar.appendChild(label);

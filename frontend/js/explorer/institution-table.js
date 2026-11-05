@@ -18,7 +18,7 @@ async function buildInstitutionTable() {
     }
 
     // Create Table -------------------------------------------------------------
-    institutionTable = new Tabulator("#table", {
+    institutionTable = newTabulator("#table", {
         height: "100%",
         data: institutions,
         columns:[

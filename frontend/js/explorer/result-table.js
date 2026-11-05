@@ -99,7 +99,7 @@ async function createResultTable({ selector, results, hiddenFields = [], height 
     }
 
     // Create Table -------------------------------------------------------------
-    const table = new Tabulator(selector, {
+    const table = newTabulator(selector, {
         height: height,
         data: results,
         columns:[
@@ -138,7 +138,7 @@ async function createResultTable({ selector, results, hiddenFields = [], height 
                     }
                     return headerValue.includes(rowValue);
                 },
-                formatter: cell => formatSample(samples, cell.getValue()),
+                formatter: textFormatter(cell => formatSample(samples, cell.getValue())),
                 accessorDownload: value => formatSample(samples, value),
             },
             {title: "*feature", titleDownload:"feature", field:"sample.feature.id", headerSortTristate:true,
@@ -172,7 +172,7 @@ async function createResultTable({ selector, results, hiddenFields = [], height 
                     }
                     return headerValue.includes(rowValue);
                 },
-                formatter: cell => formatFeature(features, cell.getValue()),
+                formatter: textFormatter(cell => formatFeature(features, cell.getValue())),
                 accessorDownload: value => formatFeature(features, value),
             },
             {title: "*site", titleDownload:"site", field:"sample.feature.site.id", headerSortTristate:true,
@@ -204,7 +204,7 @@ async function createResultTable({ selector, results, hiddenFields = [], height 
                     }
                     return headerValue.includes(rowValue);
                 },
-                formatter: cell => formatSite(sites, cell.getValue()),
+                formatter: textFormatter(cell => formatSite(sites, cell.getValue())),
                 accessorDownload: value => formatSite(sites, value),
             },
             {title: "dating list (multiple selection)", titleDownload:"absoluteDatingList", field:"absoluteDatingList", headerSortTristate:true,
@@ -241,7 +241,7 @@ async function createResultTable({ selector, results, hiddenFields = [], height 
                 sorter:"array", sorterParams:{
                     valueMap:"label"
                 },
-                formatter: function(cell) {
+                formatter: textFormatter(function(cell) {
                     const datingsIds = cell.getValue();
 
                     // HTML download
@@ -256,7 +256,7 @@ async function createResultTable({ selector, results, hiddenFields = [], height 
                                     return formatDatings(dating)})
                                 .join(", ");
                     }
-                },
+                }),
                 accessorDownload: function(value) {
                     if (!Array.isArray(value)) return "";
                     return value
@@ -354,7 +354,7 @@ async function createResultTable({ selector, results, hiddenFields = [], height 
 
                     return label.includes(header);
                 },
-                formatter: function(cell) {
+                formatter: textFormatter(function(cell) {
                     const rowData = cell.getRow().getData();
 
                     const sample = samples.find(s => s.id === rowData.sample?.id);
@@ -372,7 +372,7 @@ async function createResultTable({ selector, results, hiddenFields = [], height 
                     if (!entry) return typeof value === "string" ? value : "";
 
                     return entry ? [entry.notation, entry.prefLabel?.la].filter(Boolean).join(", ") : "";
-                },
+                }),
                 accessorDownload: function(value, data) {
                     const row = table.getRow(data.id);
                     const rowData = row.getData();
@@ -463,7 +463,7 @@ async function createResultTable({ selector, results, hiddenFields = [], height 
                     }
                     return headerValue.includes(rowValue);
                 },
-                formatter: cell => formatClassificationConfer(cell.getValue()),
+                formatter: textFormatter(cell => formatClassificationConfer(cell.getValue())),
                 accessorDownload: value => formatClassificationConfer(value),
             },
             {title:"*rType", titleDownload:"restType", field:"restType.id", headerSortTristate:true,
@@ -486,7 +486,7 @@ async function createResultTable({ selector, results, hiddenFields = [], height 
                     }
                     return headerValue.includes(rowValue);
                 },
-                formatter: cell => formatRestType(cell.getValue()),
+                formatter: textFormatter(cell => formatRestType(cell.getValue())),
                 accessorDownload: value => formatRestType(value),
             },
             {title:"*state of preservation", titleDownload:"stateOfPreservation", field:"stateOfPreservation.id", headerSortTristate:true,
@@ -509,7 +509,7 @@ async function createResultTable({ selector, results, hiddenFields = [], height 
                     }
                     return headerValue.includes(rowValue);
                 },
-                formatter: cell => formatStateOfPreservation(cell.getValue()),
+                formatter: textFormatter(cell => formatStateOfPreservation(cell.getValue())),
                 accessorDownload: value => formatStateOfPreservation(value),
             },
             {title:"rCount", titleDownload:"restCount", field:"restCount", headerFilter:"input", headerSortTristate:true,

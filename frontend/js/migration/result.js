@@ -34,7 +34,7 @@ function populateResults(resultList) {
 
         // Create taxonomy dropdown
         const taxonomyDropdown = document.createElement("div");
-        taxonomyDropdown.innerHTML = `<select id="taxonomyDropdown_${siteLabelSafe}"
+        taxonomyDropdown.innerHTML = `<select id="taxonomyDropdown_${escapeHtml(siteLabelSafe)}"
                                               onchange="handleTaxonomyChange(this.value, '${escapeJsArg(siteLabel)}')">
                                               <option value=""></option>
                                       </select>
@@ -125,68 +125,68 @@ function populateResults(resultList) {
                 <td><input type="checkbox"></td>
 
                 <td>
-                    ${item.result.sample.feature.label}
+                    ${escapeHtml(item.result.sample.feature.label)}
                 </td>
 
-                <td data-sampleId="${item.result.sample.id}">
-                    ${item.result.sample.label}
+                <td data-sampleId="${escapeHtml(item.result.sample.id)}">
+                    ${escapeHtml(item.result.sample.label)}
                 </td>
             `;
 
             // TaxCode
             if (item.result.taxCode != null) {
-                columns += `<td>${item.result.taxCode.label}</td>`;
+                columns += `<td>${escapeHtml(item.result.taxCode.label)}</td>`;
                 columns += `<td></td>`;
             } else {
                 const taxCodeDropdown = `<select
-                                            id="taxCodeDropdown_${item.id}"
+                                            id="taxCodeDropdown_${escapeHtml(item.id)}"
                                             onchange="updateCheckedDropdowns(this.value, 'resultTableBody_${escapeJsArg(siteLabel)}', 'taxCodeDropdown_')"
                                             style="appearance: none;"
                                         >
                                             <option value="">select</option>
                                         </select>`;
-                columns += `<td>${item.nonMatchingTaxCode}</td>`;
+                columns += `<td>${escapeHtml(item.nonMatchingTaxCode)}</td>`;
                 columns += `<td>${taxCodeDropdown}</td>`;
             }
 
             // FractionAnalyzed
             columns += `<td></td>`;
-            columns += `<td data-originalFraction="${item.fractionAnalyzed.fraction}">${item.fractionAnalyzed.orgOrMin ?? ''}</td>`;
-            columns += `<td data-originalFraction="${item.fractionAnalyzed.fraction}">${item.fractionAnalyzed.sieveSize ?? ''}</td>`;
+            columns += `<td data-originalFraction="${escapeHtml(item.fractionAnalyzed.fraction)}">${escapeHtml(item.fractionAnalyzed.orgOrMin ?? '')}</td>`;
+            columns += `<td data-originalFraction="${escapeHtml(item.fractionAnalyzed.fraction)}">${escapeHtml(item.fractionAnalyzed.sieveSize ?? '')}</td>`;
 
             // ClassificationConfer
             // INFO: No extension in ArboDat2018 possible
-            columns += `<td>${item.nonMatchingClassificationConfer || (item.result.classificationConfer?.label ?? '')}</td>`;
+            columns += `<td>${escapeHtml(item.nonMatchingClassificationConfer || (item.result.classificationConfer?.label ?? ''))}</td>`;
 
             // RestType
             if (item.nonMatchingRestType == "") {
-                columns += `<td>${item.result.restType.label}</td>`;
+                columns += `<td>${escapeHtml(item.result.restType.label)}</td>`;
                 columns += `<td></td>`;
             } else {
                 const restTypeDropdown = `<select
-                                            id="restTypeDropdown_${item.id}"
+                                            id="restTypeDropdown_${escapeHtml(item.id)}"
                                             onchange="updateCheckedDropdowns(this.value, 'resultTableBody_${escapeJsArg(siteLabel)}', 'restTypeDropdown_')"
                                             style="appearance: none;"
                                          >
                                             <option value="">select</option>
                                          </select>`;
-                columns += `<td>${item.nonMatchingRestType}</td>`;
+                columns += `<td>${escapeHtml(item.nonMatchingRestType)}</td>`;
                 columns += `<td>${restTypeDropdown}</td>`;
             }
 
             // StateOfPreservation            
             if (item.nonMatchingStateOfPreservation == "") {
-                columns += `<td>${item.result.stateOfPreservation.label}</td>`;
+                columns += `<td>${escapeHtml(item.result.stateOfPreservation.label)}</td>`;
                 columns += `<td></td>`;
             } else {
                 const stateOfPreservationDropdown = `<select
-                                                        id="stateOfPreservationDropdown_${item.id}"
+                                                        id="stateOfPreservationDropdown_${escapeHtml(item.id)}"
                                                         onchange="updateCheckedDropdowns(this.value, 'resultTableBody_${escapeJsArg(siteLabel)}', 'stateOfPreservationDropdown_')"
                                                         style="appearance: none;"
                                                      >
                                                         <option value="">select</option>
                                                      </select>`;
-                columns += `<td>${item.nonMatchingStateOfPreservation}</td>`;
+                columns += `<td>${escapeHtml(item.nonMatchingStateOfPreservation)}</td>`;
                 columns += `<td>${stateOfPreservationDropdown}</td>`;
             }
 
