@@ -32,7 +32,18 @@ app-footer {
         }
     }
 
-    @media screen and (max-width: 480px) {
+    .footer-version {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.25rem;
+
+        a {
+            display: inline-flex;
+            align-items: center;
+        }
+    }
+
+    @media screen and (max-width: 540px) {
         flex-direction: column;
         gap: 0.25rem;
         height: auto;

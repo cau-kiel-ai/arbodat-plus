@@ -80,7 +80,8 @@ The shared footer lives in `components/app-footer.js` and contains a `Version __
 `Dockerfile` replaces it via `--build-arg APP_VERSION=x.y.z` and also writes `/version.json`
 (`{"version": "..."}`), which the desktop app and ops use to confirm which version is actually running
 after an update. With the dev bind mount (`frontend-dev`) nothing is stamped, so the footer shows the
-literal placeholder.
+literal placeholder. The version is followed by an inline-SVG GitHub icon linking to
+<https://github.com/cau-kiel-ai/arbodat-plus> (opens in a new tab).
 
 ## Shared components
 
