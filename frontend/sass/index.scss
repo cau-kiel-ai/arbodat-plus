@@ -12,7 +12,7 @@ main {
 body, ul, li, h1, h2, a{
     margin: 0;
     padding: 0;
-    //font-family: arial;
+    font-family: arial;
    }
    
    header{
@@ -117,25 +117,7 @@ body, ul, li, h1, h2, a{
        opacity: 0.5;
    }
    
-    footer li {
-        width: 20%;
-        display: inline-block;
-    }
-    
-    footer li a{
-        font-size: 16px;
-        text-decoration: none;
-        color: #FFFFFF;
-        height: auto;
-    }
-    
-    footer{
-        height: 40px;
-        background:#776c78;
-        color: white;
-        line-height: 40px;
-        text-align: center;
-    }
+
    
    
    /* -------------- pseudo classes & elements (video 9)
@@ -175,12 +157,6 @@ body, ul, li, h1, h2, a{
        cursor:pointer;
    }
    
-   footer li a:hover{
-       text-decoration: underline;
-       background-color: #b4adb5;
-       padding: 4px 8px;
-       cursor:pointer;
-   }
    
    
    /* --------------- Responsive Design
@@ -230,17 +206,7 @@ body, ul, li, h1, h2, a{
         font-size: 12px;
     }
 
-       footer li a{
-        font-size: 12px;
-        }
 
-        footer {
-            height: 30px;
-            background:#776c78;
-            color: white;
-            line-height: 30px;
-            text-align: center;
-        }
        
    }
    
@@ -275,19 +241,10 @@ body, ul, li, h1, h2, a{
            display: block;
        }
    
-       footer li a{
-        font-size: 10px;
-        }
 
-        footer {
-            height: 20px;
-            background:#776c78;
-            color: white;
-            line-height: 20px;
-            text-align: center;
-        }
    
    }
    
 @import '../bootstrap-scss/bootstrap';
+@import 'footer';
    

@@ -175,29 +175,6 @@ header {
     // margin-bottom: 2em;
 }
 
-/* ---------------- footer ---------------- */
-
-footer li {
-    width: 20%;
-    display: inline-block;
-}
-   
-footer li a {
-    font-size: 16px;
-    text-decoration: none;
-    color: #FFFFFF;
-    height: auto;
-}
-   
-footer {
-    height: 40px;
-    background:#776c78;
-    color: white;
-    line-height: 40px;
-    text-align: center;
-    flex-shrink: 0;
-}
-
 
 /* ------------ fancy stuff --------------- */
 
@@ -207,12 +184,6 @@ button:hover{
     cursor:pointer;
 }
 
-footer li a:hover{
-    text-decoration: underline;
-    background-color: #b4adb5;
-    padding: 4px 8px;
-    cursor:pointer;
-}
 
 
 @media screen and (max-width: 1200px) {
@@ -243,18 +214,7 @@ footer li a:hover{
         margin-bottom: 5%;
     }
 
-    footer li a {
-        font-size: 14px;
-    }
 
-    footer {
-        height: 30px;
-        background:#776c78;
-        color: white;
-        line-height: 30px;
-        text-align: center;
-        flex-shrink: 0;
-    } 
 }
 
 @media screen and (max-width: 800px) {
@@ -285,18 +245,7 @@ footer li a:hover{
         margin-bottom: 5%;
     }
 
-    footer li a {
-        font-size: 12px;
-    }
 
-    footer {
-        height: 30px;
-        background:#776c78;
-        color: white;
-        line-height: 30px;
-        text-align: center;
-        flex-shrink: 0;
-    }  
 }
 
 @media screen and (max-width: 720px) {
@@ -332,22 +281,12 @@ footer li a:hover{
         margin-top: 0;
     }
 
-    footer li a {
-        font-size: 10px;
-    }
 
-    footer {
-        height: 20px;
-        background:#776c78;
-        color: white;
-        line-height: 20px;
-        text-align: center;
-        flex-shrink: 0;
-    }
 }
 
 
 @import '../bootstrap-scss/bootstrap';
+@import 'footer';
 
 
 // Center the "select row" checkbox in the header of the row selection column

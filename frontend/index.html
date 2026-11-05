@@ -10,6 +10,7 @@
 
         <link href="img/favicon.png" rel="icon">
         <link href="css/index.min.css" rel="stylesheet">
+        <script src="components/app-footer.js"></script>
     </head>
 
     <body>
@@ -17,18 +18,18 @@
         <script src="https://unpkg.com/axios/dist/axios.min.js"></script>
         <header>
             <h1> <img src="img/logo_arbodat_plus.png" alt="logo_arbodat_plus"> </h1>
-        </header>   
+        </header>
 
         <nav class="main_nav">
             <ul>
                 <li><a href="input.html" target="_blank">Data Input</a></li>
                 <li><a href="migration.html" target="_blank">Data Migration</a></li>
                 <li><a href="explorer.html" target="_blank">Data Explorer</a></li>
-                <li><a href="report.html" target="_blank">Data Report</a></li>
+                <li><a href="report.html" target="_blank">Report</a></li>
                 <li><a href="export.html" target="_blank">Data Export</a></li>
                 <li><a href="settings.html" target="_blank">Settings</a></li>
             </ul>
-        </nav> 
+        </nav>
 
         <main>  
             <article>
@@ -75,13 +76,7 @@
 
         </main>
 
-        <footer>
-            <ul>
-                <li><a href="license.html" target="_blank">License</a></li>
-                <li>Version __APP_VERSION__</li>
-                <li><a href="contact.html" target="_blank">Contact<strong> ☏ </strong></a></li>
-            </ul>
-        </footer>
+        <app-footer></app-footer>
 
     </body>
 </html>

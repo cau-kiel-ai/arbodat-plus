@@ -1,3 +1,9 @@
+html, body {
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+}
+
 /* delete browser defaults: */
 body, ul, li, h1, h2, a{
     margin: 0;
@@ -117,25 +123,8 @@ fieldset .col-75 {
     margin-top: 6px;
 }
 
-footer li {
-    width: 20%;
-    display: inline-block;
-}
 
-footer li a{
-    font-size: 16px;
-    text-decoration: none;
-    color: #FFFFFF;
-    height: auto;
-}
 
-footer{
-    height: 40px;
-    background:#776c78;
-    color: white;
-    line-height: 40px;
-    text-align: center;
-}
 
 /* ------------ Input types --------------- */
 
@@ -342,12 +331,6 @@ button:hover{
     cursor:pointer;
 }
 
-footer li a:hover{
-    text-decoration: underline;
-    background-color: #b4adb5;
-    padding: 4px 8px;
-    cursor:pointer;
-}
 
 @media screen and (max-width: 1200px) {
     header {
@@ -407,17 +390,7 @@ footer li a:hover{
         margin-bottom: 5%;
     }
 
-    footer li a{
-        font-size: 14px;
-        }
    
-        footer {
-            height: 30px;
-            background:#776c78;
-            color: white;
-            line-height: 30px;
-            text-align: center;
-        }
 }
 
 @media screen and (max-width: 720px) {
@@ -453,19 +426,10 @@ footer li a:hover{
         margin-top: 0;
       }
 
-      footer li a{
-        font-size: 10px;
-        }
 
-        footer {
-            height: 20px;
-            background:#776c78;
-            color: white;
-            line-height: 20px;
-            text-align: center;
-        }
 }
 
 
 @import '../bootstrap-scss/bootstrap';
 @import 'stickyAccordion';
+@import 'footer';

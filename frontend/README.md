@@ -46,11 +46,18 @@ by several pages. `Dockerfile` renames `*.scss` to `*.min.scss` before compiling
 
 ## Version stamping
 
-Five pages have a `Version __APP_VERSION__` placeholder in their footer. `Dockerfile` replaces it
-via `--build-arg APP_VERSION=x.y.z` and also writes `/version.json` (`{"version": "..."}`), which
-the desktop app and ops use to confirm which version is actually running after an update. Pages
-without a footer (`contact.html`, `license.html`, `report.html`) have no placeholder — `sed` simply
-finds nothing to replace there, which is expected.
+The shared footer lives in `components/app-footer.js` and contains a `Version __APP_VERSION__` placeholder.
+`Dockerfile` replaces it via `--build-arg APP_VERSION=x.y.z` and also writes `/version.json`
+(`{"version": "..."}`), which the desktop app and ops use to confirm which version is actually running
+after an update. With the dev bind mount (`frontend-dev`) nothing is stamped, so the footer shows the
+literal placeholder.
+
+## Shared components
+
+Markup used on several pages is a native Web Component in `components/` (no build step). The footer is
+`<app-footer></app-footer>`: a page needs `<script src="components/app-footer.js"></script>` in its `<head>`
+and the element where the footer belongs. The component renders into the normal DOM (no shadow root);
+its styles are the `sass/_footer.scss` partial, imported by every page stylesheet that has a footer.
 
 ## Docker image
 

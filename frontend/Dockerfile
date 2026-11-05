@@ -18,10 +18,11 @@ RUN npm install -g sass@1.62.1
 # Compile SCSS to CSS
 RUN sass --style=compressed ./sass:./css
 
-# Stamp the release version into pages footer and a machine-readable version.json (read by the
-# desktop app and by ops to confirm which version is actually running after an update).
+# Stamp the release version into the shared footer component and a machine-readable version.json
+# (read by the desktop app and by ops to confirm which version is actually running after an update).
+COPY components ./components
 COPY *.html ./
-RUN sed -i "s/__APP_VERSION__/${APP_VERSION}/" *.html \
+RUN sed -i "s/__APP_VERSION__/${APP_VERSION}/" components/app-footer.js \
     && printf '{"version":"%s"}\n' "${APP_VERSION}" > version.json
 
 # Stage 2: Serve files with nginx (>= 1.27.3 for "upstream ... resolve")
@@ -33,10 +34,10 @@ COPY nginx/templates /etc/nginx/templates
 
 WORKDIR /usr/share/nginx/html
 
-# Only the files actually served: HTML pages (version-stamped), JS and the compiled
-# CSS/version.json from the build stage, and the 6 images referenced by the pages (frontend/img
-# has ~85MB of others, tracked in git but not linked from anywhere -- see info/TODO.md).
+# Only the files actually served: HTML pages, JS, components and the compiled
+# CSS/version.json from the build stage, and the 6 images referenced by the pages
 COPY js ./js
+COPY --from=build-stage /app/components ./components
 COPY --from=build-stage /app/css ./css
 COPY --from=build-stage /app/*.html /app/version.json ./
 COPY img/favicon.png img/banner.png img/logo_arbodat_plus.png \
