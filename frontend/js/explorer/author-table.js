@@ -50,12 +50,8 @@ async function buildAuthorTable() {
         const editedField = cell.getField();
         const newValue = cell.getValue();
 
-        // Update all selected rows
-        const selectedRows = authorTable.getSelectedRows();
-        const editedRow = cell.getRow();
-        if (!selectedRows.includes(editedRow)) {
-            selectedRows.push(editedRow);
-        }
+        const selectedRows = await getRowsToUpdate(authorTable, cell, "author", "authors");
+        if (!selectedRows) return;
         selectedRows.forEach(row => {
             
             // Create payload
@@ -76,10 +72,10 @@ async function buildAuthorTable() {
                 
                 // Update table
                 if(row !== cell.getRow()) { // skip the edited line
-                    row.update({ [editedField]: newValue });
+                    updateRowField(row, editedField, newValue);
                 }
             })
-            .catch(error => console.error("Error updating author:", error));
+            .catch(error => handleUpdateError(cell, row, "author", error));
         });
     });
 
@@ -108,7 +104,7 @@ async function buildAuthorTable() {
                 deleteButton.classList.toggle("hidden", authorTable.getSelectedRows().length === 0);
             })
             .catch(error => {
-                console.error('Error deleting author:', error);
+                handleDeleteError("author", error);
             });            
         });
     };

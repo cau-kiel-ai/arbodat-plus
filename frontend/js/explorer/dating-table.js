@@ -472,31 +472,29 @@ async function buildDatingTable() {
         const editedField = cell.getField();
         const newValue = cell.getValue();
 
-        // Create a new laboratory once, before it is applied to all selected rows
+        // Dating fields only apply to rows of the matching dating type
+        const fieldType = datingTypeOfField[editedField.split(".")[0]];
+        const selectedRows = await getRowsToUpdate(datingTable, cell, "dating", "datings",
+            row => !fieldType || datingType(row.getData()) === fieldType);
+        if (!selectedRows) return;
+
+        // Create a new laboratory once (after the confirmation), before it is applied to all selected rows
         if (editedField.endsWith("laboratory.label") && newValue && !laboratories.some(l => l.label === newValue)) {
             try {
                 await axios.post("api/laboratories", { label: newValue });
                 await loadLaboratories();
             } catch (error) {
                 console.error("Error creating laboratory:", error);
+                reportExplorerError(`Could not create laboratory: ${getErrorMessage(error)}`);
+                cell.restoreOldValue();
                 return;
             }
         }
 
-        // Update all selected rows
-        const selectedRows = datingTable.getSelectedRows();
-        const editedRow = cell.getRow();
-        if (!selectedRows.includes(editedRow)) {
-            selectedRows.push(editedRow);
-        }
         const requests = [];
         const rowsToSync = [];
         selectedRows.forEach(row => {
 
-            // Dating fields only apply to rows of the matching dating type
-            const fieldType = datingTypeOfField[editedField.split(".")[0]];
-            if (fieldType && datingType(row.getData()) !== fieldType) return;
-            
             // Create payload
             const absolute_dating = JSON.parse(JSON.stringify(row.getData()));
             setNestedValue(absolute_dating, editedField, newValue); // other selected rows do not contain the new value yet
@@ -538,7 +536,7 @@ async function buildDatingTable() {
                 
                 // Update table
                 if(row !== cell.getRow()) { // skip the edited line
-                    row.update({ [editedField]: newValue });
+                    updateRowField(row, editedField, newValue);
                 }
 
                 // The backend only keeps the dating of the new method: mirror that and refresh the greyed cells
@@ -555,7 +553,7 @@ async function buildDatingTable() {
                     rowsToSync.push(row);
                 }
             })
-            .catch(error => console.error("Error updating absolute datings:", error)));
+            .catch(error => handleUpdateError(cell, row, "dating", error)));
         });
 
         // Take over the ids of newly created datings, otherwise the next edit would create them again
@@ -603,7 +601,7 @@ async function buildDatingTable() {
                 deleteButton.classList.toggle("hidden", datingTable.getSelectedRows().length === 0);
             })
             .catch(error => {
-                console.error('Error deleting absolute datings:', error);
+                handleDeleteError("dating", error);
             });            
         });
     };

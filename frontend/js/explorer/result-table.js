@@ -591,12 +591,9 @@ async function createResultTable({ selector, results, hiddenFields = [], height 
         const editedField = cell.getField();
         const newValue = cell.getValue();
 
-        // Update all selected rows
-        const selectedRows = table.getSelectedRows();
+        const selectedRows = await getRowsToUpdate(table, cell, "result", "results");
+        if (!selectedRows) return;
         const editedRow = cell.getRow();
-        if (!selectedRows.includes(editedRow)) {
-            selectedRows.push(editedRow);
-        }
         const refused = await Promise.all(selectedRows.map(async row => {
 
             // Create payload from a copy of the row data with the edit applied
@@ -634,10 +631,10 @@ async function createResultTable({ selector, results, hiddenFields = [], height 
 
                 // Update table
                 if(row !== editedRow) { // skip the edited line
-                    row.update({ [editedField]: newValue });
+                    updateRowField(row, editedField, newValue);
                 }
             } catch (error) {
-                console.error("Error updating results:", error);
+                handleUpdateError(cell, row, "result", error);
             }
             return false;
         }));
@@ -676,7 +673,7 @@ function attachResultDeleteHandler(table, deleteButton) {
                 updateDeleteButton();
             })
             .catch(error => {
-                console.error('Error deleting results:', error);
+                handleDeleteError("result", error);
             });
         });
     };

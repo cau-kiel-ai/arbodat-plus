@@ -273,16 +273,11 @@ async function buildFeatureTable() {
         const editedField = cell.getField();
         const newValue = cell.getValue();
 
-        // Update all selected rows
-        const selectedRows = featureTable.getSelectedRows();
-        const editedRow = cell.getRow();
-        if (!selectedRows.includes(editedRow)) {
-            selectedRows.push(editedRow);
-        }
-        selectedRows.forEach(row => {
-
+        const selectedRows = await getRowsToUpdate(featureTable, cell, "feature", "features",
             // Description only applies to features in a building context
-            if (editedField === "buildingContextDescription" && row.getData().buildingContext !== true) return;
+            row => !(editedField === "buildingContextDescription" && row.getData().buildingContext !== true));
+        if (!selectedRows) return;
+        selectedRows.forEach(row => {
 
             // Create payload
             const feature = JSON.parse(JSON.stringify(row.getData()));
@@ -304,14 +299,14 @@ async function buildFeatureTable() {
                 
                 // Update table
                 if(row !== cell.getRow()) { // skip the edited line
-                    row.update({ [editedField]: newValue });
+                    updateRowField(row, editedField, newValue);
                 }
                 // Backend clears the description if building context is unchecked
                 if (editedField === "buildingContext" && !newValue) {
                     row.update({ buildingContextDescription: null });
                 }
             })
-            .catch(error => console.error("Error updating feature:", error));
+            .catch(error => handleUpdateError(cell, row, "feature", error));
         });
     });
 
@@ -340,7 +335,7 @@ async function buildFeatureTable() {
                 deleteButton.classList.toggle("hidden", featureTable.getSelectedRows().length === 0);
             })
             .catch(error => {
-                console.error('Error deleting feature:', error);
+                handleDeleteError("feature", error);
             });            
         });
     };

@@ -92,12 +92,8 @@ async function buildUserTable() {
         const editedField = cell.getField();
         const newValue = cell.getValue();
 
-        // Update all selected rows ------------------------------
-        const selectedRows = userTable.getSelectedRows();
-        const editedRow = cell.getRow();
-        if (!selectedRows.includes(editedRow)) {
-            selectedRows.push(editedRow);
-        }
+        const selectedRows = await getRowsToUpdate(userTable, cell, "user", "users");
+        if (!selectedRows) return;
         selectedRows.forEach(row => {
             
             // Create payload
@@ -128,10 +124,10 @@ async function buildUserTable() {
                 
                 // Update table
                 if(row !== cell.getRow()) { // skip the edited line
-                    row.update({ [editedField]: newValue });
+                    updateRowField(row, editedField, newValue);
                 }
             })
-            .catch(error => console.error("Error updating user:", error));
+            .catch(error => handleUpdateError(cell, row, "user", error));
         });
     });
 
@@ -160,7 +156,7 @@ async function buildUserTable() {
                 deleteButton.classList.toggle("hidden", userTable.getSelectedRows().length === 0);
             })
             .catch(error => {
-                console.error('Error deleting user:', error);
+                handleDeleteError("user", error);
             });            
         });
     };

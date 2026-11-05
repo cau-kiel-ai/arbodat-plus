@@ -9,6 +9,16 @@ function confirmUpdate(entity) {
     });
 }
 
+// An explorer edit is applied to the edited row and all selected rows
+function confirmCellUpdate(count, entity, plural) {
+    if (count === 1) return confirmUpdate(entity);
+    return confirmDialog({
+        title: `Update ${count} ${plural}?`,
+        text: `The edited value will be applied to ${count} ${plural}: the edited row and the selected rows.`,
+        confirmLabel: 'Update'
+    });
+}
+
 function confirmDelete(entity, count, plural = `${entity}s`) {
     const what = count === 1 ? `the selected ${entity}` : `the ${count} selected ${plural}`;
     return confirmDialog({
@@ -98,7 +108,9 @@ function confirmDialog({ title: titleText, text: bodyText, confirmLabel, confirm
         dialog.append(title, text, buttons);
         overlay.appendChild(dialog);
         document.body.appendChild(overlay);
-        (focusCancel ? cancelButton : updateButton).focus();
+        // Not synchronously: the dialog can be opened by the Enter keydown that commits a table cell. The browser would
+        // then send that key's keypress to the newly focused button and click it, i.e. confirm before the dialog is seen.
+        setTimeout(() => (focusCancel ? cancelButton : updateButton).focus(), 0);
 
         // Close ---------------------------------------------
         function close(confirmed) {

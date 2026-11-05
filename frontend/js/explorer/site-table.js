@@ -629,12 +629,8 @@ async function buildSiteTable() {
         const editedField = cell.getField();
         const newValue = cell.getValue();
 
-        // Update all selected rows ------------------------------
-        const selectedRows = siteTable.getSelectedRows();
-        const editedRow = cell.getRow();
-        if (!selectedRows.includes(editedRow)) {
-            selectedRows.push(editedRow);
-        }
+        const selectedRows = await getRowsToUpdate(siteTable, cell, "site", "sites");
+        if (!selectedRows) return;
         selectedRows.forEach(row => {
             
             // Create payload
@@ -723,10 +719,10 @@ async function buildSiteTable() {
                 
                 // Update table
                 if(row !== cell.getRow()) { // skip the edited line
-                        row.update({ [editedField]: newValue });
+                        updateRowField(row, editedField, newValue);
                 }
             })
-            .catch(error => console.error(`Error updating site {siteId}:`, error));
+            .catch(error => handleUpdateError(cell, row, "site", error));
         });
     });
 
@@ -756,7 +752,7 @@ async function buildSiteTable() {
                 deleteButton.classList.toggle("hidden", siteTable.getSelectedRows().length === 0);
             })
             .catch(error => {
-                console.error(`Error deleting site ${siteId}:`, error);
+                handleDeleteError("site", error);
             });            
         });
     };

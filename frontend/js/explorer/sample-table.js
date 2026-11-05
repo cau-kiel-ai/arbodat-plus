@@ -725,12 +725,8 @@ async function buildSampleTable() {
         const editedField = cell.getField();
         const newValue = cell.getValue();
 
-        // Update all selected rows
-        const selectedRows = sampleTable.getSelectedRows();
-        const editedRow = cell.getRow();
-        if (!selectedRows.includes(editedRow)) {
-            selectedRows.push(editedRow);
-        }
+        const selectedRows = await getRowsToUpdate(sampleTable, cell, "sample", "samples");
+        if (!selectedRows) return;
         selectedRows.forEach(row => {
             
             // Create payload
@@ -750,10 +746,10 @@ async function buildSampleTable() {
                 
                 // Update table
                 if(row !== cell.getRow()) { // skip the edited line
-                    row.update({ [editedField]: newValue });
+                    updateRowField(row, editedField, newValue);
                 }
             })
-            .catch(error => console.error("Error updating sample:", error));
+            .catch(error => handleUpdateError(cell, row, "sample", error));
         });
     });
 
@@ -782,7 +778,7 @@ async function buildSampleTable() {
                 deleteButton.classList.toggle("hidden", sampleTable.getSelectedRows().length === 0);
             })
             .catch(error => {
-                console.error('Error deleting sample:', error);
+                handleDeleteError("sample", error);
             });            
         });
     };

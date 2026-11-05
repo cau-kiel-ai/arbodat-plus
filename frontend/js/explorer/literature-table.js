@@ -133,12 +133,8 @@ async function buildLiteratureTable() {
         const editedField = cell.getField();
         const newValue = cell.getValue();
 
-        // Update all selected rows ------------------------------
-        const selectedRows = literatureTable.getSelectedRows();
-        const editedRow = cell.getRow();
-        if (!selectedRows.includes(editedRow)) {
-            selectedRows.push(editedRow);
-        }
+        const selectedRows = await getRowsToUpdate(literatureTable, cell, "literature", "literature entries");
+        if (!selectedRows) return;
         selectedRows.forEach(row => {
             
             // Create payload
@@ -174,10 +170,10 @@ async function buildLiteratureTable() {
                 
                 // Update table
                 if(row !== cell.getRow()) { // skip the edited line
-                    row.update({ [editedField]: newValue });
+                    updateRowField(row, editedField, newValue);
                 }
             })
-            .catch(error => console.error("Error updating literature:", error));
+            .catch(error => handleUpdateError(cell, row, "literature entry", error));
         });
     });
 
@@ -206,7 +202,7 @@ async function buildLiteratureTable() {
                 deleteButton.classList.toggle("hidden", literatureTable.getSelectedRows().length === 0);
             })
             .catch(error => {
-                console.error('Error deleting literature:', error);
+                handleDeleteError("literature entry", error);
             });            
         });
     };

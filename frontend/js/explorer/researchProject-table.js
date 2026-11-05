@@ -138,12 +138,8 @@ async function buildResearchProjectTable() {
         const editedField = cell.getField();
         const newValue = cell.getValue();
 
-        // Update all selected rows ---------------------------
-        const selectedRows = researchProjectTable.getSelectedRows();
-        const editedRow = cell.getRow();
-        if (!selectedRows.includes(editedRow)) {
-            selectedRows.push(editedRow);
-        }
+        const selectedRows = await getRowsToUpdate(researchProjectTable, cell, "research project", "research projects");
+        if (!selectedRows) return;
         selectedRows.forEach(row => {
             
             // Create payload
@@ -173,11 +169,11 @@ async function buildResearchProjectTable() {
                             row.update({ license: { id: licenseObject.uri, label: licenseObject.prefLabel.en } });
                         }
                     } else {
-                        row.update({ [editedField]: newValue });
+                        updateRowField(row, editedField, newValue);
                     }
                 } // --------------------------------------------------
             })
-            .catch(error => console.error("Error updating research project:", error));
+            .catch(error => handleUpdateError(cell, row, "research project", error));
         });
         
         // update site list headerFilterParams ----------------
@@ -238,7 +234,7 @@ async function buildResearchProjectTable() {
                 deleteButton.classList.toggle("hidden", researchProjectTable.getSelectedRows().length === 0);
             })
             .catch(error => {
-                console.error('Error deleting research project:', error);
+                handleDeleteError("research project", error);
             });            
         });
     };

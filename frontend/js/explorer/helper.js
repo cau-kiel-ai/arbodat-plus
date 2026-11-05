@@ -80,3 +80,63 @@ function setNestedValue(obj, path, value) {
     });
     target[keys[keys.length - 1]] = value;
 }
+
+
+// Start of every "cellEdited" handler: the rows the edit is saved to (the edited row and all selected rows).
+// applies(row): optional filter for rows the edited field does not apply to.
+// Asks for confirmation. Returns null if there is nothing to save or the user declines (the edit is taken back then).
+async function getRowsToUpdate(table, cell, entity, plural, applies = () => true) {
+    const rows = table.getSelectedRows();
+    const editedRow = cell.getRow();
+    if (!rows.includes(editedRow)) {
+        rows.push(editedRow);
+    }
+
+    const rowsToUpdate = rows.filter(applies);
+    if (rowsToUpdate.length === 0) return null;
+
+    if (!await confirmCellUpdate(rowsToUpdate.length, entity, plural)) {
+        cell.restoreOldValue();
+        return null;
+    }
+    return rowsToUpdate;
+}
+
+// Set a (nested) field of a row after it was saved. row.update({"a.b": value}) would store a flat key "a.b"
+// and blank the cell, so the top-level object ("a") is updated instead.
+function updateRowField(row, field, value) {
+    const root = field.split(".")[0];
+    const copy = { [root]: JSON.parse(JSON.stringify(row.getData()[root] ?? null)) };
+    if (field === root) {
+        copy[root] = value;
+    } else {
+        copy[root] = copy[root] ?? {};
+        setNestedValue(copy, field, value);
+    }
+    return row.update(copy);
+}
+
+// The same message of a multi-row action (it fails row by row) is shown only once
+const reportedExplorerErrors = new Set();
+function reportExplorerError(message) {
+    if (reportedExplorerErrors.has(message)) return;
+    reportedExplorerErrors.add(message);
+    setTimeout(() => reportedExplorerErrors.delete(message), 3000);
+    toast.error(message);
+}
+
+// A failed update: tell the user and take back the edit of the edited cell.
+// The other selected rows are only changed in the table after their request succeeded.
+function handleUpdateError(cell, row, entity, error) {
+    console.error(`Error updating ${entity}:`, error);
+    reportExplorerError(`Could not save ${entity}: ${getErrorMessage(error)}`);
+    if (row === cell.getRow()) {
+        cell.restoreOldValue();
+    }
+}
+
+// A failed delete: the row stays in the table
+function handleDeleteError(entity, error) {
+    console.error(`Error deleting ${entity}:`, error);
+    reportExplorerError(`Could not delete ${entity}: ${getErrorMessage(error)}`);
+}

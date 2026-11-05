@@ -51,12 +51,8 @@ async function buildInstitutionTable() {
         const editedField = cell.getField();
         const newValue = cell.getValue();
 
-        // Update all selected rows ------------------------------
-        const selectedRows = institutionTable.getSelectedRows();
-        const editedRow = cell.getRow();
-        if (!selectedRows.includes(editedRow)) {
-            selectedRows.push(editedRow);
-        }
+        const selectedRows = await getRowsToUpdate(institutionTable, cell, "institution", "institutions");
+        if (!selectedRows) return;
         selectedRows.forEach(row => {
             
             // Create payload
@@ -77,10 +73,10 @@ async function buildInstitutionTable() {
                 
                 // Update table
                 if(row !== cell.getRow()) { // skip the edited line
-                    row.update({ [editedField]: newValue });
+                    updateRowField(row, editedField, newValue);
                 }
             })
-            .catch(error => console.error("Error updating institution:", error));
+            .catch(error => handleUpdateError(cell, row, "institution", error));
         });
     });
 
@@ -109,7 +105,7 @@ async function buildInstitutionTable() {
                 deleteButton.classList.toggle("hidden", institutionTable.getSelectedRows().length === 0);
             })
             .catch(error => {
-                console.error('Error deleting institution:', error);
+                handleDeleteError("institution", error);
             });            
         });
     };
