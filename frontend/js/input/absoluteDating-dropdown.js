@@ -141,7 +141,7 @@ document.addEventListener("DOMContentLoaded", () => {
         remarksTextarea.value = item.remarks;
         $('#dating_method').val(item.datingMethod?.id ?? '').trigger('change');
         // dating method accordions
-        selected_datingMethod = datingMethodDropdown.selectedOptions[0].text;
+        const selected_datingMethod = selectedLabel(datingMethodDropdown);
         if (selected_datingMethod === "Dendrochronology") {
             dendroLabInput.value = item.dendrochronologicalDating?.laboratory?.label ?? '';
             dendroNumberInput.value = item.dendrochronologicalDating?.number ?? '';

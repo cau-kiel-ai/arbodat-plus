@@ -420,35 +420,35 @@ function create_update_sample() {
         if (sample_type_dropdown.value) {
             payload.sampleType = {
                 id: sample_type_dropdown.value,
-                label: sample_type_dropdown.selectedOptions[0].text
+                label: selectedLabel(sample_type_dropdown)
             }
         }        
         // Seeds and fruits --------------------------------------
         if (seeds_and_fruits_dropdown.value) {
             payload.seedsAndFruits = {
                 id: seeds_and_fruits_dropdown.value,
-                label: seeds_and_fruits_dropdown.selectedOptions[0].text
+                label: selectedLabel(seeds_and_fruits_dropdown)
             }
         }
         // Wood subfossile ---------------------------------------
         if (wood_subfossile_dropdown.value) {
             payload.woodSubfossile = {
                 id: wood_subfossile_dropdown.value,
-                label: wood_subfossile_dropdown.selectedOptions[0].text
+                label: selectedLabel(wood_subfossile_dropdown)
             }
         }
         // Charcoal investigated ---------------------------------
         if (charcoal_investigated_dropdown.value) {
             payload.charcoalInvestigated = {
                 id: charcoal_investigated_dropdown.value,
-                label: charcoal_investigated_dropdown.selectedOptions[0].text
+                label: selectedLabel(charcoal_investigated_dropdown)
             }
         }
         // Chronozone --------------------------------------------
         if (chronozone_dropdown.value) {
             payload.chronozone = {
                 id: chronozone_dropdown.value,
-                label: chronozone_dropdown.selectedOptions[0].text
+                label: selectedLabel(chronozone_dropdown)
             }
         } // -----------------------------------------------------
 

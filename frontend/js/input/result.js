@@ -491,13 +491,13 @@ function submitResult() {
             entryDate: entryDateInput.value,
             stateOfPreservation: {
                 id: stateOfPreservationDropdown.value,
-                label: stateOfPreservationDropdown.selectedOptions[0].text
+                label: selectedLabel(stateOfPreservationDropdown)
             },
 
             // Taxonomy ------------------------------------------
             classificationConfer: {
                 id: classificationConferDropdown.value,
-                label: classificationConferDropdown.selectedOptions[0].text
+                label: selectedLabel(classificationConferDropdown)
             },
             taxCode: { 
                 id: taxCodeDropdown.value,
@@ -509,7 +509,7 @@ function submitResult() {
             // Result --------------------------------------------
             restType: {
                 id: restTypeDropdown.value,
-                label: restTypeDropdown.selectedOptions[0].text,
+                label: selectedLabel(restTypeDropdown),
                 structuralConcept: restTypeDropdown.selectedOptions[0].getAttribute('data-structuralConcept')
             },
             restCount: restCountInput.value,
@@ -529,7 +529,7 @@ function submitResult() {
             }
             refreshExistingResults();
             // Reset "Taxonomy" and "Results" fields -------------------
-            const inputs = resultFormTaxonomy.querySelectorAll('input, select, textarea');
+            const inputs = document.getElementById('resultFormTaxonomy').querySelectorAll('input, select, textarea');
             
             inputs.forEach(input => {
                 if (input.tagName.toLowerCase() === 'input') {

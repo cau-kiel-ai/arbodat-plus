@@ -1,4 +1,11 @@
 
+// Label of the selected option of a vocabulary dropdown. The text of an option is indented with non-breaking
+// spaces for its hierarchy level; data-label is the label without them (the placeholder option has none).
+function selectedLabel(select) {
+    const option = select.selectedOptions[0];
+    return option ? (option.getAttribute("data-label") ?? option.text.trim()) : null;
+}
+
 function populateDanteDropdown (attribute, dropdown) {
 
     // Get cachedData

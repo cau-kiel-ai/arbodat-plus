@@ -332,7 +332,7 @@ const otherDating_AccordionButton = otherDating_AccordionItem.querySelector(".ac
 const otherDating_AccordionCollapseElem = document.getElementById("otherDating_AccordionCollapseElem");
 
 $('#dating_method').on('change', function () {
-    const selectedValue = this.selectedOptions[0].text;
+    const selectedValue = selectedLabel(this);
 
     if (selectedValue === "Dendrochronology") {
         c14LabDropdown.required = false;
@@ -479,7 +479,7 @@ function populateLabList() {
 function create_update_absoulteDating() {
     if (absoluteDating_form.checkValidity()) {
         const absoluteDatingId = document.getElementById("absDating_id").value;
-        const datingMethodLabel = datingMethodDropdown.selectedOptions[0].text
+        const datingMethodLabel = selectedLabel(datingMethodDropdown);
 
         // Create absolute dating payload
         const payload = {            
@@ -499,7 +499,7 @@ function create_update_absoulteDating() {
         if (materialDropdown.value) {
             payload.material = {
                 id: materialDropdown.value,
-                label: materialDropdown.selectedOptions[0].text
+                label: selectedLabel(materialDropdown)
             };
         }
             // dating method
