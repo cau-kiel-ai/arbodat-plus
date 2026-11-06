@@ -116,9 +116,10 @@ function create_update_user() {
                     toast.success("user updated");
 
                     // Update 'Select existing Users' selection in migration
-                    try {
+                    // (this script is also used by the migration page, only that one defines fetchUsers)
+                    if (typeof fetchUsers === "function") {
                         fetchUsers();
-                    } catch (error) {}
+                    }
                     // -----------------------------------------------------
                 })
                 .catch((error) => {
@@ -149,9 +150,9 @@ function create_update_user() {
                 // ------------------------------------------------------------
 
                 // Update 'Select existing Users' selection in migration
-                try {
+                if (typeof fetchUsers === "function") {
                     fetchUsers();
-                } catch (error) {}
+                }
                 // -----------------------------------------------------
             })
             .catch((error) => {
