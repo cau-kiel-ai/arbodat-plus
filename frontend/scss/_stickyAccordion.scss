@@ -2,7 +2,7 @@
 // Keeps accordion headers visible below the sticky navbar (see _navbar.scss) while scrolling; nested headers stack below their parent
 
 :root {
-    --page-header-height: 66px; // = navbar height (60px logo + 6px margin), see _navbar.scss
+    --page-header-height: 62px; // = navbar height, see _navbar.scss
 }
 
 // z-index: each sticky header is its own stacking layer; a later header paints over the previous one,

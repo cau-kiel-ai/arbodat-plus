@@ -106,7 +106,7 @@ pages `report`/`contact`/`license`).
 - `<app-navbar>` (`components/app-navbar.js`, `_navbar.scss`): Bootstrap navbar with the logo as home link and the
   module entries (edit `NAV_ENTRIES` to change them). Highlights the current page and collapses into a burger menu
   below `$navbar-breakpoint` (top of `_navbar.scss`), so the page must load Bootstrap's JS bundle. It is sticky at
-  the top of the page; its height (66px) must match `--page-header-height` in `_stickyAccordion.scss`.
+  the top of the page; its height (62px) must match `--page-header-height` in `_stickyAccordion.scss`.
 
 ## Escaping data in HTML
 

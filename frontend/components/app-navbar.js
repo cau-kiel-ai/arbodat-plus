@@ -21,7 +21,7 @@ class AppNavbar extends HTMLElement {
             <nav class="navbar" data-bs-theme="dark">
                 <div class="container-fluid">
                     <a class="navbar-brand" href="index.html"${current === 'index.html' ? ' aria-current="page"' : ''}>
-                        <img src="img/logo_arbodat_plus.png" width="109" height="60" alt="ArboDat+ home">
+                        <img src="img/logo_arbodat_plus.png" width="87" height="48" alt="ArboDat+ Home">
                     </a>
                     <button class="navbar-toggler" type="button" data-bs-toggle="collapse"
                             data-bs-target="#app-navbar-menu" aria-controls="app-navbar-menu"
