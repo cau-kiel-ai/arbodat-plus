@@ -25,21 +25,6 @@ async function buildLiteratureTable() {
     } catch (error) {
         console.error("Error loading authors:", error)
     }
-    
-    function formatAuth(authorList) {
-        if (!authorList) return "";
-
-        // HTML download
-        if (!Array.isArray(authorList)) return authorList;
-
-        return authorList
-            .map(id => {
-                const author = authors.find(author => author.id === id)
-                return formatName(author) ?? id ?? "";
-            })
-            .filter(Boolean)
-            .join(", ");
-    }
 
     // Create year list for publication year ------------------------------------
     const currentYear = new Date().getFullYear();

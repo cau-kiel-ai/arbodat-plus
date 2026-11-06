@@ -40,7 +40,22 @@ function formatLit(literature, literatureList) {
     return literatureList
         .map(id => {
             const lit = literature.find(lit => lit.id === id)
-            return formatLiterature(lit) ?? id ?? "";
+            return lit ? formatLiterature(lit) : id; // unknown id: show the id itself
+        })
+        .filter(Boolean)
+        .join(", ");
+}
+
+function formatAuth(authorList) {
+    if (!authorList) return "";
+
+    // HTML download
+    if (!Array.isArray(authorList)) return authorList;
+
+    return authorList
+        .map(id => {
+            const author = authors.find(author => author.id === id)
+            return author ? formatName(author) : id; // unknown id: show the id itself
         })
         .filter(Boolean)
         .join(", ");
@@ -55,7 +70,7 @@ function formatUser(users, userList) {
     return userList
         .map(id => {
             const user = users.find(user => user.id === id)
-            return formatName(user) ?? id ?? "";
+            return user ? formatName(user) : id; // unknown id: show the id itself
         })
         .filter(Boolean)
         .join(", ");
