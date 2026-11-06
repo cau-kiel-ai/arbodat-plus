@@ -48,6 +48,11 @@ body, ul, li, h1, h2, a{
     color:#5D535E
 }
    
+   /* the list used to sit in a <p> (invalid), whose margins gave it this spacing */
+   article ul{
+       margin: 1em 0;
+   }
+
    article ul li{
        font-size: 20px;
        line-height: 2em; 
@@ -99,7 +104,8 @@ body, ul, li, h1, h2, a{
        top: -4px;
    }
    
-   .images li img:hover{
+   .images li img:hover,
+   .images li a:focus-visible img{
        opacity: 1.0;
        cursor:pointer;
    }
