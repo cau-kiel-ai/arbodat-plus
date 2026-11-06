@@ -495,7 +495,7 @@ async function createResult(itemId, row, triggerNext=true) {
                 row.remove();
 
                 if (triggerNext) {
-                    tableBodyId = `resultTableBody_${siteLabel}`;
+                    const tableBodyId = `resultTableBody_${siteLabel}`;
                     createCheckedResults(tableBodyId);
                 }
                 

@@ -383,7 +383,7 @@ document.addEventListener('DOMContentLoaded', async function () {
     // Init map when accordion is opened
     Accordion.addEventListener('shown.bs.collapse', () => {
         initMap(map_id);
-        map = mapStore.maps[map_id];
+        const map = mapStore.maps[map_id];
 
         map.on('click', function (e) {
             const { lat, lng } = e.latlng;

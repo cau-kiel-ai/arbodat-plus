@@ -478,9 +478,9 @@ function populateNonMatchingDanteAttributes(nonMatchingDanteAttributeList) {
 
     // if tbody empty hide tables
     // else display
-    tbodyList = [siteTypeTableBody, naturalUnitTableBody, featureTypeTableBody,
+    const tbodyList = [siteTypeTableBody, naturalUnitTableBody, featureTypeTableBody,
                  preservationConditionTableBody, sampleTypeTableBody, chronozoneTableBody,
-                 seedsAndFruitsTableBody, charcoalInvestigatedTableBody, woodSubfossileTableBody,,
+                 seedsAndFruitsTableBody, charcoalInvestigatedTableBody, woodSubfossileTableBody,
                  materialTableBody, datingMethodTableBody];
     tbodyList.forEach(tbody => {
         hideTableIfTbodyEmpty(tbody);
@@ -526,7 +526,7 @@ async function updateAttributes(id, attribute, row, triggerNext=true) {
                 row.remove();
                 if (triggerNext) {
                     const tableBodyId = "siteTypeTableBody";
-                    updateCheckedAttributes(tableBodyId, siteType=true);
+                    updateCheckedAttributes(tableBodyId, true);
                 }
                 return true;
 

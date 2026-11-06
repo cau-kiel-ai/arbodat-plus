@@ -34,8 +34,8 @@ function initMap(map_id) {
 
 // update map with new coordinates
 function updateMap(map_id, lat, lon) {
-    map = mapStore.maps[map_id];
-    marker = mapStore.markers[map_id];
+    const map = mapStore.maps[map_id];
+    const marker = mapStore.markers[map_id];
     if (map && marker) {
         map.setView([lat, lon], mapZoom);
         marker.setLatLng([lat, lon]);
