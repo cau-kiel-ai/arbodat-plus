@@ -542,7 +542,7 @@ async function createCheckedResults(tableBodyId) {
                     const row = checkbox.closest('tr');               
                     const itemId = row.dataset.itemId;
 
-                    return createResult(itemId, row, triggerNext = false);
+                    return createResult(itemId, row, false);
                 });
 
                 await Promise.allSettled(promises);

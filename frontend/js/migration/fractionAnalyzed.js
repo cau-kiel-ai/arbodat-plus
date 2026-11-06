@@ -325,7 +325,7 @@ async function updateCheckedFractionAnalyzed() {
                     const sieveSize =
                         sieveSizeInputElement.value;
 
-                    return createFractionAnalyzed(orgOrMin, sieveSize, row, triggerNext = false);
+                    return createFractionAnalyzed(orgOrMin, sieveSize, row, false);
                 });
 
                 await Promise.allSettled(promises);

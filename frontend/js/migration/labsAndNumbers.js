@@ -300,7 +300,7 @@ async function updateCheckedAbsDatingWithLabAndNumber(tableBodyId) {
                         absoluteDatingId,
                         datingMethod,
                         row,
-                        triggerNext = false
+                        false
                     );
                 });
 

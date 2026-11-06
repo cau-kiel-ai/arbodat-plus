@@ -248,7 +248,7 @@ async function updateCheckedUsers() {
                         JSON.stringify(userIds),
                         userRole,
                         row,
-                        triggerNext = false
+                        false
                     );
                 });
 

@@ -670,9 +670,9 @@ async function updateCheckedAttributes(tableBodyId, siteType=false) {
                     const attribute = row.dataset.attribute;
     
                     if (siteType) {
-                        return updateAttributes(id, attribute, row, triggerNext = false);
+                        return updateAttributes(id, attribute, row, false);
                     } else {
-                        return updateAttribute(id, attribute, row, triggerNext = false);
+                        return updateAttribute(id, attribute, row, false);
                     }
                 });
 

@@ -416,7 +416,7 @@ async function createCheckedCoordinates(tableBodyId) {
                     const itemType = row.dataset.itemType;
                     const itemId = row.dataset.itemId;
 
-                    return createCoordinate(itemType, itemId, row, triggerNext = false);                    
+                    return createCoordinate(itemType, itemId, row, false);                    
                 });
 
                 await Promise.allSettled(promises);
