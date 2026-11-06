@@ -45,9 +45,19 @@ by several pages. `Dockerfile` renames `*.scss` to `*.min.scss` before compiling
 
 ## Third-party libraries (`vendor/`)
 
-No library is loaded from a CDN: the pages reference pinned copies under `vendor/<package>@<version>/`,
-so the UI works offline and no visitor data goes to third parties. (Only the map tiles and reverse
-geocoding still need the internet.)
+No library is loaded from a CDN: the pages reference pinned copies under `vendor/<package>@<version>/`, so
+scripts, styles and icons never come from a third party and the versions are reproducible. The app is **not**
+self-contained though: the browser itself contacts these services (each one sees the visitor's IP address), and the
+parts which use them do not work without internet access:
+
+| Service | Used for |
+|---|---|
+| `api.dante.gbv.de` (DANTE) | the vocabularies of the dropdowns (Data Input, Data Migration, Data Explorer, Settings) |
+| `tile.openstreetmap.org` | the map tiles of the site map in Data Input |
+| `epsg.io` | the projection definition when coordinates are converted to WGS84 (only the EPSG number is sent) |
+
+Reverse geocoding goes through the server (`/nominatim-reverse` to OpenStreetMap's Nominatim), so the browser only
+talks to its own server for that.
 
 - `package.json` / `package-lock.json` are the single source of truth for the versions (exact pins).
 - `npm run vendor` (`scripts/vendor.mjs`) copies the needed files from `node_modules/` into `vendor/`
