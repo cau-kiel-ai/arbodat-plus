@@ -150,6 +150,7 @@ async function collectDanteAttributes() {
         // create JSON-Arrays -----------------------------------------------------------
         const attributeList = [];        
         let isNarrower = false;
+        let newEntry;
 
         for (let i = 0; i < cachedData.length; i++) {
             const item = cachedData[i];

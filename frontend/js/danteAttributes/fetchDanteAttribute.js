@@ -221,6 +221,19 @@ async function fetchDanteAttribute(attribute) {
         const response = await axios.get(url, { timeout: DANTE_TIMEOUT_MS });
         const displayOrder = await loadDisplayOrder(); // custom order of hierarchical dropdowns (displayOrder.js)
 
+        // Local entries which are added to the vocabularies below (assigned in the cases)
+        let unknown_entry,
+            notChosen_entry,
+            otherAnthropogenicDeposit_entry,
+            otherNaturalSediment_entry,
+            otherRuralSetting_entry,
+            otherSettlement_entry,
+            otherPlaceOfCult_entry,
+            otherTypeOfFeature_entry,
+            otherRitualFeature_entry,
+            others_entry,
+            other_entry;
+
         // - Cache Atributes
         // - add local entries
         // - remove rejected entries
