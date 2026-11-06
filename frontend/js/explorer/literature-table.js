@@ -90,8 +90,8 @@ async function buildLiteratureTable() {
                 sorter:"array", sorterParams:{
                     valueMap:"label"
                 },
-                formatter: textFormatter(cell => formatAuth(cell.getValue())),
-                accessorDownload: value => formatAuth(value),
+                formatter: textFormatter(cell => formatAuth(authors, cell.getValue())),
+                accessorDownload: value => formatAuth(authors, value),
             },
             {title:"doi", field:"doi", editor:"input", headerFilter:true, headerSortTristate:true},
             {title:"short citation", titleDownload:"shortCitation", field:"shortCitation", editor:"input", headerFilter:true, headerSortTristate:true},

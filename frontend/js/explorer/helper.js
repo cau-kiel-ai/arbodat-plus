@@ -46,7 +46,7 @@ function formatLit(literature, literatureList) {
         .join(", ");
 }
 
-function formatAuth(authorList) {
+function formatAuth(authors, authorList) {
     if (!authorList) return "";
 
     // HTML download
