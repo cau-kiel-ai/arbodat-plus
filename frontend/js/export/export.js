@@ -17,6 +17,10 @@ $('#researchProjectDropdown, #siteDropdown, #featureDropdown, #sampleDropdown')
 // Set the initial placeholder ("ArboDat+_Export_all_<date>") on page load
 updateExportFileNamePlaceholder();
 
+// A selection can change while the previous request is still running: only the latest request of a dropdown
+// may fill it (and enable it), otherwise answers append twice or an old answer overwrites a newer one.
+const latestRequest = { site: 0, feature: 0, sample: 0 };
+
 // Lookup maps: id -> display name (used for export file name)
 let researchProjectNames = {};
 let siteLabels           = {};
@@ -67,6 +71,7 @@ $('#siteDropdown')
 
 $('#researchProjectDropdown').on('change', async function () {
     const selectedResearchProjectIds = $('#researchProjectDropdown').val() || [];
+    const request = ++latestRequest.site; // invalidates a request which is still running
 
     if (selectedResearchProjectIds.length === 0) {
         // Reset and disable multi-select
@@ -89,6 +94,7 @@ $('#researchProjectDropdown').on('change', async function () {
     try {
         // Get sites
         const response = await axios.get('api/sites');
+        if (request !== latestRequest.site) return; // a newer selection has taken over
 
         // Reset multi-select
         $('#siteDropdown')
@@ -128,8 +134,8 @@ $('#researchProjectDropdown').on('change', async function () {
         console.error('Error during sites GET request: ', error);
 
     } finally {
-        // Enable multi-select
-        $('#siteDropdown').prop('disabled', false)
+        // Enable multi-select (the newer request enables it itself)
+        if (request === latestRequest.site) $('#siteDropdown').prop('disabled', false)
     }
 });
 
@@ -140,6 +146,7 @@ $('#featureDropdown')
 
 $('#siteDropdown').on('change', async function () {
     const selectedSiteIds = $('#siteDropdown').val() || [];
+    const request = ++latestRequest.feature; // invalidates a request which is still running
 
     if (selectedSiteIds.length === 0) {
         // Reset and disable dropdown
@@ -162,6 +169,7 @@ $('#siteDropdown').on('change', async function () {
     try {
         // Get features
         const response = await axios.get('api/features');
+        if (request !== latestRequest.feature) return;
 
         // Reset multi-select
         $('#featureDropdown')
@@ -189,8 +197,7 @@ $('#siteDropdown').on('change', async function () {
         console.error('Error during features GET request: ', error);
 
     } finally {
-        // Enable multi-select
-        $('#featureDropdown').prop('disabled', false)
+        if (request === latestRequest.feature) $('#featureDropdown').prop('disabled', false)
     }
 });
 
@@ -201,6 +208,7 @@ $('#sampleDropdown')
 
 $('#featureDropdown').on('change', async function () {
     const selectedFeatureIds = $('#featureDropdown').val() || [];
+    const request = ++latestRequest.sample; // invalidates a request which is still running
 
     if (selectedFeatureIds.length === 0) {
         // Reset and disable multi-select
@@ -223,6 +231,7 @@ $('#featureDropdown').on('change', async function () {
     try {
         // Get samples
         const response = await axios.get('api/samples');
+        if (request !== latestRequest.sample) return;
 
         // Reset multi-select
         $('#sampleDropdown')
@@ -250,8 +259,7 @@ $('#featureDropdown').on('change', async function () {
         console.error('Error during samples GET request: ', error);
 
     } finally {
-        // Enable multi-select
-        $('#sampleDropdown').prop('disabled', false)
+        if (request === latestRequest.sample) $('#sampleDropdown').prop('disabled', false)
     }
 });
 
