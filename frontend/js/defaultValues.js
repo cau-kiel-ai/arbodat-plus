@@ -39,12 +39,14 @@ const DEFAULT_VALUE_SELECTS = {
 // Load default values once ({key: [uri, ...]});
 // forms keep working without defaults if the request fails
 let defaultValuesPromise = null;
+let defaultValuesLoadFailed = false; // the Settings page must not save then: the stored defaults would be deleted
 function loadDefaultValues() {
     if (!defaultValuesPromise) {
         defaultValuesPromise = axios.get('api/default_values')
             .then(response => response.data || {})
             .catch(error => {
                 console.error('Error during GET request to load default values:', error);
+                defaultValuesLoadFailed = true;
                 return {};
             });
     }

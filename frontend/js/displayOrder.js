@@ -17,12 +17,14 @@ const DISPLAY_ORDER_ATTRIBUTES = {
 // Load the custom orders once ({key: [uri, ...]});
 // dropdowns keep the default order if the request fails
 let displayOrderPromise = null;
+let displayOrderLoadFailed = false; // the Settings page must not save then: the stored orders would be deleted
 function loadDisplayOrder() {
     if (!displayOrderPromise) {
         displayOrderPromise = axios.get('api/display_order')
             .then(response => response.data || {})
             .catch(error => {
                 console.error('Error during GET request to load display order:', error);
+                displayOrderLoadFailed = true;
                 return {};
             });
     }

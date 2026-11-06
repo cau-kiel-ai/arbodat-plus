@@ -51,6 +51,12 @@ const ORDER_CACHES = {
 // 'custom': the order is saved with the next save; 'default': DANTE order, nothing is saved
 const orderState = {};
 
+// The PUT endpoints delete every key which is missing from the payload, so a field which could not
+// be shown (its vocabulary did not load) must send what is stored, otherwise saving would delete it.
+const fieldLoaded = {};     // field key -> the dropdown has options
+let storedDefaults = {};    // as loaded from the backend: {key: [uri, ...]}
+let storedOrders = {};
+
 // Custom order ---------------------------------------------------------------
 function orderRowHtml(field) {
     return `
@@ -183,12 +189,15 @@ document.addEventListener("DOMContentLoaded", async () => {
     buildSettingsAccordion();
 
     const displayOrder = await loadDisplayOrder();
+    storedOrders = displayOrder;
 
     for (const field of settingsFields) {
         const select = document.getElementById(settingsSelectId(field));
 
         await fetchDanteAttribute(field.attribute);
         populateDanteDropdown(field.attribute, select);
+        // an empty dropdown (plus the blank option of a single select) means the vocabulary could not be loaded
+        fieldLoaded[field.key] = select.options.length > (field.multiple ? 0 : 1);
 
         $(select).select2({ placeholder: "", allowClear: true, width: "100%" });
         $(select).next('.select2-container').find('.select2-selection__arrow').remove();
@@ -201,6 +210,7 @@ document.addEventListener("DOMContentLoaded", async () => {
     }
 
     const defaultValues = await loadDefaultValues();
+    storedDefaults = defaultValues;
     for (const field of settingsFields) {
         const select = document.getElementById(settingsSelectId(field));
 
@@ -212,12 +222,27 @@ document.addEventListener("DOMContentLoaded", async () => {
             $(select).val(field.multiple ? uris : uris[0]).trigger('change');
         }
     }
+
+    // Saving is only safe if what is stored could be read (an empty answer would delete it all)
+    if (defaultValuesLoadFailed || displayOrderLoadFailed) {
+        toast.error("The stored settings could not be loaded. Saving is disabled so that they are not overwritten.");
+        return;
+    }
+    const notLoaded = settingsFields.filter(field => !fieldLoaded[field.key]);
+    if (notLoaded.length > 0) {
+        toast.info(`Could not load: ${notLoaded.map(field => field.label).join(", ")}. Their stored settings stay unchanged when you save.`);
+    }
+    document.getElementById("saveDefaultValuesButton").disabled = false;
 });
 
 // Save -----------------------------------------------------------------------
 document.getElementById("saveDefaultValuesButton").addEventListener("click", () => {
     const payload = {};
     for (const field of settingsFields) {
+        if (!fieldLoaded[field.key]) { // not shown: keep what is stored
+            if ((storedDefaults[field.key] || []).length > 0) payload[field.key] = storedDefaults[field.key];
+            continue;
+        }
         const value = $(document.getElementById(settingsSelectId(field))).val();
         const uris = (Array.isArray(value) ? value : [value]).filter(uri => uri);
         if (uris.length > 0) {
@@ -228,7 +253,9 @@ document.getElementById("saveDefaultValuesButton").addEventListener("click", () 
     // custom orders: only fields which were customized, all others fall back to the DANTE order
     const orderPayload = {};
     for (const field of settingsFields.filter(field => field.sortable)) {
-        if (orderState[field.key] === "custom") {
+        if (!fieldLoaded[field.key]) { // not shown: keep what is stored
+            if ((storedOrders[field.key] || []).length > 0) orderPayload[field.key] = storedOrders[field.key];
+        } else if (orderState[field.key] === "custom") {
             orderPayload[field.key] = serializeOrderList(field);
         }
     }
