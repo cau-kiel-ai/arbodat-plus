@@ -465,7 +465,7 @@ function create_update_sample() {
                 })
                 .catch(error => {
                     console.error('Error during PUT request to update sample:', error);
-                    alert("action failed");
+                    toast.error("action failed");
                 });
             });
         } else { // Create (POST) -----------------------------------------
@@ -484,7 +484,7 @@ function create_update_sample() {
             })
             .catch(error => {
                 console.error('Error during POST request to create sample:', error);
-                alert("action failed");
+                toast.error("action failed");
             });
         }
 

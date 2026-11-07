@@ -243,7 +243,7 @@ function openCreateFractionModal(item, resultRow, onCreated = () => createResult
             }
         } catch (error) {
             console.error('Error:', error);
-            alert("Failed to create FractionAnalyzed.");
+            toast.error("Failed to create FractionAnalyzed.");
         }
     };
 }
@@ -282,7 +282,7 @@ async function createFractionAnalyzed (orgOrMin, sieveSize, row, triggerNext=tru
             }
         } catch (error) {
             console.error('Error:', error);
-            alert("Failed to create FractionAnalyzed.");
+            toast.error("Failed to create FractionAnalyzed.");
         }
     } else {
         if (triggerNext) {

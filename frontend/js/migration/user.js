@@ -209,7 +209,7 @@ async function updateWithUser(type, id, userIds, userRole, row, triggerNext=true
 
         } catch (error) {
             console.error('Error:', error);
-            alert("Failed to update User.");
+            toast.error("Failed to update User.");
         }
 
     } else {

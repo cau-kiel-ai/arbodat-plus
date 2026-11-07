@@ -638,7 +638,7 @@ async function fetchDanteAttribute(attribute) {
         }
 
     } catch (error) {
-        console.error('Error during dante vocabulary fetch: ', error);
+        console.error('Error during GET request to load dante vocabulary: ', error);
     }
 }
 
@@ -670,7 +670,7 @@ async function fetchDanteTaxCodes(uri) {
             cachedTaxCodesForURI.set(uri, taxCodes);
 
         } catch (error) {
-            console.error('Error during tax code fetch: ', error);
+            console.error('Error during GET request to load tax code: ', error);
         }
     }
 }

@@ -376,7 +376,7 @@ async function createCoordinate(itemType, itemId, row, triggerNext = true) {
 
                 } catch (error) {
                     console.error('Error:', error);
-                    alert("Failed to update Coordinate.");
+                    toast.error("Failed to update Coordinate.");
                 }
     
             } else {

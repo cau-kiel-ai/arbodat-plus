@@ -37,7 +37,7 @@ function create_update_author() {
                 })
                 .catch(error => {
                     console.error('Error during PUT request to update author:', error);
-                    alert("action failed");
+                    toast.error("action failed");
                 });
             });
 
@@ -52,7 +52,7 @@ function create_update_author() {
             })
             .catch(error => {
                 console.error('Error during POST request to create author:', error);
-                alert("action failed");
+                toast.error("action failed");
             });
         };
         

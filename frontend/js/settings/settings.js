@@ -270,6 +270,6 @@ document.getElementById("saveDefaultValuesButton").addEventListener("click", () 
         })
         .catch(error => {
             console.error('Error during PUT request to save settings:', error);
-            alert("action failed");
+            toast.error("action failed");
         });
 });

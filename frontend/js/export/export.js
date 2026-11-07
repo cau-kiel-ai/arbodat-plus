@@ -409,7 +409,7 @@ async function handleExportError(error) {
             // keep default message
         }
     }
-    alert(message);
+    toast.error(message);
 }
 
 async function exportData() {

@@ -55,7 +55,7 @@ function setupAccordionMap(accordionId, mapId) {
       if (map) {
         map.invalidateSize(); // correcting the fit / size of map
       } else {
-        console.warn("Map konnte nicht gefunden werden:", mapId);
+        console.error("Map could not be found:", mapId);
       }
     }, 200); // Delay, to stabalize Layout
   });

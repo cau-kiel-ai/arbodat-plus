@@ -153,7 +153,7 @@ function create_update_feature() {
                 })
                 .catch(error => {
                     console.error('Error during PUT request to update feature:', error);
-                    alert("action failed");
+                    toast.error("action failed");
                 });
             });
         } else { // Create (POST) ---------------------------------------------------
@@ -170,7 +170,7 @@ function create_update_feature() {
             })
             .catch(error => {
                 console.error('Error during POST request to create feature:', error);
-                alert("action failed");
+                toast.error("action failed");
             });
         }
        

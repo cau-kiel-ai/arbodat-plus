@@ -28,10 +28,8 @@ Each entry says what to do and why.
 
 ## Frontend
 
-- [ ] **Replace `alert()`.** There are 28 `alert()` calls. macOS WKWebView ignores `alert()`, so the desktop app injects
-  a shim. In-page notifications (e.g. Bootstrap toasts) work everywhere.
-- [ ] **Clean up assets.** Remove the unused images in `frontend/img` (~81 MB, e.g. `banner.tif`) and the dead
-  `manual.html` link in `input.html`.
+- [ ] **Review console messages.** Check the `console.log`/`console.error` calls and the error messages they report.
+  Remove the ones that are only debugging noise and replace the ones a user should see with sensible toasts.
 
 ## Release process
 

@@ -207,7 +207,7 @@ async function updateAbsDatingWithLabAndNumber (absoluteDatingId, datingMethod, 
 
                 } catch (error) {
                     console.error('Error:', error);
-                    alert("Failed to update C14Laboratory.");
+                    toast.error("Failed to update C14Laboratory.");
                 }
             
             } else {
@@ -265,7 +265,7 @@ async function updateAbsDatingWithLabAndNumber (absoluteDatingId, datingMethod, 
 
                 } catch (error) {
                     console.error('Error:', error);
-                    alert("Failed to update Laboratory.");
+                    toast.error("Failed to update Laboratory.");
                 }
             }
         }

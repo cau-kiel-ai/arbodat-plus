@@ -557,7 +557,7 @@ function submitResult() {
         })
         .catch(error => {
             console.error('Error during POST request to create result:', error);
-            alert("action failed");
+            toast.error("action failed");
         });
 
     } else { // Report -----------------

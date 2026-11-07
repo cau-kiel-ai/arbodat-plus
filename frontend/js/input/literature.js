@@ -135,7 +135,7 @@ function create_update_literature() {
                 })
                 .catch(error => {
                     console.error('Error during PUT request to update literature:', error);
-                    alert("action failed");
+                    toast.error("action failed");
                 });
             });
         } else { // Create (POST) ------------------------------------------------------
@@ -156,7 +156,7 @@ function create_update_literature() {
             })
             .catch(error => {
                 console.error('Error during POST request to create literature:', error);
-                alert("action failed");
+                toast.error("action failed");
             });
         };
         

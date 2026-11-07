@@ -52,7 +52,7 @@ function create_update_researchProject() {
                 })
                 .catch(error => {
                     console.error('Error during PUT request to update research project:', error);
-                    alert("action failed");
+                    toast.error("action failed");
                 });
             });
 
@@ -70,7 +70,7 @@ function create_update_researchProject() {
             })
             .catch((error) => {
                 console.error('Error during POST request to create research project:', error);
-                alert("action failed");
+                toast.error("action failed");
             });
         };
 

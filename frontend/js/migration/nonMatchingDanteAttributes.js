@@ -532,7 +532,7 @@ async function updateAttributes(id, attribute, row, triggerNext=true) {
 
             } catch (error) {
                 console.error('Error:', error);
-                alert("Failed to update DANTE Attribute.");
+                toast.error("Failed to update DANTE Attribute.");
             }
         }
 
@@ -641,7 +641,7 @@ async function updateAttribute(id, attribute, row, triggerNext=true) {
 
         } catch (error) {
             console.error('Error:', error);
-            alert("Failed to update DANTE Attribute.");
+            toast.error("Failed to update DANTE Attribute.");
         }
 
     } else {

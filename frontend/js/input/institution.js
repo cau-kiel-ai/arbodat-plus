@@ -35,7 +35,7 @@ function create_update_institution() {
                 })
                 .catch(error => {
                     console.error('Error during PUT request to update institution:', error);
-                    alert("action failed");
+                    toast.error("action failed");
                 });
             });
 
@@ -50,7 +50,7 @@ function create_update_institution() {
             })
             .catch(error => {
                 console.error('Error during POST request to create institution:', error);
-                alert("action failed");
+                toast.error("action failed");
             });
         }
 

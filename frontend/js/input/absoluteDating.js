@@ -580,7 +580,7 @@ function create_update_absoulteDating() {
                 })
                 .catch(error => {
                     console.error('Error during PUT request to update absolute dating:', error);
-                    alert("action failed");
+                    toast.error("action failed");
                 });
             });
 
@@ -602,7 +602,7 @@ function create_update_absoulteDating() {
             })
             .catch(error => {
                 console.error('Error during POST request to create absolute dating:', error);
-                alert("action failed");
+                toast.error("action failed");
             });
         }        
 

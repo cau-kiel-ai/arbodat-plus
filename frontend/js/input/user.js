@@ -124,7 +124,7 @@ function create_update_user() {
                 })
                 .catch((error) => {
                     console.error('Error during PUT request to update user:', error);
-                    alert("action failed");
+                    toast.error("action failed");
                 });
             });
         } else { // create (POST) -----------------------------------------------
@@ -157,7 +157,7 @@ function create_update_user() {
             })
             .catch((error) => {
                 console.error('Error during POST request to create user:', error);
-                alert("action failed");
+                toast.error("action failed");
             });
         };
 

@@ -503,7 +503,7 @@ async function createResult(itemId, row, triggerNext=true) {
 
             } catch (error) {
                 console.error('Error:', error);
-                alert("Failed to create result.");
+                toast.error("Failed to create result.");
             };
 
         } else {
