@@ -15,12 +15,15 @@ below) — opening an `.html` file directly from disk will not work.
 | `explorer.html` | Data Explorer (query/filter/edit/export) |
 | `report.html` | Data Report (placeholder WIP) |
 | `export.html` | Data Export |
-| `settings.html` | Settings page (default values for DANTE dropdowns) |
+| `settings.html` | Settings page (default values for DANTE dropdowns, custom order of their options) |
 | `contact.html`, `license.html` | Static pages |
 
 Each page's JS lives under `js/` in a matching subfolder (`js/input/`, `js/migration/`,
 `js/explorer/`, `js/export/`, `js/settings/`), plus `js/danteAttributes/` (shared: loads/pushes the
-DANTE vocabulary lists used across Data Input and Migration).
+DANTE vocabulary lists used across Data Input and Migration). The default values and the custom order of the
+dropdown options are edited on the Settings page, stored in the backend (`api/default_values`, `api/display_order`)
+and applied by the shared `js/defaultValues.js` and `js/displayOrder.js`. Further shared helpers sit directly in `js/`
+(`toast.js`, `confirm.js`, `escapeHtml.js`, `loadingSpinner.js`, `stickyAccordion.js`, the map and coordinate scripts).
 
 ## nginx: how this becomes one origin
 
@@ -59,7 +62,8 @@ parts which use them do not work without internet access:
 Reverse geocoding goes through the server (`/nominatim-reverse` to OpenStreetMap's Nominatim), so the browser only
 talks to its own server for that.
 
-- `package.json` / `package-lock.json` are the single source of truth for the versions (exact pins).
+- `package.json` / `package-lock.json` are the single source of truth for the versions (exact pins). `.npmrc`
+  (`save-exact=true`) makes `npm install <package>` write an exact version instead of a `^` range.
 - `npm run vendor` (`scripts/vendor.mjs`) copies the needed files from `node_modules/` into `vendor/`
   and rewrites every `vendor/<package>@<version>/` reference in `*.html` and `scss/*.scss`.
 - `vendor/` is **committed**, so running the app (dev bind mount, Live Sass) needs no Node. CI re-runs
@@ -123,5 +127,6 @@ go through `escapeHtml()` (`js/escapeHtml.js`, loaded before `toast.js`), also i
 ## Docker image
 
 `Dockerfile` compiles the CSS and stamps the version in a `node:24-alpine` build stage, then copies
-only what's actually served — the HTML pages, `js/`, the compiled CSS, and the images — into an
+only what's actually served — the HTML pages, `js/`, `components/`, `vendor/` (without Bootstrap's SCSS), the compiled
+CSS, `version.json` and the images in use — into an
 `nginx:1.30-alpine` runtime stage. Multi-arch (`linux/amd64`, `linux/arm64`), no `RUN` in the runtime stage.

@@ -13,6 +13,9 @@ Please note that this is an early public release, and further improvements are r
 
 ## Start ArboDat+ Application:  
 ##### Requirements: *Docker*
+This builds and runs the application from the source code. For a server installation with the published images,
+see [deploy/README.md](deploy/README.md); the desktop app in [desktop/](desktop/README.md) is still in development.
+
 `cp .env.example .env` (then set your own `DATABASE_PASSWORD` in `.env`)  
 `docker compose --profile prod up -d --build`
 
@@ -25,11 +28,11 @@ web-api and `/nominatim-reverse` to OpenStreetMap Nominatim (reverse geocoding).
 ## Directory Structure
 ```
 ├── database
-│   ├── data                 # postgresql database bind mount
-│   └── ERD
+│   └── data                 # postgresql database bind mount
 │
-├── frontend
-│   ├── css
+├── frontend                 # see frontend/README.md
+│   ├── components           # shared web components (navbar, footer)
+│   ├── css                  # compiled from scss (git-ignored)
 │   ├── img
 │   ├── js
 │   ├── scss
@@ -41,12 +44,13 @@ web-api and `/nominatim-reverse` to OpenStreetMap Nominatim (reverse geocoding).
 │   ├── package.json         # versions of the vendored libraries
 │   └── Dockerfile
 │
-├── web-api
+├── web-api                  # see web-api/README.md
 │   ├── build/libs
-│   │   └── web-api.jar
+│   │   └── web-api.jar      # build output (git-ignored)
 │   ├── src/main
 │   │   ├── java/arbodat/plus
 │   │   │   ├── controller
+│   │   │   ├── dto_migration
 │   │   │   ├── model
 │   │   │   ├── repository
 │   │   │   └── service
@@ -63,26 +67,29 @@ web-api and `/nominatim-reverse` to OpenStreetMap Nominatim (reverse geocoding).
 │
 ├── deploy                   # production compose.yml: server installs, embedded in the desktop app
 ├── scripts                  # release version helpers (set-version.mjs / check-version.mjs)
+├── .github/workflows        # CI and release workflows
 │
 ├── info
+│   ├── API.txt              # REST API
 │   ├── DANTE-terminologies
-│   ├── API-URLs
-│   └── data-migration-table-mapping
-:
+│   ├── data-migration-table-mapping
+│   └── TODO.md
+│
 ├── .env.example             # copy to .env (git-ignored) and set the database password
 ├── .gitignore
 └── docker-compose.yml       # development stack (compose project "arbodat-plus-dev")
 ```
 
 ## Export ArboDat+
+To run ArboDat+ on a machine without internet access:
 - Build Docker Images:  
   `docker compose --profile prod build --no-cache`
 - Export and bundle Docker Images:  
-  `docker save -o ArboDat+.tar postgres:16 arbodat_plus-frontend:latest arbodat_plus-web-api:latest`
-- Load Docker Images:  
+  `docker save -o ArboDat+.tar postgres:16 arbodat-plus-dev-frontend:latest arbodat-plus-dev-web-api:latest`
+- Copy `ArboDat+.tar`, `docker-compose.yml` and `.env` to the target machine, then load the Docker Images:  
   `docker load -i ArboDat+.tar`
 - Start ArboDat+ via Docker:  
-  `docker compose up`
+  `docker compose --profile prod up -d`
 
 ## Development
 Start ArboDat+ via Docker in dev mode:  
@@ -99,7 +106,7 @@ Database is created using *postgres:16* Docker Image
   `docker run --name test-database -p 5432:5432 --env POSTGRES_PASSWORD=password -d postgres:16`
 
 ### Web API - Spring Boot
-Web API (backend) is built with *Spring Boot 3.3*, using *Gradle 8.8* as the build tool and *JDK 17* as the runtime environment.
+See [web-api/README.md](web-api/README.md) for running it standalone. Web API (backend) is built with *Spring Boot 3.3*, using *Gradle 8.8* as the build tool and *JDK 17* as the runtime environment.
 - Run Web-API:  
   *Gradle -> Tasks -> application -> bootRun*
 
@@ -109,10 +116,11 @@ Web API (backend) is built with *Spring Boot 3.3*, using *Gradle 8.8* as the bui
     
   - Linux/macOS:  
   `cd web-api && chmod u+x gradlew && cd ..` (make ***gradlew*** file executable)  
-  `cd web-api && sudo ./gradlew build && cd ..`
+  `cd web-api && ./gradlew build && cd ..`
 
 ### Frontend
-- Compile css files from scss files via *Sass*
+See [frontend/README.md](frontend/README.md) for the structure of the frontend.
+- Compile css files from scss files via *Sass* (needed in dev mode: `frontend/css` is git-ignored)
   - Recommended settings for [*Live Sass Compiler*](https://marketplace.visualstudio.com/items?itemName=glenn2223.live-sass):  
   copy this to `.vscode/settings.json`: 
     ```

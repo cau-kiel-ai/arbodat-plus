@@ -1,8 +1,5 @@
 # ArboDat+ – TODO
 
-Work that is deliberately **not** part of the v5.0.0 release (desktop app + GHCR distribution).
-Each entry says what to do and why.
-
 ## Backend (web-api)
 
 - [ ] **Health & version endpoints.** Add Spring Boot Actuator (`/actuator/health`, `/actuator/info` with the
@@ -30,6 +27,23 @@ Each entry says what to do and why.
 
 - [ ] **Review console messages.** Check the `console.log`/`console.error` calls and the error messages they report.
   Remove the ones that are only debugging noise and replace the ones a user should see with sensible toasts.
+- [ ] **Review/clean up/restructure the SCSS/CSS.** Each page stylesheet (`input`, `migration`, `explorer`, `index`,
+  `stub`) repeats rules, and `input.html` (~150), `migration.html` (~80) and some other pages carry many inline
+  `style="…"` attributes and `<style>` blocks (e.g. `settings.html`) that belong in SCSS. Goals: no duplicated code,
+  one overview of the CSS structure. Ideas: a shared base partial (`_base.scss`: Bootstrap import, variables, body/flex
+  layout, buttons such as `MySubmitButton`) that every page stylesheet imports, so that `settings.html` and
+  `export.html` stop borrowing `input.min.css`; move the inline styles into classes/partials; then check which
+  repeated markup (accordion sections, form rows, order lists, buttons) is worth turning into general components,
+  like `<app-navbar>`/`<app-footer>`. Only extract what is repeated and stable. Check the result visually page by page.
+- [ ] **Show the DANTE attributes from the backend when DANTE is unavailable (offline use).** Data Input, Data
+  Migration and Settings load the vocabularies directly from `api.dante.gbv.de`, so their dropdowns stay empty without
+  internet access, while the backend already keeps the last successfully loaded copy (`POST/GET api/dante_attributes`,
+  used by the Data Explorer) next to the default values (`api/default_values`) and the custom order
+  (`api/display_order`). Add a mechanism that falls back to the backend copy when the DANTE request fails or times out
+  (`DANTE_TIMEOUT_MS`), and applies the default values and the custom order to it as for live data. Open points: the
+  backend only stores what a page has pushed earlier (on a fresh install there is nothing to fall back to); the stored
+  format may need to match what the dropdown code expects (`narrower`, `ancestors`, …); show the user that the list may
+  be outdated (a toast or hint).
 
 ## Release process
 
