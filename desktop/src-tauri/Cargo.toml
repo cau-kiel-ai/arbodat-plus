@@ -1,6 +1,6 @@
 [package]
 name = "arbodat-plus"
-version = "5.0.0-dev"
+version = "5.0.0-rc.1"
 description = "ArboDat+ desktop app: runs ArboDat+ locally (Docker) or connects to a server"
 authors = ["Kiel University - Archaeoinformatics"]
 license = "BSD-2-Clause"

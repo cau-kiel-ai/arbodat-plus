@@ -1,12 +1,12 @@
 # ArboDat+ desktop app
 
 A [Tauri 2](https://v2.tauri.app/) app (Rust + Svelte 5) that runs ArboDat+ on the user's own
-computer with Docker, or (later) connects to an ArboDat+ server. The stack it runs is exactly
+computer with Docker, or connects to an ArboDat+ server. The stack it runs is exactly
 [`../deploy/compose.yml`](../deploy/compose.yml), embedded at build time, so the app version and the
 stack definition always ship together (app 5.0.0 runs images 5.0.0).
 
-> Status: Phase 4 of the desktop plan. The app finds Docker and shows the state of the local
-> stack. Install, start/stop, the ArboDat+ window, update and backup follow in later phases.
+For users: how to install the app, Docker is in [docs/INSTALL.md](../docs/INSTALL.md).
+This README is for developers.
 
 ## Development
 
@@ -147,8 +147,8 @@ appears).
   deleted. A backup can be deleted by hand from the list (trash icon, then *Delete*); that removes
   only that `.dump` and its details file, nothing outside the backup folder.
 - **Restore** (`src-tauri/src/runtime/restore.rs`): from the list (the arrow icon) or *Restore from file*
-  (any `pg_dump -Fc` file, e.g. one made by hand from an older ArboDat+:
-  `docker exec <database container> pg_dump -U postgres -Fc postgres > old.dump`). Before anything changes,
+  (any `pg_dump -Fc` file); the dump is ritten inside the container and copied out with `docker cp`, because
+  a `>` redirect in Windows PowerShell 5 re-encodes the binary output and breaks the file). Before anything changes,
   the backup is checked: custom format, checksum against its details file, read completely, its PostgreSQL
   and ArboDat+ versions not newer than this installation's. Then a "before restore" backup of the current
   data is made, web-api and frontend are stopped, and the restore runs as **one transaction**: drop the

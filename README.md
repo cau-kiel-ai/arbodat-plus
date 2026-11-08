@@ -11,10 +11,16 @@ The system also supports data migration through the **'Data Migration'** module.
 
 Please note that this is an early public release, and further improvements are recommended. For example, the data import functionality is still to be refined, and integration with a data repository would further enhance the system's capabilities.
 
-## Start ArboDat+ Application:  
+## Install ArboDat+
+- **On your own computer:** download the ArboDat+ desktop app from the
+  [releases page](https://github.com/cau-kiel-ai/arbodat-plus/releases). It installs, starts, backs up
+  and updates ArboDat+ for you, using Docker. See [docs/INSTALL.md](docs/INSTALL.md) for Docker and the
+  first start.
+- **On a server for several people:** see [deploy/README.md](deploy/README.md).
+
+## Start ArboDat+ from the source code:  
 ##### Requirements: *Docker*
-This builds and runs the application from the source code. For a server installation with the published images,
-see [deploy/README.md](deploy/README.md); the desktop app in [desktop/](desktop/README.md) is still in development.
+This builds and runs the application from the source code (for development).
 
 `cp .env.example .env` (then set your own `DATABASE_PASSWORD` in `.env`)  
 `docker compose --profile prod up -d --build`
@@ -62,10 +68,11 @@ web-api and `/nominatim-reverse` to OpenStreetMap Nominatim (reverse geocoding).
 │   └── Dockerfile
 │
 ├── desktop                  # ArboDat+ desktop app (Tauri + Svelte), see desktop/README.md
-│   ├── src                  # launcher UI
-│   └── src-tauri            # Rust: finds Docker, knows the state of the local stack
+│   ├── src                  # Control Center UI
+│   └── src-tauri            # Rust: Docker, install/start/stop, backups, restore, update, the window
 │
 ├── deploy                   # production compose.yml: server installs, embedded in the desktop app
+├── docs                     # INSTALL.md: installing the desktop app and Docker (for users)
 ├── scripts                  # release version helpers (set-version.mjs / check-version.mjs)
 ├── .github/workflows        # CI and release workflows
 │
@@ -76,7 +83,6 @@ web-api and `/nominatim-reverse` to OpenStreetMap Nominatim (reverse geocoding).
 │   └── TODO.md
 │
 ├── .env.example             # copy to .env (git-ignored) and set the database password
-├── .gitignore
 └── docker-compose.yml       # development stack (compose project "arbodat-plus-dev")
 ```
 

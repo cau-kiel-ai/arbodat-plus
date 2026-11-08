@@ -27,10 +27,11 @@ Docker Desktop).
    ```sh
    docker volume create arbodat-plus-database
    ```
-2. Copy `.env.example` to `.env` and fill in `ARBODAT_VERSION` and a strong `DATABASE_PASSWORD`.
+2. Copy `.env.example` to `.env` (each release also has it attached, as `env.example`) and fill
+   in `ARBODAT_VERSION` and a strong `DATABASE_PASSWORD`.
    Find the version to use on the [releases page](https://github.com/cau-kiel-ai/arbodat-plus/releases)
-   — the release itself is tagged e.g. `v1.0.0`, but `ARBODAT_VERSION` must be **without the "v"**
-   (`1.0.0`).
+   — the release itself is tagged e.g. `v5.0.0`, but `ARBODAT_VERSION` must be **without the "v"**
+   (`5.0.0`).
    ```sh
    cp .env.example .env
    ```

@@ -1,7 +1,7 @@
 {
   "name": "arbodat-plus-desktop",
   "private": true,
-  "version": "5.0.0-dev",
+  "version": "5.0.0-rc.1",
   "type": "module",
   "packageManager": "pnpm@12.4.2",
   "scripts": {

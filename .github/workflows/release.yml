@@ -1,8 +1,9 @@
 name: Release
 
 # One git tag is the whole release process: it builds and pushes multi-arch images, smoke-tests
-# them for real (anonymous pull + a running stack), then publishes a GitHub Release with the
-# deploy/ files attached. See scripts/set-version.mjs for preparing a tag.
+# them for real (anonymous pull + a running stack), builds the desktop installers, and then creates
+# a DRAFT GitHub Release with the installers, the deploy/ files and SHA256SUMS. A person publishes
+# the draft after testing it. See scripts/set-version.mjs for preparing a tag.
 
 on:
   push:
@@ -130,22 +131,121 @@ jobs:
           docker compose down || true
           docker volume rm arbodat-plus-database || true
 
+  desktop:
+    # Unsigned installers for macOS and Windows. They don't need the images, so they build in
+    # parallel with them; nothing is published unless every job is green (see release).
+    needs: meta
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: macos-latest
+            # One app for Apple silicon and Intel; dmg only (a bare .app is a folder).
+            args: --target universal-apple-darwin --bundles dmg
+            rust-targets: aarch64-apple-darwin,x86_64-apple-darwin
+          - os: windows-latest
+            # NSIS only: WiX/MSI rejects pre-release versions like 5.0.0-rc.1.
+            args: --bundles nsis
+            rust-targets: ""
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v7
+      - uses: pnpm/action-setup@v6
+        with:
+          package_json_file: desktop/package.json
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 24
+          cache: pnpm
+          cache-dependency-path: desktop/pnpm-lock.yaml
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: ${{ matrix.rust-targets }}
+      - run: pnpm install --frozen-lockfile
+        working-directory: desktop
+      - run: pnpm tauri build ${{ matrix.args }}
+        working-directory: desktop
+      - name: Collect the installers
+        shell: bash
+        run: bash scripts/collect-installers.sh "${{ needs.meta.outputs.version }}" installers
+      - uses: actions/upload-artifact@v7
+        with:
+          name: installers-${{ runner.os }}
+          path: installers/
+          if-no-files-found: error
+
+  desktop-linux:
+    # .deb and AppImage for x64 and arm64, built in an Ubuntu 22.04 container: the installers link
+    # against the glibc they were built with (2.35 here), so they also run on distributions older
+    # than the runner's.
+    needs: meta
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-24.04, ubuntu-24.04-arm]
+    runs-on: ${{ matrix.os }}
+    container: ubuntu:22.04
+    env:
+      # The AppImage tools are AppImages themselves, and a container has no FUSE.
+      APPIMAGE_EXTRACT_AND_RUN: 1
+      DEBIAN_FRONTEND: noninteractive
+    steps:
+      - name: Build tools and Tauri's Linux libraries
+        run: |
+          apt-get update
+          apt-get install -y --no-install-recommends \
+            build-essential curl wget file ca-certificates pkg-config git xdg-utils \
+            libwebkit2gtk-4.1-dev libxdo-dev libssl-dev libayatana-appindicator3-dev librsvg2-dev
+      - uses: actions/checkout@v7
+      - uses: pnpm/action-setup@v6
+        with:
+          package_json_file: desktop/package.json
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 24
+          cache: pnpm
+          cache-dependency-path: desktop/pnpm-lock.yaml
+      - uses: dtolnay/rust-toolchain@stable
+      - run: pnpm install --frozen-lockfile
+        working-directory: desktop
+      - run: pnpm tauri build --bundles deb,appimage
+        working-directory: desktop
+      - name: Collect the installers
+        run: bash scripts/collect-installers.sh "${{ needs.meta.outputs.version }}" installers
+      - uses: actions/upload-artifact@v7
+        with:
+          name: installers-linux-${{ runner.arch }}
+          path: installers/
+          if-no-files-found: error
+
   release:
-    needs: [meta, smoke]
+    needs: [meta, smoke, desktop, desktop-linux]
     runs-on: ubuntu-24.04
     permissions:
       contents: write
     steps:
       - uses: actions/checkout@v7
-      - name: Create GitHub Release
+      - uses: actions/download-artifact@v8
+        with:
+          pattern: installers-*
+          path: assets
+          merge-multiple: true
+      - name: Add the server files and checksums
+        run: |
+          cp deploy/compose.yml deploy/README.md assets/
+          # GitHub renames asset names that start with a dot, so name it plainly.
+          cp deploy/.env.example assets/env.example
+          cd assets
+          sha256sum -- * > SHA256SUMS
+          cat SHA256SUMS
+      - name: Create the draft GitHub Release
         env:
           GH_TOKEN: ${{ github.token }}
           TAG: ${{ needs.meta.outputs.tag }}
           PRERELEASE: ${{ needs.meta.outputs.prerelease }}
         run: |
-          flags=(--title "$TAG" --generate-notes)
+          flags=(--draft --verify-tag --title "$TAG" --generate-notes)
           if [ "$PRERELEASE" = "true" ]; then
             flags+=(--prerelease)
           fi
-          gh release create "$TAG" "${flags[@]}" \
-            deploy/compose.yml deploy/.env.example deploy/README.md
+          gh release create "$TAG" "${flags[@]}" assets/*
