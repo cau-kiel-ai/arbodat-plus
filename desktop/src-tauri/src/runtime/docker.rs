@@ -526,6 +526,16 @@ async fn resolve_host(binary: &DockerBinary) -> Option<String> {
     (out.success() && !host.is_empty()).then(|| host.to_string())
 }
 
+/// The `auths` of the app-owned config. It must not be empty: with no login entry, no
+/// `credsStore` and no `credHelpers`, the docker CLI falls back to the system's default store
+/// (macOS keychain, Windows Credential Manager, Linux secretservice/pass) whenever its helper is on
+/// PATH. A stale login stored there (e.g. an old `docker login ghcr.io`) then makes GHCR refuse
+/// the pull of our public images with "denied". An empty entry stops that fallback and means
+/// "anonymous" for that registry; registries without an entry are anonymous too.
+fn anonymous_auths() -> Value {
+    json!({ "ghcr.io": {} })
+}
+
 /// No credential store, plus everything needed to keep working like the user's own setup:
 /// their cli-plugin directories (so `docker compose` is found) and their proxy settings.
 fn app_config(user_config_dir: &Path) -> Value {
@@ -554,7 +564,7 @@ fn app_config(user_config_dir: &Path) -> Value {
         }
     }
 
-    let mut config = json!({ "auths": {}, "cliPluginsExtraDirs": plugin_dirs });
+    let mut config = json!({ "auths": anonymous_auths(), "cliPluginsExtraDirs": plugin_dirs });
     if let Some(proxies) = user.get("proxies") {
         config["proxies"] = proxies.clone();
     }
@@ -614,7 +624,7 @@ mod tests {
             config.get("currentContext").is_none(),
             "the context is pinned via DOCKER_HOST instead"
         );
-        assert_eq!(config["auths"], json!({}));
+        assert_eq!(config["auths"], anonymous_auths());
         assert_eq!(
             config["proxies"]["default"]["httpProxy"],
             "http://proxy.uni-kiel.de:3128"
@@ -630,8 +640,19 @@ mod tests {
     fn app_config_without_any_user_config() {
         let user = tempfile::tempdir().unwrap();
         let config = app_config(user.path());
-        assert_eq!(config["auths"], json!({}));
+        assert_eq!(config["auths"], anonymous_auths());
         assert!(config.get("proxies").is_none());
+    }
+
+    #[test]
+    fn the_auths_never_let_the_cli_fall_back_to_the_system_credential_store() {
+        // The docker CLI only falls back when the config names no store, no helpers and no
+        // logins (`ContainsAuth()` in docker/cli). Every entry must be an empty, anonymous one.
+        let auths = anonymous_auths();
+        let auths = auths.as_object().unwrap();
+        assert!(!auths.is_empty());
+        assert!(auths.contains_key("ghcr.io"), "where our images live");
+        assert!(auths.values().all(|v| v == &json!({})), "no credentials");
     }
 
     #[test]

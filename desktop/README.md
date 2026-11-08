@@ -57,7 +57,10 @@ All verified on macOS in the Phase 4a spike; see the plan for details.
 - **Own Docker config.** All docker commands run with an app-owned `DOCKER_CONFIG` (no credential
   helper) and `DOCKER_HOST` pinned to the user's current context. With the user's config,
   `docker pull` calls Docker Desktop's credential helper, which makes macOS ask whether ArboDat+
-  may "access data from other apps". Our images are public, so no login is needed.
+  may "access data from other apps". Our images are public, so no login is needed. The config
+  has an empty `ghcr.io` login entry on purpose: with no entry at all, the docker CLI falls back to
+  the system's credential store (macOS keychain etc.), and an expired `docker login ghcr.io` stored
+  there makes GHCR refuse even public images ("denied").
 - **Pinned project.** Every compose call passes project name, directory and file explicitly; the
   data volume is `external` in compose.yml, so compose can never create, recreate or delete it.
   Tests in `runtime/template.rs` fail the build if compose.yml breaks these invariants.
