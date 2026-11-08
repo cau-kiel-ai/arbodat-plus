@@ -18,14 +18,14 @@ Please note that this is an early public release, and further improvements are r
   first start.
 - **On a server for several people:** see [deploy/README.md](deploy/README.md).
 
-## Start ArboDat+ from the source code:  
+## Start ArboDat+ from source code:  
 ##### Requirements: *Docker*
 This builds and runs the application from the source code (for development).
 
-`cp .env.example .env` (then set your own `DATABASE_PASSWORD` in `.env`)  
+`cp .env.example .env` (optionally set `DATABASE_PASSWORD` in `.env`)  
 `docker compose --profile prod up -d --build`
 
-Next, open a web browser and go to `http://localhost:8480`
+Next, open a web browser and go to http://localhost:8480
 
 The frontend's nginx server is the only entry point: it serves the web pages, forwards `/api/…` to the
 web-api and `/nominatim-reverse` to OpenStreetMap Nominatim (reverse geocoding). The REST API is documented in
@@ -34,7 +34,7 @@ web-api and `/nominatim-reverse` to OpenStreetMap Nominatim (reverse geocoding).
 ## Directory Structure
 ```
 ├── database
-│   └── data                 # postgresql database bind mount
+│   └── data                 # postgresql dev database (bind mount)
 │
 ├── frontend                 # see frontend/README.md
 │   ├── components           # shared web components (navbar, footer)
@@ -82,27 +82,18 @@ web-api and `/nominatim-reverse` to OpenStreetMap Nominatim (reverse geocoding).
 │   ├── data-migration-table-mapping
 │   └── TODO.md
 │
-├── .env.example             # copy to .env (git-ignored) and set the database password
+├── .env.example             # copy to .env (git-ignored)
 └── docker-compose.yml       # development stack (compose project "arbodat-plus-dev")
 ```
 
-## Export ArboDat+
-To run ArboDat+ on a machine without internet access:
-- Build Docker Images:  
-  `docker compose --profile prod build --no-cache`
-- Export and bundle Docker Images:  
-  `docker save -o ArboDat+.tar postgres:16 arbodat-plus-dev-frontend:latest arbodat-plus-dev-web-api:latest`
-- Copy `ArboDat+.tar`, `docker-compose.yml` and `.env` to the target machine, then load the Docker Images:  
-  `docker load -i ArboDat+.tar`
-- Start ArboDat+ via Docker:  
-  `docker compose --profile prod up -d`
-
 ## Development
-Start ArboDat+ via Docker in dev mode:  
-`docker compose --profile dev build --no-cache`  
-`docker compose --profile dev up --build`  
-- bind mount of frontend folder into nginx container  
-(auto update of frontend changes while Application is running)
+### Start ArboDat+ via Docker in dev mode
+1. `cp .env.example .env`
+2. `docker compose --profile dev up --build`  
+   (rebuild without cache: `docker compose --profile dev build --no-cache`)
+3. compile css files from scss files via *Sass* (see [Frontend](#frontend))
+
+- bind mount of frontend folder into nginx container (auto update of frontend changes while Application is running)
 - the UI is available at http://localhost:8480 (same nginx config as production, see `frontend/nginx/templates`)
 - the web-api is additionally published at http://localhost:8080 for debugging (dev only)
 

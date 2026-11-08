@@ -4,36 +4,89 @@ name: arbodat-plus-dev
 
 services:
 
-  database:
-    image: postgres:16
+  database-dev:
+    image: postgres:16-trixie
+    profiles: [dev]
     restart: unless-stopped
     volumes:
       - ./database/data:/var/lib/postgresql/data # bind mount
     expose:
       - 5432
     environment:
-      POSTGRES_PASSWORD: ${DATABASE_PASSWORD:?Set DATABASE_PASSWORD in .env (cp .env.example .env)}
+      POSTGRES_PASSWORD: ${DATABASE_PASSWORD:?Set DATABASE_PASSWORD in .env}
     healthcheck:
       test: [ "CMD-SHELL", "pg_isready -U postgres -h localhost -p 5432" ]
       interval: 10s
-      timeout: 10s
+      timeout: 5s
       retries: 10
+      start_period: 60s
+    stop_grace_period: 60s # give Postgres time for a clean shutdown instead of SIGKILL
     networks:
-      - arbodat_plus-network
+      arbodat-plus-network:
+        aliases: [database]
 
-  web-api:
+  database:
+    image: postgres:16-trixie
+    profiles: [prod]
+    restart: unless-stopped
+    volumes:
+      - database:/var/lib/postgresql/data # volume
+    expose:
+      - 5432
+    environment:
+      POSTGRES_PASSWORD: ${DATABASE_PASSWORD:?Set DATABASE_PASSWORD in .env}
+    healthcheck:
+      test: [ "CMD-SHELL", "pg_isready -U postgres -h localhost -p 5432" ]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 60s
+    stop_grace_period: 60s # give Postgres time for a clean shutdown instead of SIGKILL
+    networks:
+      - arbodat-plus-network
+
+  web-api-dev:
     build: web-api
+    profiles: [dev]
     ports:
-      - "8080:8080" # dev only: direct API access for debugging (the UI uses /api/ via nginx)
+      - "${ARBODAT_WEB_API_PORT:-8080}:8080" # dev only: direct API access for debugging (the UI uses /api/ via nginx)
     environment:
       SPRING_DATASOURCE_URL: jdbc:postgresql://database:5432/postgres
       SPRING_DATASOURCE_USERNAME: postgres # default
-      SPRING_DATASOURCE_PASSWORD: ${DATABASE_PASSWORD:?Set DATABASE_PASSWORD in .env (cp .env.example .env)}
+      SPRING_DATASOURCE_PASSWORD: ${DATABASE_PASSWORD:?Set DATABASE_PASSWORD in .env}
+    depends_on:
+      database-dev:
+        condition: service_healthy
+    healthcheck:
+      test: [ "CMD", "curl", "-fsS", "-o", "/dev/null", "http://127.0.0.1:8080/results?page=0&size=1" ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 180s # first start creates the schema (Hibernate ddl-auto=update)
+    stop_grace_period: 30s
+    networks:
+      arbodat-plus-network:
+        aliases: [web-api]
+
+  web-api:
+    build: web-api
+    profiles: [prod]
+    environment:
+      SPRING_DATASOURCE_URL: jdbc:postgresql://database:5432/postgres
+      SPRING_DATASOURCE_USERNAME: postgres # default
+      SPRING_DATASOURCE_PASSWORD: ${DATABASE_PASSWORD:?Set DATABASE_PASSWORD in .env}
     depends_on:
       database:
         condition: service_healthy
+    healthcheck:
+      test: [ "CMD", "curl", "-fsS", "-o", "/dev/null", "http://127.0.0.1:8080/results?page=0&size=1" ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 180s # first start creates the schema (Hibernate ddl-auto=update)
+    stop_grace_period: 30s
     networks:
-      - arbodat_plus-network
+      - arbodat-plus-network
 
   frontend-dev:
     image: nginx:1.30-alpine
@@ -46,19 +99,29 @@ services:
     ports:
       - "${ARBODAT_PORT:-8480}:80"
     depends_on:
-      - web-api
+      - web-api-dev
     networks:
-      - arbodat_plus-network
+      - arbodat-plus-network
 
   frontend:
     build: frontend
     profiles: [prod]
     ports:
+      # Only this port is published; web-api and the database are reached through nginx (/api/).
       - "${ARBODAT_PORT:-8480}:80"
     depends_on:
-      - web-api
+      - web-api # nginx resolves web-api lazily and survives it starting later or restarting
+    healthcheck:
+      test: [ "CMD", "wget", "-q", "-O", "/dev/null", "http://127.0.0.1/healthz" ]
+      interval: 10s
+      timeout: 5s
+      retries: 3
     networks:
-      - arbodat_plus-network
+      - arbodat-plus-network
 
 networks:
-  arbodat_plus-network:
+  arbodat-plus-network:
+
+volumes:
+  database:
+    name: arbodat-plus-dev-database
