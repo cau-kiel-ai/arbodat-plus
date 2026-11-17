@@ -37,8 +37,8 @@ nginx config, whether via the Dockerfile below or `docker compose --profile dev 
 
 SCSS lives in `scss/` (+ Bootstrap's SCSS in `vendor/bootstrap@<version>/scss/`) and compiles to `css/*.min.css`. `css/` is git-ignored
 except for `.gitkeep` — it's build output, not source. `Dockerfile` compiles it automatically; for
-local editing without Docker, see the *Live Sass Compiler* settings in the top-level
-[`../README.md`](../README.md#frontend).
+local editing without Docker, see the *Live Sass Compiler* settings in
+[`../docs/DEVELOPMENT.md`](../docs/DEVELOPMENT.md#frontend).
 
 Files starting with `_` (e.g. `scss/_stickyAccordion.scss`) are Sass *partials*: they are never
 compiled to their own CSS file, only pulled into a page stylesheet via `@import` (e.g.

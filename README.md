@@ -72,7 +72,7 @@ web-api and `/nominatim-reverse` to OpenStreetMap Nominatim (reverse geocoding).
 │   └── src-tauri            # Rust: Docker, install/start/stop, backups, restore, update, the window
 │
 ├── deploy                   # production compose.yml: server installs, embedded in the desktop app
-├── docs                     # INSTALL.md: installing the desktop app and Docker (for users)
+├── docs                     # INSTALL.md (installing the app, for users), DEVELOPMENT.md (contributing, releases)
 ├── scripts                  # release version helpers (set-version.mjs / check-version.mjs)
 ├── .github/workflows        # CI and release workflows
 │
@@ -87,50 +87,8 @@ web-api and `/nominatim-reverse` to OpenStreetMap Nominatim (reverse geocoding).
 ```
 
 ## Development
-### Start ArboDat+ via Docker in dev mode
-1. `cp .env.example .env`
-2. `docker compose --profile dev up --build`  
-   (rebuild without cache: `docker compose --profile dev build --no-cache`)
-3. compile css files from scss files via *Sass* (see [Frontend](#frontend))
-
-- bind mount of frontend folder into nginx container (auto update of frontend changes while Application is running)
-- the UI is available at http://localhost:8480 (same nginx config as production, see `frontend/nginx/templates`)
-- the web-api is additionally published at http://localhost:8080 for debugging (dev only)
-
-### Database - PostgreSQL
-Database is created using *postgres:16* Docker Image
-  - Creation of test database:  
-  `docker run --name test-database -p 5432:5432 --env POSTGRES_PASSWORD=password -d postgres:16`
-
-### Web API - Spring Boot
-See [web-api/README.md](web-api/README.md) for running it standalone. Web API (backend) is built with *Spring Boot 3.3*, using *Gradle 8.8* as the build tool and *JDK 17* as the runtime environment.
-- Run Web-API:  
-  *Gradle -> Tasks -> application -> bootRun*
-
-- Build `web-api.jar`:
-  - Windows:  
-    `cd web-api && gradlew build && cd ..`
-    
-  - Linux/macOS:  
-  `cd web-api && chmod u+x gradlew && cd ..` (make ***gradlew*** file executable)  
-  `cd web-api && ./gradlew build && cd ..`
-
-### Frontend
-See [frontend/README.md](frontend/README.md) for the structure of the frontend.
-- Compile css files from scss files via *Sass* (needed in dev mode: `frontend/css` is git-ignored)
-  - Recommended settings for [*Live Sass Compiler*](https://marketplace.visualstudio.com/items?itemName=glenn2223.live-sass):  
-  copy this to `.vscode/settings.json`: 
-    ```
-    "liveSassCompile.settings.formats": [
-        {
-            "format": "compressed",
-            "extensionName": ".min.css",
-            "savePath": "/frontend/css"
-        }
-    ],
-    "liveSassCompile.settings.forceBaseDirectory": "/frontend/scss"
-    ``` 
-  - *Live Sass Compiler -> Watch Sass* (to generate css files)
+How to set up the repository, run the dev stack, contribute, and make a release:
+[docs/DEVELOPMENT.md](docs/DEVELOPMENT.md).
 
 ## License
 See [LICENSE.md](LICENSE.md) and [THIRD_PARTY_LICENSES.md](THIRD_PARTY_LICENSES.md) for details
