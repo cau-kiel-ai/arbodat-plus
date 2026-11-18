@@ -49,7 +49,7 @@ the Docker volume `arbodat-plus-database`.
 
 ## Design decisions worth knowing
 
-All verified on macOS in the Phase 4a spike; see the plan for details.
+All verified on macOS.
 
 - **Finding Docker.** Apps started from Finder/the Start menu don't get the shell's PATH (on macOS
   it's `/usr/bin:/bin:/usr/sbin:/sbin`), so `src-tauri/src/runtime/discovery.rs` searches the
@@ -92,9 +92,10 @@ All verified on macOS in the Phase 4a spike; see the plan for details.
   (that page holds the whole migration state), a dialog asks first. Until ArboDat+ or a server is
   set up the Control Center is all there is and has no "x"; it also opens by itself when ArboDat+
   isn't available at startup, and can't be left while an operation runs.
-- **Title bar.** "ArboDat+" on the start page and in the Control Center; "ArboDat+  Data Input" (a gap as wide as the one between the window buttons and the title, no dash)
-  (and Data Migration, Data Explorer, Data Report, Data Export, License, Contact) on the other pages,
-  named by file so it also works under a server's sub-path (`window_title` in `windows/arbodat.rs`).
+- **Title bar.** "ArboDat+" on the start page and in the Control Center; "ArboDat+ | Data Input" (and
+  Data Migration, Data Explorer, Report, Data Export, Settings, License, Contact) on the other pages,
+  the same as the browser page titles. The page is recognised by its file name so it also works under a
+  server's sub-path (`window_title` in `windows/arbodat.rs`).
 - **Quitting.** Closing the window quits the app, the stack keeps running. Starting the app while
   ArboDat+ is running goes straight to it: the window stays hidden until the ArboDat+ page has
   loaded (at the latest after 6 seconds), so the Control Center never flashes by. The window checks its address every 10 seconds: if it
@@ -150,7 +151,7 @@ appears).
   deleted. A backup can be deleted by hand from the list (trash icon, then *Delete*); that removes
   only that `.dump` and its details file, nothing outside the backup folder.
 - **Restore** (`src-tauri/src/runtime/restore.rs`): from the list (the arrow icon) or *Restore from file*
-  (any `pg_dump -Fc` file); the dump is ritten inside the container and copied out with `docker cp`, because
+  (any `pg_dump -Fc` file); the dump is written inside the container and copied out with `docker cp`, because
   a `>` redirect in Windows PowerShell 5 re-encodes the binary output and breaks the file). Before anything changes,
   the backup is checked: custom format, checksum against its details file, read completely, its PostgreSQL
   and ArboDat+ versions not newer than this installation's. Then a "before restore" backup of the current
