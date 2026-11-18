@@ -97,12 +97,10 @@ fn same_site(a: &Url, b: &Url) -> bool {
         && a.port_or_known_default() == b.port_or_known_default()
 }
 
-/// Between "ArboDat+" and the page name in the title bar: as wide as the gap between the green
-/// window button and the title (13 pt, measured on macOS 26: the title text starts 13 pt after the
-/// button, in a 13 pt font): one em space and a hair space. No dash or other mark.
-const TITLE_GAP: &str = "\u{2003}\u{200A}";
+/// Between "ArboDat+" and the page name in the title bar, as in the pages' own `<title>`s.
+const TITLE_SEPARATOR: &str = " | ";
 
-/// The title bar: "ArboDat+" for the start page and the Control Center, "ArboDat+    Data Input" and
+/// The title bar: "ArboDat+" for the start page and the Control Center, "ArboDat+ | Data Input" and
 /// so on for the other pages of the web app (named by their file, so it works under any sub-path).
 pub fn window_title(url: &Url, home: Option<&Url>, app: &Url) -> String {
     if same_site(url, app) || !home.is_some_and(|home| same_site(url, home)) {
@@ -115,14 +113,15 @@ pub fn window_title(url: &Url, home: Option<&Url>, app: &Url) -> String {
     let name = match page {
         "input.html" => "Data Input",
         "migration.html" => "Data Migration",
-        "data-explorer.html" => "Data Explorer",
-        "report.html" => "Data Report",
+        "explorer.html" => "Data Explorer",
+        "report.html" => "Report",
         "export.html" => "Data Export",
+        "settings.html" => "Settings",
         "license.html" => "License",
         "contact.html" => "Contact",
         _ => return TITLE.into(),
     };
-    format!("{TITLE}{TITLE_GAP}{name}")
+    format!("{TITLE}{TITLE_SEPARATOR}{name}")
 }
 
 pub fn classify(url: &Url, home: Option<&Url>, app: &Url) -> Navigation {
@@ -500,15 +499,16 @@ mod tests {
         for (page, name) in [
             ("input.html", "Data Input"),
             ("migration.html", "Data Migration"),
-            ("data-explorer.html", "Data Explorer"),
-            ("report.html", "Data Report"),
+            ("explorer.html", "Data Explorer"),
+            ("report.html", "Report"),
             ("export.html", "Data Export"),
+            ("settings.html", "Settings"),
             ("license.html", "License"),
             ("contact.html", "Contact"),
         ] {
             assert_eq!(
                 title(&format!("http://127.0.0.1:8480/{page}?x=1#top")),
-                format!("ArboDat+\u{2003}\u{200A}{name}")
+                format!("ArboDat+ | {name}")
             );
         }
         // Under a sub-path (a server), and for pages that aren't ArboDat+'s.
@@ -516,7 +516,7 @@ mod tests {
         let page = Url::parse("https://example.org/arbodat/input.html").unwrap();
         assert_eq!(
             window_title(&page, Some(&server), &app()),
-            "ArboDat+\u{2003}\u{200A}Data Input"
+            "ArboDat+ | Data Input"
         );
         assert_eq!(title("https://example.org/input.html"), "ArboDat+");
     }
