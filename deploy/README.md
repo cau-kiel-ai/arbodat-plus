@@ -6,8 +6,7 @@ the same way and can be migrated to/from a desktop install with the same backup/
 
 ## ⚠️ No built-in authentication
 
-The ArboDat+ web API has no login and no per-user access control (see
-[../info/TODO.md](../info/TODO.md)). Anyone who can reach the published port can read and change
+The ArboDat+ web API has no login and no per-user access control. Anyone who can reach the published port can read and change
 all data. **Only run this behind a VPN, an intranet, or a reverse proxy that adds authentication.**
 Never publish it directly to the public internet.
 
@@ -104,31 +103,6 @@ docker compose up -d --wait
    The database schema is migrated automatically on startup. If something goes wrong, set
    `ARBODAT_VERSION` back to the previous value, `docker compose up -d --wait` again, and
    [restore](#restore) the pre-upgrade backup.
-
-## Migrating data from an installation older than v5.0.0
-TODO: maybe delete if not needed
-Releases before v5.0.0 shipped as Docker image tarballs with no fixed Compose project name, so
-their data volume can be named almost anything (`database`, `arbodat_plus-database`,
-`arbodat-plus-database`, …) — check `docker volume ls` on the old machine. The safest way to move
-that data into a v5.0.0+ install is a dump/restore, which works regardless of the old volume's
-name and doesn't depend on both installs running at once:
-
-1. On the **old** machine, find the volume (`docker volume ls`) and make sure **no other
-   container is currently using it** (`docker ps --filter volume=<old-volume-name>`) — if one is,
-   stop it first; never run two PostgreSQL servers on the same volume at once. If the old stack's
-   `docker-compose.yml`/`.env` still exist, the simplest option is to start it normally and run the
-   [Backup](#backup) command against it. Otherwise, dump it directly:
-   ```sh
-   docker run -d --name legacy-reader --network none \
-     -v <old-volume-name>:/var/lib/postgresql/data postgres:16
-   docker exec legacy-reader pg_dump -U postgres postgres -Fc > legacy.dump
-   docker stop -t 60 legacy-reader && docker rm legacy-reader
-   ```
-   (No password needed: PostgreSQL trusts local connections from inside its own container by
-   default. `--network none` keeps this temporary container off the network entirely.)
-2. Copy `legacy.dump` to the new server.
-3. Follow [Setup](#setup) above up to and including `docker compose up -d --wait` once, so the new
-   database is initialised, then follow [Restore](#restore) using `legacy.dump`.
 
 ## Uninstalling
 

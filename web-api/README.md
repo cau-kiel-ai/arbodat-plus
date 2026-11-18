@@ -2,6 +2,25 @@
 
 The REST backend: Spring Boot 3.3, Java 17, Gradle 8.8, PostgreSQL via Spring Data JPA.
 
+```
+web-api
+├── build/libs
+│   └── web-api.jar      # build output (git-ignored)
+├── src/main
+│   ├── java/arbodat/plus
+│   │   ├── controller
+│   │   ├── dto_migration
+│   │   ├── model
+│   │   ├── repository
+│   │   └── service
+│   │       ├── migration_mapper
+│   │       └── MigrationService
+│   └── resources
+│       └── application.properties
+├── build.gradle
+└── Dockerfile
+```
+
 ## Running standalone (without Docker)
 
 1. Start a local PostgreSQL:
@@ -15,8 +34,7 @@ The REST backend: Spring Boot 3.3, Java 17, Gradle 8.8, PostgreSQL via Spring Da
 2. ```sh
    ./gradlew bootRun
    ```
-   The schema is created/updated automatically on startup (Hibernate `ddl-auto=update` — see
-   `../info/TODO.md` for why this should eventually become Flyway migrations). There are no seed
+   The schema is created/updated automatically on startup (Hibernate `ddl-auto=update`). There are no seed
    data and no migrations: a fresh database starts empty. The DANTE vocabulary tables are filled by
    the *frontend*, not here (see `../frontend/js/danteAttributes/`), the first time someone opens
    the Data Input page with internet access.
@@ -28,26 +46,22 @@ Build the runnable jar with `./gradlew bootJar` (output: `build/libs/web-api.jar
 
 All endpoints are plain REST, mounted at the root (no `/api` prefix — that prefix is added by
 nginx in front of this service, see `../frontend/nginx/templates/`, not by this app). The full
-list with examples is in [`../info/API.txt`](../info/API.txt).
-
-There is no authentication and no per-user authorization (see `../info/TODO.md`); every deployment
-must restrict network access itself (VPN/intranet, or a reverse proxy with its own auth).
+list with examples is in [`../docs/API.md`](../docs/API.md).
 
 ## Source layout
 
 ```
 src/main/java/arbodat/plus/
 ├── controller/         one @RestController per resource (@RequestMapping paths = the API above)
-├── model/               JPA entities
-├── repository/          Spring Data repositories
-├── service/              business logic, incl. service/migration_mapper/
-└── dto_migration/       request/response shapes for MigrationController (see below)
+├── model/              JPA entities
+├── repository/         Spring Data repositories
+├── service/            business logic, incl. service/migration_mapper/
+└── dto_migration/      request/response shapes for MigrationController (see below)
 ```
 
 `MigrationController` imports data from the legacy MS Access-based ArboDat (via
 [jackcess](https://jackcess.sourceforge.io/)) — the `.mdb` upload flow used by the frontend's Data
-Migration page. This is unrelated to the *desktop app's* "legacy import" feature, which moves data
-between different ArboDat**+** installations (Docker volumes), not from the old ArboDat.
+Migration page.
 
 ## Docker image
 
