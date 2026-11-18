@@ -221,6 +221,8 @@
       'opacity:.55;padding:0;transition:opacity .15s,transform .35s;' +
       (dark ? 'background:rgba(43,45,49,.85);color:#f2f3f5' : 'background:rgba(255,255,255,.85);color:#2b2d31') + '}' +
       '#__arbodat_cog:hover,#__arbodat_cog:focus-visible{opacity:1;transform:rotate(30deg)}' +
+      // The page's toasts (top right) would sit on the cog: move them left of it (placeCog sets the variable).
+      '.toast-container{right:var(--arbodat-toast-right,56px)!important}' +
       '@media print{#__arbodat_cog{display:none}}';
     document.head.appendChild(style);
     var cog = document.createElement('button');
@@ -244,7 +246,10 @@
     probe.remove();
     function placeCog() {
       var showing = window.innerWidth - document.documentElement.clientWidth;
-      cog.style.right = (10 + Math.max(0, barWidth - showing)) + 'px';
+      var right = 10 + Math.max(0, barWidth - showing);
+      cog.style.right = right + 'px';
+      var root = document.documentElement.style;
+      root.setProperty('--arbodat-toast-right', (right + 38 + 10) + 'px');
     }
     placeCog();
     window.addEventListener('resize', placeCog);

@@ -32,8 +32,8 @@ function showToast(type, message) {
 
         Object.assign(container.style, {
             position: 'fixed',
-            top: '8px',
-            right: '8px',
+            top: '4px',
+            right: '4px',
             display: 'flex',
             flexDirection: 'column',
             gap: '10px',
@@ -78,6 +78,6 @@ function showToast(type, message) {
         toast.style.opacity = '0';
         toast.style.transform = 'translateX(8px)';
 
-        setTimeout(() => toast.remove(), 300);
+        setTimeout(() => toast.remove(), 350);
     }, 3000);
 }
