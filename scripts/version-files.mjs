@@ -31,7 +31,19 @@ export const versionFiles = [
     pattern: /^\[\[package\]\]\nname = "arbodat-plus"\nversion = "([^"]*)"$/m,
     replace: (version) => `[[package]]\nname = "arbodat-plus"\nversion = "${version}"`,
   },
+  {
+    path: "CITATION.cff",
+    pattern: /^version: "([^"]*)"$/m,
+    replace: (version) => `version: "${version}"`,
+  },
 ];
+
+// CITATION.cff also carries `date-released`; set-version.mjs updates it, check-version.mjs ignores it.
+export const citationFile = {
+  path: "CITATION.cff",
+  pattern: /^date-released: "([^"]*)"$/m,
+  replace: (date) => `date-released: "${date}"`,
+};
 
 export function readVersion(file) {
   const content = readFileSync(join(repoRoot, file.path), "utf8");

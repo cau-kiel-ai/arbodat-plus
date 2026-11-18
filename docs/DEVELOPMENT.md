@@ -206,8 +206,7 @@ git tag v5.2.0
 git push origin v5.2.0
 ```
 
-Check the draft (installers, notes), then **Publish release**. Update `CITATION.cff` (version,
-date) by hand if this release should be citable (see `info/TODO.md`, *Release process*).
+Check the draft (installers, notes), then **Publish release**.
 
 ### If a release run fails
 
