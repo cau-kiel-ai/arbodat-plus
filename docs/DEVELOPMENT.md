@@ -118,8 +118,8 @@ git push -u origin feature/short-name   # then open a pull request into develop
 [Conventional Commits](https://www.conventionalcommits.org/): `type(scope): what changed`, in
 the imperative, with a body when the reason isn't obvious.
 
-- types: `feat`, `fix`, `docs`, `style`, `refactor`, `test`, `chore`
-- scopes: `frontend`, `web-api`, `desktop`, `deploy`, `dev`, `release`, or none for repo-wide changes
+- types: `feat`, `fix`, `docs`, `refactor`, `chore`
+- scopes: `frontend`, `web-api`, `desktop`, `deploy`, `ci`, `scripts`, `release`, or none for repo-wide changes
 
 ```
 fix(desktop): pull anonymously even with a stale registry login on the system
@@ -207,19 +207,3 @@ git push origin v5.2.0
 ```
 
 Check the draft (installers, notes), then **Publish release**.
-
-### If a release run fails
-
-- **Before the draft exists** (any job red, `release` skipped): fix the cause, commit, push, and move
-  the tag to the new commit. The images of that version get pushed again, which is fine because nobody
-  can have installed them yet:
-  ```sh
-  git tag -d v5.2.0-rc.1
-  git push origin :refs/tags/v5.2.0-rc.1
-  git tag v5.2.0-rc.1
-  git push origin v5.2.0-rc.1
-  ```
-- **After a version was published:** never move or reuse its tag. Fix it in the next version.
-- **Only one job failed for a temporary reason** (a network hiccup): GitHub → Actions → the run →
-  *Re-run failed jobs*. Re-running uses the workflow as it was in the tagged commit, so it can't
-  pick up fixes.
