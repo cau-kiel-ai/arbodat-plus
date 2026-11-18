@@ -283,7 +283,7 @@ button:hover{
 
     // Bootstrap's grid is imported here: neutralise its .row (flex, negative margins, gutter padding on children)
     .row {
-        display: block;
+        display: flow-root; // contains its floated columns, so a short row can't pull the next one up beside it
         margin: 0;
         overflow: visible;
 
@@ -313,6 +313,29 @@ button:hover{
 
     select {
         width: 100%;
+    }
+
+    // "fraction analyzed" (select2, see sample-fraction-boxes.js): as tall as the number inputs
+    .select2-container .select2-selection--single {
+        display: flex;
+        align-items: center;
+        height: auto;
+        min-height: 46px;
+        border: 2px solid #ccc;
+        border-radius: 4px;
+
+        .select2-selection__rendered {
+            padding: 0 12px;
+            line-height: normal;
+        }
+
+        .select2-selection__clear {
+            order: 2;
+            margin-left: auto;
+            margin-right: 12px;
+            font-size: 24px;
+            font-weight: 200;
+        }
     }
 
     input[type=number] {

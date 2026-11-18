@@ -73,11 +73,22 @@ function addFraction(fraction = null) {
     </div>\
   </div>'
   document.getElementById('fractions').insertAdjacentHTML('beforeend', html);
-  document.getElementById(`fraction_analyzed_${id}`)
-    .addEventListener('change', () => updateRequiredAndEnableInputsForFraction(id));
+
+  const $fractionAnalyzed = $(`#fraction_analyzed_${id}`);
+  const $popup = $fractionAnalyzed.closest('.fraction-modal');
+  $fractionAnalyzed.select2({
+    placeholder: "",
+    allowClear: true,
+    width: "100%",
+    minimumResultsForSearch: Infinity, // three options: no search box
+    dropdownParent: $popup.length ? $popup : $(document.body),
+  });
+  // remove arrow
+  $fractionAnalyzed.next('.select2-container').find('.select2-selection__arrow').remove();
+  $fractionAnalyzed.on('change', () => updateRequiredAndEnableInputsForFraction(id));
 
   if (fraction) {
-    document.getElementById("fraction_analyzed_" + id).value = fraction.fractionAnalyzed ?? '';
+    $fractionAnalyzed.val(fraction.fractionAnalyzed ?? '').trigger('change.select2');
     document.getElementById("org_" + id).checked = fraction.orgOrMin === "org";
     document.getElementById("min_" + id).checked = fraction.orgOrMin === "min";
     document.getElementById("sieveSize_" + id).value  = fraction.sieveSize ?? '';

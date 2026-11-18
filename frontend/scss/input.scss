@@ -260,14 +260,12 @@ input[type=radio] {
 
 /* ------------ sample specific --------------- */
 
-.container-md .accordion-body #fractions {
+.container-md .accordion-body #fractions { // sits in the .col-75 of its own row (input.html)
     border-radius: 5px;
     background-color:white;
-    padding:10px;
-    margin-bottom: 0%;
-    margin-left: 25%;
-    display:inline-block;
-    width: 75%;
+    padding: 0;
+    margin: 0;
+    width: 100%;
 }
 
 .container-md .accordion-body #fractions .col-25{

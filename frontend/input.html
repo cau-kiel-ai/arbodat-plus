@@ -1665,9 +1665,15 @@
                                 </div>
                               </div>
 
-                              <fieldset id="fractions" style="padding: 0;">
-                                <!-- fraction boxes are rendered by js/input/sample-fraction-boxes.js -->
-                              </fieldset>
+                              <!-- fractions: in the grid like the fields above, so they line up with the inputs -->
+                              <div class="row" style="margin-top: 10px;">
+                                <div class="col-25"></div>
+                                <div class="col-75">
+                                  <fieldset id="fractions">
+                                    <!-- fraction boxes are rendered by js/input/sample-fraction-boxes.js -->
+                                  </fieldset>
+                                </div>
+                              </div>
                               <button type="button" class="Add" onclick="addFraction()" >add fraction</button>
                               <script>
                                 document.addEventListener("DOMContentLoaded", () => addFraction());
