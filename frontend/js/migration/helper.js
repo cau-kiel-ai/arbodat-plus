@@ -115,17 +115,11 @@ function encodeRowItem(item) {
     return encodeURIComponent(JSON.stringify(item)).replace(/'/g, "%27");
 }
 
-// Decode the item stored in the 'Add to JSON' button of a row (see data-item)
-function getRowItem(row) {
-    const button = row.querySelector("button[data-item]");
-    return button ? JSON.parse(decodeURIComponent(button.getAttribute("data-item"))) : null;
-}
-
 // Add one grouped entry to the JSON, remove all rows it covers and tell the user
 // how many rows were added and how many rows with the same label had to be skipped
-function addGroupToJSON(entry, rows, skippedReasons = []) {
+function addGroupToJSON(entry, rows, skippedReasons = [], removeRows = rows => rows.forEach(row => row.remove())) {
     jsonData.push(entry);
-    rows.forEach(row => row.remove());
+    removeRows(rows);
     displayJSON();
     console.log(`${rows.length} row(s) added to JSON`);
 
@@ -158,12 +152,8 @@ function addLabelToJSON(itemId, attribute, button) {
 }
 
 function addLabelToJSONWithItem(button, attribute) {
-    // attributes: 'result', 'coordinateSystemSite', 'coordinateSystemSample', 'C14LabCode'
+    // attributes: 'coordinateSystemSite', 'coordinateSystemSample', 'C14LabCode' (results: see addResultsToJSON)
     const row = button.closest("tr");
-
-    if (attribute === "result") {
-        addResultsToJSON(row);
-    }
 
     if (attribute == "coordinateSystemSite" || attribute == "coordinateSystemSample") {
         addCoordinatesToJSON(row, attribute);
@@ -175,6 +165,7 @@ function addLabelToJSONWithItem(button, attribute) {
 }
 
 // Results -------------------------------------------------------------------
+// (rows are Tabulator rows of the result tables, see result.js)
 
 const NO_FRACTION_ANALYZED = "no fraction analyzed";
 
@@ -182,18 +173,11 @@ const NO_FRACTION_ANALYZED = "no fraction analyzed";
 // Returns { data, payload } or { message, reason } if the row can not be added to the JSON.
 // 'data' (itemType + the not set non matching values) is also returned with a message,
 // except if the taxonomy is missing.
-function buildResultEntry(row) {
-    const item   = getRowItem(row);
-    const result = item.result;
-
-    // Get Taxonomy
-    const siteLabel = result.sample.feature.site.label;
-    const siteLabelSafe = siteLabel.replace(/\s+/g, '_');
-    const taxonomyDropdown = document.getElementById(`taxonomyDropdown_${siteLabelSafe}`);
-    const taxonomyLabel = taxonomyDropdown ? taxonomyDropdown.options[taxonomyDropdown.selectedIndex].text : null;
+function buildResultEntry(rowData) {
+    const site = resultTables.get(rowData.siteLabel);
 
     // The empty option of the dropdown has no text, "select Taxonomy" is only the select2 placeholder
-    if (!taxonomyLabel) {
+    if (!site.taxonomyLabel) {
         return {
             message: "Before you can 'Add to JSON', you must select a 'Taxonomy' for this site.",
             reason: "no taxonomy selected"
@@ -204,88 +188,33 @@ function buildResultEntry(row) {
         itemType: "result",
     };
 
-    // Get and set TaxCode
-    let taxCodeIsSet = true;
-    if (result.taxCode == null) {
-
-        const taxCodeDropdown = document.getElementById(`taxCodeDropdown_${item.id}`);
-        const taxCodeId = taxCodeDropdown ? taxCodeDropdown.value : null;
-        const taxCodeLabel = taxCodeDropdown ? taxCodeDropdown.options[taxCodeDropdown.selectedIndex].text.trim() : null;
-
-        if (taxCodeId && taxCodeLabel) {
-            // Set taxCode
-            result.taxCode = {
-                id: taxCodeId,
-                label: taxCodeLabel,
-                taxonomy: taxonomyLabel
-            };
-        } else {
-            taxCodeIsSet = false;
-            // Add to JSON
-            data.nonMatching_taxCode = {
-                nonMatching_taxCode: row.cells[3].textContent.trim(),
-                taxonomy: taxonomyLabel
-            };
-        }
+    // Values which are not set by a dropdown are added to the JSON
+    const taxCodeIsSet = !rowData.needsTaxCode || !!rowData.danteTaxCode;
+    if (!taxCodeIsSet) {
+        data.nonMatching_taxCode = {
+            nonMatching_taxCode: rowData.taxCode,
+            taxonomy: site.taxonomyLabel
+        };
     }
 
-    // Get and set RestType
-    let restTypeIsSet = true;
-    if (result.restType == null) {
-        const restTypeDropdown = document.getElementById(`restTypeDropdown_${item.id}`);
-        const restTypeId = restTypeDropdown ? restTypeDropdown.value : null;
-        const restTypeLabel = restTypeDropdown ? restTypeDropdown.options[restTypeDropdown.selectedIndex].text.trim() : null;
-
-        if (restTypeId && restTypeLabel) {
-            // Set RestType
-            result.restType = {
-                id: restTypeId,
-                label: restTypeLabel
-            };
-        } else {
-            restTypeIsSet = false;
-            // Add to JSON
-            data.nonMatching_restType = row.cells[9].textContent.trim();
-        }
+    const restTypeIsSet = !rowData.needsRestType || !!rowData.danteRestType;
+    if (!restTypeIsSet) {
+        data.nonMatching_restType = rowData.restType;
     }
 
-    // Get and set StateOfPreservation
-    let stateOfPreservationIsSet = true;
-    if (result.stateOfPreservation == null) {
-        const stateOfPreservationDropdown = document.getElementById(`stateOfPreservationDropdown_${item.id}`);
-        const stateOfPreservationId = stateOfPreservationDropdown ? stateOfPreservationDropdown.value : null;
-        const stateOfPreservationLabel = stateOfPreservationDropdown ? stateOfPreservationDropdown.options[stateOfPreservationDropdown.selectedIndex].text : null;
-
-        if (stateOfPreservationId && stateOfPreservationLabel) {
-            // Set StateOfPreservation
-            result.stateOfPreservation = {
-                id: stateOfPreservationId,
-                label: stateOfPreservationLabel
-            };
-        } else {
-            stateOfPreservationIsSet = false;
-            // Add to JSON
-            data.nonMatching_stateOfPreservation = row.cells[11].textContent.trim();
-        }
+    const stateOfPreservationIsSet = !rowData.needsStateOfPreservation || !!rowData.danteStateOfPreservation;
+    if (!stateOfPreservationIsSet) {
+        data.nonMatching_stateOfPreservation = rowData.stateOfPreservation;
     }
-
-    // Get and set fractionAnalyzed ------------------------------
-    const fractionAnalyzedCell  = row.cells[5];
-    const orgOrMinCell          = row.cells[6];
-    const sieveSizeCell         = row.cells[7];
 
     // 'data' is returned with the messages, so the caller can still compare the non matching values
-    if (fractionAnalyzedCell.textContent === "") {
+    if (rowData.fractionAnalyzed === "") {
         return {
             data: data,
             message: "Before you can 'Add to JSON', you must create the corresponding fraction analysed for the corresponding sample in the ‘Fraction Analyzed’ accordion.",
             reason: NO_FRACTION_ANALYZED
         };
     }
-
-    result.fractionAnalyzed = fractionAnalyzedCell.textContent;
-    result.orgOrMin         = orgOrMinCell.textContent;
-    result.sieveSize        = parseFloat(sieveSizeCell.textContent);
 
     if (taxCodeIsSet && restTypeIsSet && stateOfPreservationIsSet) {
         return {
@@ -297,26 +226,32 @@ function buildResultEntry(row) {
 
     return {
         data: data,
-        // Only use sampleId to parse JSON in backend correct
-        payload: {
-            ...result,
-            sample: {
-                id: result.sample.id
-            }
-        }
+        payload: resultPayload(rowData, site)
     };
+}
+
+// Removes result rows (of possibly several site tables), one delete per table
+function removeResultRows(rows) {
+    const idsBySite = new Map();
+    rows.forEach(row => {
+        const { siteLabel, id } = row.getData();
+        if (!idsBySite.has(siteLabel)) idsBySite.set(siteLabel, []);
+        idsBySite.get(siteLabel).push(id);
+    });
+    idsBySite.forEach((ids, siteLabel) => deleteResultRows(resultTables.get(siteLabel).table, ids));
 }
 
 // Adds the clicked result and all results with the same non matching values
 // (and the same taxonomy) to the JSON
 function addResultsToJSON(row) {
-    const clicked = buildResultEntry(row);
+    const rowData = row.getData();
+    const clicked = buildResultEntry(rowData);
     if (clicked.message) {
-        const item = getRowItem(row);
         // No fraction analyzed and nothing to create it from: offer to create it, then add again
         if (clicked.reason === NO_FRACTION_ANALYZED &&
-            !hasPendingFractionAnalyzedRow(item.result.sample.feature.site.label, item.result.sample.id, item.fractionAnalyzed.fraction)) {
-            openCreateFractionModal(item, row, () => addResultsToJSON(row));
+            !hasPendingFractionAnalyzedRow(rowData.siteLabel, rowData.sampleId, rowData.originalFraction)) {
+            const table = resultTables.get(rowData.siteLabel).table;
+            openCreateFractionModal(rowData, () => addResultsToJSON(table.getRow(rowData.id)));
         } else {
             toast.info(clicked.message);
         }
@@ -328,22 +263,25 @@ function addResultsToJSON(row) {
     const payloads = [clicked.payload];
     const skippedReasons = [];
 
-    document.querySelectorAll('tbody[id^="resultTableBody_"] tr').forEach(otherRow => {
-        if (otherRow === row) return;
+    resultTables.forEach(site => {
+        site.table.getRows().forEach(otherRow => {
+            const otherData = otherRow.getData();
+            if (otherData.id === rowData.id) return;
 
-        // Only rows with the same not set values (and taxonomy); values set by a dropdown are not compared
-        const other = buildResultEntry(otherRow);
-        if (!other.data || JSON.stringify(other.data) !== signature) return;
+            // Only rows with the same not set values (and taxonomy); values set by a dropdown are not compared
+            const other = buildResultEntry(otherData);
+            if (!other.data || JSON.stringify(other.data) !== signature) return;
 
-        if (other.message) {
-            skippedReasons.push(other.reason);
-        } else {
-            rows.push(otherRow);
-            payloads.push(other.payload);
-        }
+            if (other.message) {
+                skippedReasons.push(other.reason);
+            } else {
+                rows.push(otherRow);
+                payloads.push(other.payload);
+            }
+        });
     });
 
-    addGroupToJSON({ ...clicked.data, items: payloads }, rows, skippedReasons);
+    addGroupToJSON({ ...clicked.data, items: payloads }, rows, skippedReasons, removeResultRows);
 }
 
 // Coordinates ---------------------------------------------------------------

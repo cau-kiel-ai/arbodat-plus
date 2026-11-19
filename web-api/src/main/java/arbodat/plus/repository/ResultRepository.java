@@ -35,6 +35,9 @@ public interface ResultRepository extends JpaRepository <Result, UUID> {
     // Results of one sample (paged like findAll, used by the results table in the input form)
     Page<Result> findBySampleId(UUID sampleId, Pageable pageable);
 
+    // Existing results of many samples at once (bulk create of the migration)
+    List<Result> findBySampleIdIn(Collection<UUID> sampleIds);
+
     // Called per FEATURE (batch), not per sample -> no N+1
     List<Result> findBySampleFeatureId(UUID featureId);
 

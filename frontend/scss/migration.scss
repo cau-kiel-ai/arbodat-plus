@@ -257,6 +257,46 @@ input[type=radio] {
 
 /* ------------ result specific --------------- */
 
+// One block per site: header (site label + taxonomy dropdown) and Tabulator (see js/migration/result.js)
+.migration-result-site {
+    margin-bottom: 24px;
+}
+
+.migration-result-header {
+    display: flex;
+    align-items: center;
+    gap: 20px;
+    margin-bottom: 12px;
+}
+
+.migration-result-site-text {
+    font-weight: bold;
+}
+
+.migration-result-site-label {
+    font-weight: bold;
+    font-size: 1.3em;
+}
+
+.migration-result-taxonomy {
+    width: 250px;
+}
+
+.migration-result-table {
+    font-size: 0.8em;
+}
+
+// Empty dante dropdown cell
+.migration-result-placeholder {
+    color: #6c757d;
+}
+
+// Center the "select row" checkbox in the header of the row selection column
+.tabulator .tabulator-header .tabulator-col.selectionColumn {
+    align-items: center;
+    justify-content: center;
+}
+
 .accordion #add_other_fraction { 
     width: 74%;
     margin-left: 25%; 

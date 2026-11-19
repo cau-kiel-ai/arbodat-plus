@@ -85,7 +85,7 @@ async function migrateSites(researchProjectList) {
         populateUsers(userList);
         populateFractionsAnalyzed(fractionAnalyzedList);
         populateLabsAndNumbers(labAndNumberList);
-        populateResults(resultList);
+        await populateResults(resultList);
 
         // show accordion sections 4-10, when something is included in the corresponding lists
         // Literature

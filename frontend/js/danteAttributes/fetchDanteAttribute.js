@@ -63,7 +63,20 @@ let cachedTaxCodesForURI = new Map(); //   Key       value
 // A DANTE request which hangs (instead of failing) must not block the page forever
 const DANTE_TIMEOUT_MS = 30000;
 
-async function fetchDanteAttribute(attribute) {
+// Running requests per attribute: callers which ask for the same attribute at the same time
+// (e.g. one per table row) share one request instead of each sending its own
+const pendingDanteRequests = new Map(); // attribute -> promise
+
+function fetchDanteAttribute(attribute) {
+    if (!pendingDanteRequests.has(attribute)) {
+        const request = loadDanteAttribute(attribute)
+            .finally(() => pendingDanteRequests.delete(attribute));
+        pendingDanteRequests.set(attribute, request);
+    }
+    return pendingDanteRequests.get(attribute);
+}
+
+async function loadDanteAttribute(attribute) {
 
     // Set URL based on attribute if (attribute_loaded == false)
     //                            else return
@@ -642,35 +655,54 @@ async function fetchDanteAttribute(attribute) {
     }
 }
 
+// The whole arbodat_taxonomy vocabulary is downloaded once and grouped by taxonomy,
+// so choosing another taxonomy does not download it again
+let allTaxCodesRequest = null; // promise -> true if the download succeeded
+
 async function fetchDanteTaxCodes(uri) {
 
-    if (!cachedTaxCodesForURI.has(uri)) {        
-        // Send GET request and cache taxCodes for corresponding uri
-        try {
-            let taxCodes = [];
+    if (cachedTaxCodesForURI.has(uri)) return;
 
-            let response = [];
-            let partialResponse = [];
-            let offset = 0;
-            do {
-                partialResponse = await axios.get(`https://api.dante.gbv.de/search?voc=arbodat_taxonomy&limit=1000&offset=${offset}&sort&query=*&properties=notation,hiddenLabel,ancestors`, { timeout: DANTE_TIMEOUT_MS });
-                response.push(...partialResponse.data);
-                offset += 1000;
-            } while (partialResponse.data.length > 0)
-            
-            for (let i = 0; i < response.length; i++) {
-                const item = response[i];
-                
-                // check if ancestors of item equals corresponding taxonomy
-                if (item.ancestors && item.ancestors[0] && item.ancestors[0].uri == uri) {
-                    taxCodes.push(item)
-                }
+    if (!allTaxCodesRequest) {
+        allTaxCodesRequest = loadAllTaxCodes();
+    }
+    const loaded = await allTaxCodesRequest;
+
+    if (!loaded) {
+        allTaxCodesRequest = null; // try again on the next call
+    } else if (!cachedTaxCodesForURI.has(uri)) {
+        cachedTaxCodesForURI.set(uri, []); // taxonomy without tax codes
+    }
+}
+
+async function loadAllTaxCodes() {
+    try {
+        let response = [];
+        let partialResponse = [];
+        let offset = 0;
+        do {
+            partialResponse = await axios.get(`https://api.dante.gbv.de/search?voc=arbodat_taxonomy&limit=1000&offset=${offset}&sort&query=*&properties=notation,hiddenLabel,ancestors`, { timeout: DANTE_TIMEOUT_MS });
+            response.push(...partialResponse.data);
+            offset += 1000;
+        } while (partialResponse.data.length > 0)
+
+        // Group taxCodes by their taxonomy (first ancestor)
+        const taxCodesForURI = new Map();
+        for (let i = 0; i < response.length; i++) {
+            const item = response[i];
+            const taxonomyUri = item.ancestors?.[0]?.uri;
+            if (!taxonomyUri) continue;
+
+            if (!taxCodesForURI.has(taxonomyUri)) {
+                taxCodesForURI.set(taxonomyUri, []);
             }
-
-            cachedTaxCodesForURI.set(uri, taxCodes);
-
-        } catch (error) {
-            console.error('Error during GET request to load tax code: ', error);
+            taxCodesForURI.get(taxonomyUri).push(item);
         }
+        taxCodesForURI.forEach((taxCodes, taxonomyUri) => cachedTaxCodesForURI.set(taxonomyUri, taxCodes));
+        return true;
+
+    } catch (error) {
+        console.error('Error during GET request to load tax code: ', error);
+        return false;
     }
 }

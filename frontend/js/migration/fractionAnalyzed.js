@@ -142,27 +142,15 @@ async function postFractionAnalyzed(payload) {
     return await response.text();
 }
 
-// Fill fractionAnalyzed, orgOrMin and sieveSize in all matching result rows
+// Fill fractionAnalyzed, orgOrMin and sieveSize in all matching result rows (see result.js)
 function fillResultFractionCells(siteLabel, sampleId, originalFraction, fractionAnalyzed, orgOrMin, sieveSize) {
-    const resultTableBody =
-        document.getElementById(`resultTableBody_${siteLabel}`);
+    const site = resultTables.get(siteLabel);
+    if (!site) return;
 
-    Array.from(resultTableBody.rows).forEach(row => {
-        const sampleCell           = row.cells[2];
-        const fractionAnalyzedCell = row.cells[5];
-        const orgOrMinCell         = row.cells[6];
-        const sieveSizeCell        = row.cells[7];
-
-        if (
-            sampleCell.getAttribute('data-sampleId') === sampleId &&
-            orgOrMinCell.getAttribute('data-originalFraction') === originalFraction &&
-            sieveSizeCell.getAttribute('data-originalFraction') === originalFraction
-        ) {
-            fractionAnalyzedCell.textContent = fractionAnalyzed;
-            orgOrMinCell.textContent = orgOrMin;
-            sieveSizeCell.textContent = sieveSize;
-        }
-    });
+    const updates = site.table.getData()
+        .filter(data => data.sampleId === String(sampleId) && data.originalFraction === originalFraction)
+        .map(data => ({ id: data.id, fractionAnalyzed, orgOrMin, sieveSize }));
+    if (updates.length > 0) site.table.updateData(updates);
 }
 
 // True if the 'Fractions Analyzed' table still has a row for this site + sample + fraction
@@ -176,12 +164,13 @@ function hasPendingFractionAnalyzedRow(siteLabel, sampleId, fraction) {
 }
 
 // Open popup to create a fraction analyzed for a result row without pending fraction analyzed row.
-// onCreated: what to continue with after the fraction analyzed is created (default: create the result)
-function openCreateFractionModal(item, resultRow, onCreated = () => createResult(resultRow.dataset.itemId, resultRow)) {
-    const result           = item.result;
-    const siteLabel        = result.sample.feature.site.label;
-    const sampleId         = String(result.sample.id);
-    const originalFraction = item.fractionAnalyzed.fraction;
+// rowData: the row of the result table (see result.js)
+// onCreated: what to continue with after the fraction analyzed is created (create the result / add it to the JSON)
+function openCreateFractionModal(rowData, onCreated) {
+    const item             = rowData.item;
+    const siteLabel        = rowData.siteLabel;
+    const sampleId         = rowData.sampleId;
+    const originalFraction = rowData.originalFraction;
 
     const modal        = document.getElementById("fractionAnalyzedModal");
     const select       = document.getElementById("fractionAnalyzedModalSelect");
@@ -200,7 +189,7 @@ function openCreateFractionModal(item, resultRow, onCreated = () => createResult
     sieveInput.value = sieveSize ?? "";
 
     document.getElementById("fractionAnalyzedModalInfo").innerHTML =
-        `${escapeHtml(siteLabel)}<br>${escapeHtml(result.sample.feature.label)}<br>${escapeHtml(result.sample.label)}`;
+        `${escapeHtml(siteLabel)}<br>${escapeHtml(rowData.featureLabel)}<br>${escapeHtml(rowData.sampleLabel)}`;
 
     // Show Popup ---------------------------------------------------
     modal.style.display = "block";

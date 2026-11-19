@@ -1,554 +1,468 @@
-const resultMap = new Map();
+// Results accordion: one Tabulator per site.
+// Tabulator renders only the visible rows (virtual DOM), so sites with thousands of results stay fast.
+// The rows are plain objects (see toResultRow); 'Create', 'Add to JSON' and the fraction popup read
+// and update these objects, never the cells.
 
-function populateResults(resultList) {
+const resultTables = new Map(); // siteLabel -> { table, taxonomyUri, taxonomyLabel }
+let resultRowCounter = 0;
 
-    // Get resultForm
+// Results per bulk request (requests are sent one after another)
+const RESULT_CHUNK_SIZE = 500;
+// Max. number of tax codes shown in the 'dante taxCode' dropdown while typing
+const TAX_CODE_SUGGESTIONS = 100;
+
+function toResultRow(item) {
+    const result = item.result;
+    return {
+        id:                       `result_${++resultRowCounter}`,
+        item:                     item, // as received from the migration, item.result is sent back on create
+        siteLabel:                item.siteLabel,
+        featureLabel:             item.featureLabel,
+        sampleId:                 String(item.sampleId),
+        sampleLabel:              item.sampleLabel,
+
+        taxCode:                  result.taxCode?.label ?? item.nonMatchingTaxCode,
+        needsTaxCode:             result.taxCode == null,
+        danteTaxCode:             null, // uri
+
+        originalFraction:         item.fractionAnalyzed.fraction,
+        fractionAnalyzed:         "",   // set when the fraction analyzed is created (see fractionAnalyzed.js)
+        orgOrMin:                 item.fractionAnalyzed.orgOrMin ?? "",
+        sieveSize:                item.fractionAnalyzed.sieveSize ?? "",
+
+        // INFO: No extension in ArboDat2018 possible
+        cf:                       item.nonMatchingClassificationConfer || (result.classificationConfer?.label ?? ""),
+
+        restType:                 result.restType?.label ?? item.nonMatchingRestType,
+        needsRestType:            result.restType == null,
+        danteRestType:            null, // uri
+
+        stateOfPreservation:      result.stateOfPreservation?.label ?? item.nonMatchingStateOfPreservation,
+        needsStateOfPreservation: result.stateOfPreservation == null,
+        danteStateOfPreservation: null, // uri
+
+        error:                    "", // reason, if the last 'Create' failed
+    };
+}
+
+// Options of the dante dropdowns ---------------------------------------------------------------
+
+// restType / stateOfPreservation: the options of populateDanteDropdown (hierarchy, display order),
+// built once per attribute. Guide terms (disabled options) are left out.
+const danteListOptions = new Map(); // attribute -> { values: [{ value, label }], labels: Map(uri -> label) }
+
+async function getDanteListOptions(attribute) {
+    if (!danteListOptions.has(attribute)) {
+        await fetchDanteAttribute(attribute);
+
+        const select = document.createElement("select");
+        populateDanteDropdown(attribute, select);
+
+        const values = [];
+        const labels = new Map();
+        Array.from(select.options).forEach(option => {
+            if (!option.value || option.disabled) return;
+            values.push({ value: option.value, label: option.textContent });
+            labels.set(option.value, option.getAttribute("data-label") ?? option.textContent.trim());
+        });
+        danteListOptions.set(attribute, { values, labels });
+    }
+    return danteListOptions.get(attribute);
+}
+
+// taxCodes of a taxonomy with lowercased search keys, built once per taxonomy
+const taxCodeOptions = new Map(); // taxonomyUri -> { values: [{ value, label, codeKey, nameKey }], labels: Map(uri -> label) }
+
+function getTaxCodeOptions(taxonomyUri) {
+    if (!taxCodeOptions.has(taxonomyUri)) {
+        const values = (cachedTaxCodesForURI.get(taxonomyUri) || []).map(item => ({
+            value:   item.uri,
+            label:   [item.notation, item.prefLabel?.la].filter(Boolean).join(", "),
+            codeKey: codeSearchKey(item.notation),                     // "|a|b"
+            nameKey: String(item.prefLabel?.la ?? "").toLowerCase(),
+        }));
+        const labels = new Map(values.map(option => [option.value, option.label]));
+        taxCodeOptions.set(taxonomyUri, { values, labels });
+    }
+    return taxCodeOptions.get(taxonomyUri);
+}
+
+// The first TAX_CODE_SUGGESTIONS taxCodes whose code starts with the typed text,
+// followed by those whose name contains it
+function suggestTaxCodes(taxonomyUri, term) {
+    term = String(term ?? "").trim().toLowerCase();
+    if (!term) return [];
+
+    const byCode = [];
+    const byName = [];
+    for (const option of getTaxCodeOptions(taxonomyUri).values) {
+        if (option.codeKey.includes("|" + term)) {
+            byCode.push(option);
+            if (byCode.length >= TAX_CODE_SUGGESTIONS) break;
+        } else if (byName.length < TAX_CODE_SUGGESTIONS && option.nameKey.includes(term)) {
+            byName.push(option);
+        }
+    }
+    return byCode.concat(byName).slice(0, TAX_CODE_SUGGESTIONS)
+        .map(option => ({ value: option.value, label: option.label }));
+}
+
+// Table ----------------------------------------------------------------------------------------
+
+async function populateResults(resultList) {
+
     const resultForm = document.getElementById("resultForm");
 
-    resultList.forEach(async entry => {
+    // Load the dante lists once for all tables (requests run in parallel)
+    const [restTypes, statesOfPreservation] = await Promise.all([
+        getDanteListOptions("restType"),
+        getDanteListOptions("stateOfPreservation"),
+        fetchDanteAttribute("taxonomy"),
+    ]);
+
+    for (const entry of resultList) {
         const siteLabel = Object.keys(entry)[0];
-        const siteLabelSafe = siteLabel.replace(/\s+/g, '_'); // sanitize
+        const rows = entry[siteLabel].map(toResultRow);
+
+        // Site migrated again: add the rows to its table
+        if (resultTables.has(siteLabel)) {
+            resultTables.get(siteLabel).table.addData(rows);
+            continue;
+        }
 
         const siteResultsContainer = document.createElement("div");
-
-        // Container for siteLabel and taxonomyDropdwon -------------
-        const labelDropdownContainer = document.createElement("div");
-            // Style
-        labelDropdownContainer.style.display = "flex";        // Flexbox for horizontal arrangement
-        labelDropdownContainer.style.alignItems = "center";   // Align vertically
-        labelDropdownContainer.style.gap = "20px";            // Space between texts and dropdown
-        labelDropdownContainer.style.marginBottom = "12px";  // Space between this row and the table
-
-        // Create 'span' for "Site label: ""
-        const span_text = document.createElement("span");
-        span_text.textContent = `Site: `;
-            // Style
-        span_text.style.fontWeight = "bold";
-
-        // Create 'span' for siteLabel
-        const span_siteLabel = document.createElement("span");
-        span_siteLabel.textContent = siteLabel;
-            // Style
-        span_siteLabel.style.fontWeight = "bold";
-        span_siteLabel.style.fontSize   = "1.3em"; // 130% of normal font size
-
-        // Create taxonomy dropdown
-        const taxonomyDropdown = document.createElement("div");
-        taxonomyDropdown.innerHTML = `<select id="taxonomyDropdown_${escapeHtml(siteLabelSafe)}"
-                                              onchange="handleTaxonomyChange(this.value, '${escapeJsArg(siteLabel)}')">
-                                              <option value=""></option>
-                                      </select>
-                                     `;
-            // Style
-        taxonomyDropdown.className   = "table-filter-select"; // same look as the filter dropdowns
-        taxonomyDropdown.style.width = "250px";
-
-        labelDropdownContainer.appendChild(span_text);
-        labelDropdownContainer.appendChild(span_siteLabel);
-        labelDropdownContainer.appendChild(taxonomyDropdown);
-
-        // Create new table -----------------------------------------
-
-        // Scale result table font size 80%
-        const style = document.createElement("style");
-        style.innerHTML = `
-            #resultTable td, #resultTable th {
-                font-size: 0.8em;
-            }
+        siteResultsContainer.className = "migration-result-site";
+        siteResultsContainer.innerHTML = `
+            <div class="migration-result-header">
+                <span class="migration-result-site-text">Site:</span>
+                <span class="migration-result-site-label"></span>
+                <div class="table-filter-select migration-result-taxonomy">
+                    <select><option value=""></option></select>
+                </div>
+                <span class="small text-muted migration-result-counter"></span>
+            </div>
+            <div class="migration-result-table"></div>
         `;
-        // Insert the style tag into the head section of the document
-        document.head.appendChild(style);
-
-        // Create new table
-        const resultTable = document.createElement("table");
-        resultTable.className = "table table-striped";
-        resultTable.id = "resultTable";
-
-        // Create new table head
-        const thead = document.createElement("thead");
-        thead.innerHTML = `
-        <tr>
-            <th>
-                <input type="checkbox" onclick="toggleAllCheckboxes(this, 'resultTableBody_${escapeJsArg(siteLabel)}')">
-            </th>
-
-            <th scope="col">Feature</th>
-            <th scope="col">Sample</th>
-
-            <th scope="col">taxCode</th>
-            <th scope="col" style="min-width: 78px;">dante taxCode</th>
-
-            <th scope="col">fraction analyzed</th>
-            <th scope="col">orgOrMin</th>
-            <th scope="col">sieve size</th>
-
-            <th scope="col">cf</th>
-
-            <th scope="col">restType</th>
-            <th scope="col">dante&#8239restType</th>
-
-            <th scope="col">stateOfPreservation</th>
-            <th scope="col">dante stateOfPreservation</th>
-
-            <th scope="col">Create&#8239Result Add to JSON</th>
-        </tr>
-        `;
-        resultTable.appendChild(thead);
-
-        // Create new table body
-        const resultTableBody = document.createElement("tbody");
-        resultTableBody.id = `resultTableBody_${siteLabel}`;
-        // ----------------------------------------------------------
-
-        // Create lines for each result
-        const results = entry[siteLabel];
-        results.forEach(item => {
-
-            const row = document.createElement("tr");
-
-            // Generate an unique ID based on:
-            // featureId, sampleId, nonMatchingTaxCode, fraction, cf, restType, stateOfPreservation
-            const cf = item.result.classificationConfer ? item.result.classificationConfer.label : item.nonMatchingClassificationConfer;
-            const restType = item.result.restType ? item.result.restType.label : item.nonMatchingRestType;
-            const stateOfPreservation = item.result.stateOfPreservation ? item.result.stateOfPreservation.label : item.nonMatchingStateOfPreservation;
-            item.id = `${item.result.sample.feature.id}_${item.fractionAnalyzed.sampleId}_${item.result.taxCode?.label ?? item.nonMatchingTaxCode}_${item.fractionAnalyzed.fraction.replace(/\./g, '_dot_')}_${cf}_${restType}_${stateOfPreservation}`;
-
-            resultMap.set(item.id, item);
-            row.dataset.itemId = item.id;
-            // Original values for the table filter
-            row.dataset.taxCode             = item.result.taxCode?.label ?? item.nonMatchingTaxCode;
-            row.dataset.restType            = restType;
-            row.dataset.stateOfPreservation = stateOfPreservation;
-            
-            // Add columns ----------------------------------------------------
-            let columns = `
-                <td><input type="checkbox"></td>
-
-                <td>
-                    ${escapeHtml(item.result.sample.feature.label)}
-                </td>
-
-                <td data-sampleId="${escapeHtml(item.result.sample.id)}">
-                    ${escapeHtml(item.result.sample.label)}
-                </td>
-            `;
-
-            // TaxCode
-            if (item.result.taxCode != null) {
-                columns += `<td>${escapeHtml(item.result.taxCode.label)}</td>`;
-                columns += `<td></td>`;
-            } else {
-                const taxCodeDropdown = `<select
-                                            id="taxCodeDropdown_${escapeHtml(item.id)}"
-                                            onchange="updateCheckedDropdowns(this.value, 'resultTableBody_${escapeJsArg(siteLabel)}', 'taxCodeDropdown_')"
-                                            style="appearance: none;"
-                                        >
-                                            <option value="">select</option>
-                                        </select>`;
-                columns += `<td>${escapeHtml(item.nonMatchingTaxCode)}</td>`;
-                columns += `<td>${taxCodeDropdown}</td>`;
-            }
-
-            // FractionAnalyzed
-            columns += `<td></td>`;
-            columns += `<td data-originalFraction="${escapeHtml(item.fractionAnalyzed.fraction)}">${escapeHtml(item.fractionAnalyzed.orgOrMin ?? '')}</td>`;
-            columns += `<td data-originalFraction="${escapeHtml(item.fractionAnalyzed.fraction)}">${escapeHtml(item.fractionAnalyzed.sieveSize ?? '')}</td>`;
-
-            // ClassificationConfer
-            // INFO: No extension in ArboDat2018 possible
-            columns += `<td>${escapeHtml(item.nonMatchingClassificationConfer || (item.result.classificationConfer?.label ?? ''))}</td>`;
-
-            // RestType
-            if (item.nonMatchingRestType == "") {
-                columns += `<td>${escapeHtml(item.result.restType.label)}</td>`;
-                columns += `<td></td>`;
-            } else {
-                const restTypeDropdown = `<select
-                                            id="restTypeDropdown_${escapeHtml(item.id)}"
-                                            onchange="updateCheckedDropdowns(this.value, 'resultTableBody_${escapeJsArg(siteLabel)}', 'restTypeDropdown_')"
-                                            style="appearance: none;"
-                                         >
-                                            <option value="">select</option>
-                                         </select>`;
-                columns += `<td>${escapeHtml(item.nonMatchingRestType)}</td>`;
-                columns += `<td>${restTypeDropdown}</td>`;
-            }
-
-            // StateOfPreservation            
-            if (item.nonMatchingStateOfPreservation == "") {
-                columns += `<td>${escapeHtml(item.result.stateOfPreservation.label)}</td>`;
-                columns += `<td></td>`;
-            } else {
-                const stateOfPreservationDropdown = `<select
-                                                        id="stateOfPreservationDropdown_${escapeHtml(item.id)}"
-                                                        onchange="updateCheckedDropdowns(this.value, 'resultTableBody_${escapeJsArg(siteLabel)}', 'stateOfPreservationDropdown_')"
-                                                        style="appearance: none;"
-                                                     >
-                                                        <option value="">select</option>
-                                                     </select>`;
-                columns += `<td>${escapeHtml(item.nonMatchingStateOfPreservation)}</td>`;
-                columns += `<td>${stateOfPreservationDropdown}</td>`;
-            }
-
-            // 'Create' and 'Add to JSON' Button
-            columns += `<td>
-                            <button
-                                type="button"
-                                onclick="createResult('${escapeJsArg(item.id)}', this.closest('tr'))"
-                            >
-                                Create
-                            </button>
-                            <br>
-                            <button
-                                type="button"
-                                style="margin-top: 6px;"
-                                data-item='${encodeRowItem(item)}'
-                                onclick="addLabelToJSONWithItem(this, 'result')"
-                            >
-                                Add&#8239to&#8239JSON
-                            </button>
-                        </td>`
-
-            // ----------------------------------------------------------------
-
-            row.innerHTML = columns;
-
-            resultTableBody.appendChild(row);
-        });
-
-        resultTable.appendChild(resultTableBody);        
-
-        siteResultsContainer.appendChild(labelDropdownContainer);
-        siteResultsContainer.appendChild(resultTable);
-
+        siteResultsContainer.querySelector(".migration-result-site-label").textContent = siteLabel;
         resultForm.appendChild(siteResultsContainer);
 
-        // Filter the results of this site (see tableFilter.js)
-        createTableFilter({
-            tbody: resultTableBody,
-            counterColumns: [1, 3],
-            fields: [
-                { key: "taxCode",             label: "taxCode",             getValue: row => row.dataset.taxCode ?? "" },
-                { key: "restType",            label: "restType",            getValue: row => row.dataset.restType ?? "" },
-                { key: "stateOfPreservation", label: "stateOfPreservation", getValue: row => row.dataset.stateOfPreservation ?? "" }
-            ]
-        });
-        
-        // Select2 taxonomy dropdown ----------------
-        $(`#taxonomyDropdown_${siteLabelSafe}`).select2({
+        // Taxonomy dropdown
+        const taxonomySelect = siteResultsContainer.querySelector("select");
+        taxonomySelect.id = `taxonomyDropdown_${siteLabel.replace(/\s+/g, '_')}`;
+        populateDanteDropdown("taxonomy", taxonomySelect);
+        $(taxonomySelect).select2({
             placeholder: 'select Taxonomy',
             allowClear: true,
             width: '100%',
             dropdownCssClass: 'table-filter-dropdown',
-        });
-        // ------------------------------------------
+        }).on('change', () => handleTaxonomyChange(siteLabel, taxonomySelect));
 
-        // Populate taxonomyDropdown
-        await fetchDanteAttribute("taxonomy");
-        populateDanteDropdown("taxonomy", document.getElementById(`taxonomyDropdown_${siteLabelSafe}`));
-
-        // Populate danteDropdowns in each line 
-        results.forEach(async item => {
-
-            // if (item.result.classificationConfer == null) {
-            //     // Populate cfDropdown
-            //     await fetchDanteAttribute("classificationConfer");
-            //     populateDanteDropdown("classificationConfer", document.getElementById(`cfDropdown_${item.id}`));
-            // }
-
-            if (item.result.restType == null) {
-                // Populate restTypeDropdown
-                await fetchDanteAttribute("restType");
-                populateDanteDropdown("restType", document.getElementById(`restTypeDropdown_${item.id}`));
-            }            
-
-            if (item.result.stateOfPreservation == null) {
-                // Populate stateOfPreservationDropdown
-                await fetchDanteAttribute("stateOfPreservation");
-                populateDanteDropdown("stateOfPreservation", document.getElementById(`stateOfPreservationDropdown_${item.id}`));
-            }
-        });
-    });
+        const entryOfSite = { table: null, taxonomyUri: "", taxonomyLabel: "" };
+        entryOfSite.table = createResultTable(siteResultsContainer.querySelector(".migration-result-table"),
+                                              siteResultsContainer.querySelector(".migration-result-counter"),
+                                              rows, entryOfSite, restTypes, statesOfPreservation);
+        resultTables.set(siteLabel, entryOfSite);
+    }
 }
 
-$(document).on(
-    'mousedown keydown',
-    'select[id^="taxCodeDropdown_"], select[id^="restTypeDropdown_"], select[id^="stateOfPreservationDropdown_"]',
+function createResultTable(element, counter, rows, site, restTypes, statesOfPreservation) {
 
-    function (e) {
+    // Cell of a dante dropdown: the label of the chosen value, "select" if none is chosen yet,
+    // empty in rows where the value matched (no dropdown needed)
+    const danteFormatter = (needsField, labelOf) => cell => {
+        if (!cell.getRow().getData()[needsField]) return "";
+        const value = cell.getValue();
+        return value
+            ? escapeHtml(labelOf(value) ?? value)
+            : `<span class="migration-result-placeholder">select</span>`;
+    };
 
-        if (e.type === 'keydown' &&
-            !['Enter', 'Space', 'ArrowDown'].includes(e.key)) {
-            return;
-        }
+    // Column of a dante dropdown: only editable in rows where the value didn't match
+    const danteColumn = (title, field, needsField, options) => ({
+        title, field, headerSort: false, minWidth: 140,
+        editable: cell => cell.getRow().getData()[needsField],
+        editor: "list",
+        editorParams: {
+            values: options.values,
+            autocomplete: true, listOnEmpty: true, clearable: true, allowEmpty: true,
+            emptyValue: null, placeholderEmpty: "no results",
+        },
+        formatter: danteFormatter(needsField, value => options.labels.get(value)),
+    });
 
-        const $select = $(this);
-        
-        if (!$select.hasClass('select2-hidden-accessible')) {
-            e.preventDefault();
+    const filterColumn = (title, field) => ({
+        title, field, headerSort: false,
+        headerFilter: "list",
+        headerFilterParams: { valuesLookup: true, clearable: true, sort: "asc" },
+        headerFilterFunc: "=",
+        headerFilterPlaceholder: "all",
+        formatter: "plaintext",
+    });
 
-            $select.select2({
-                placeholder: 'select',
-                templateSelection: function(item) {
-                    return (item.text || '').trim();
-                }
-            });
-            // remove arrow
-            $select
-                .next('.select2-container')
-                .find('.select2-selection__arrow')
-                .remove();
+    const table = newTabulator(element, {
+        data: rows,
+        index: "id",
+        maxHeight: "70vh",
+        layout: "fitDataStretch",
+        placeholder: "no results",
+        columns: [
+            {cssClass: "selectionColumn", formatter: "rowSelection", titleFormatter: "rowSelection",
+                titleFormatterParams: { rowRange: "active" }, // only (de)select the filtered rows
+                hozAlign: "center", headerSort: false, width: 40},
+            {title: "Feature", field: "featureLabel", headerSort: false, formatter: "plaintext"},
+            {title: "Sample",  field: "sampleLabel",  headerSort: false, formatter: "plaintext"},
 
-            $select.select2('open');
-        }
+            filterColumn("taxCode", "taxCode"),
+            {title: "dante taxCode", field: "danteTaxCode", headerSort: false, minWidth: 160,
+                editable: cell => cell.getRow().getData().needsTaxCode && !!site.taxonomyUri,
+                editor: "list",
+                editorParams: {
+                    valuesLookup: (cell, term) => suggestTaxCodes(site.taxonomyUri, term),
+                    filterRemote: true, filterDelay: 150, filterFunc: () => true,
+                    autocomplete: true, listOnEmpty: false, clearable: true, allowEmpty: true,
+                    emptyValue: null, placeholderEmpty: "type a code or name",
+                },
+                formatter: danteFormatter("needsTaxCode", value => getTaxCodeOptions(site.taxonomyUri).labels.get(value)),
+                cellClick: (e, cell) => {
+                    if (cell.getRow().getData().needsTaxCode && !site.taxonomyUri) {
+                        toast.info("Please select a 'Taxonomy' for this site.");
+                    }
+                },
+            },
+
+            {title: "fraction analyzed", field: "fractionAnalyzed", headerSort: false, formatter: "plaintext"},
+            {title: "orgOrMin",          field: "orgOrMin",         headerSort: false, formatter: "plaintext"},
+            {title: "sieve size",        field: "sieveSize",        headerSort: false, formatter: "plaintext"},
+
+            {title: "cf", field: "cf", headerSort: false, formatter: "plaintext"},
+
+            filterColumn("restType", "restType"),
+            danteColumn("dante restType", "danteRestType", "needsRestType", restTypes),
+
+            filterColumn("stateOfPreservation", "stateOfPreservation"),
+            danteColumn("dante stateOfPreservation", "danteStateOfPreservation", "needsStateOfPreservation", statesOfPreservation),
+
+            {title: "Create Result Add to JSON", headerSort: false, hozAlign: "center", minWidth: 110,
+                formatter: cell => {
+                    const error = cell.getRow().getData().error;
+                    return `<button type="button" data-action="create">Create</button><br>
+                            <button type="button" data-action="json" class="mt-1">Add&#8239;to&#8239;JSON</button>
+                            ${error ? `<div class="text-danger small text-wrap">${escapeHtml(error)}</div>` : ""}`;
+                },
+                cellClick: (e, cell) => {
+                    const action = e.target.closest("button")?.dataset.action;
+                    if (action === "create") createResult(cell.getRow());
+                    if (action === "json")   addResultsToJSON(cell.getRow());
+                },
+            },
+        ],
+    });
+
+    // A value chosen in a selected row is copied to all other selected rows (where it applies)
+    table.on("cellEdited", cell => {
+        const row = cell.getRow();
+        if (!row.isSelected()) return;
+
+        const field = cell.getField();
+        const needsField = {
+            danteTaxCode:             "needsTaxCode",
+            danteRestType:            "needsRestType",
+            danteStateOfPreservation: "needsStateOfPreservation",
+        }[field];
+        if (!needsField) return;
+
+        const updates = table.getSelectedData()
+            .filter(data => data.id !== row.getData().id && data[needsField])
+            .map(data => ({ id: data.id, [field]: cell.getValue() }));
+        if (updates.length > 0) table.updateData(updates);
+    });
+
+    // Rows hidden by a filter are deselected, so the bulk actions skip them
+    const updateCounter = () => {
+        const total  = table.getDataCount();
+        const active = table.getDataCount("active");
+        counter.textContent = active === total ? `${total} rows` : `${active} of ${total} rows`;
+    };
+    table.on("dataFiltered", (filters, activeRows) => {
+        const active = new Set(activeRows);
+        table.getSelectedRows().filter(row => !active.has(row)).forEach(row => row.deselect());
+        setTimeout(updateCounter);
+    });
+    table.on("dataChanged", updateCounter);
+    table.on("rowDeleted",  updateCounter);
+    table.on("dataProcessed", updateCounter);
+
+    return table;
+}
+
+// Tabulator can't measure itself in a collapsed accordion -> redraw when it is opened
+document.addEventListener("shown.bs.collapse", event => {
+    if (event.target.id === "panelsStayOpen-collapseTen") {
+        resultTables.forEach(site => site.table.redraw());
     }
-);
-
-$(document).on(
-    'select2:open',
-    'select[id^="taxCodeDropdown_"], select[id^="restTypeDropdown_"], select[id^="stateOfPreservationDropdown_"]',
-    function (e) {
-        const $select = $(e.target);
-        const $container = $select.next('.select2-container');        
-        $container.css({
-            width: '100%'
-        });
-        $container.find('.select2-selection__rendered').css({
-            fontSize: '12px'
-        });
-        $container.find('.select2-selection--single').css({
-            height: '44px'
-        });
-
-        const $dropdown = $('.select2-container--open .select2-dropdown');
-        $dropdown.css({
-            minWidth: '300px'
-        });
 });
 
-async function handleTaxonomyChange(uri, siteLabel) {
+// Removes rows by id. Tabulator deletes rows one by one and re-renders after each,
+// so for many rows the remaining data is set instead (much faster).
+function deleteResultRows(table, ids) {
+    const remove = new Set(ids);
+    if (remove.size < 50) return table.deleteRow([...remove]);
+    return table.replaceData(table.getData().filter(data => !remove.has(data.id)));
+}
+
+// Clears the chosen taxCodes: they belong to the previous taxonomy
+async function handleTaxonomyChange(siteLabel, select) {
+    const site = resultTables.get(siteLabel);
+    const uri = select.value;
+
     showLoading();
-    // Browser is able to render spinner UI
-    await new Promise(resolve => setTimeout(resolve, 0));
-
     try {
-        await fetchDanteTaxCodes(uri);
+        if (uri) await fetchDanteTaxCodes(uri);
 
-        // Get tax codes for corresponding uri
-        const taxCodes = cachedTaxCodesForURI.get(uri) || [];
-        const sharedTaxCodesOptionsFragment = createTaxCodeOptionsFragment(taxCodes);
+        site.taxonomyUri   = uri;
+        site.taxonomyLabel = uri ? select.options[select.selectedIndex].text : "";
 
-        // Get all tax codes dropdowns
-        const tableBody = document.getElementById(`resultTableBody_${siteLabel}`);
-        const taxCodeDropdowns = Array.from(tableBody.querySelectorAll("select[id^='taxCodeDropdown_']"));
-
-        const batchSize = 50;
-        for (let i = 0; i < taxCodeDropdowns.length; i += batchSize) {
-            const batch = taxCodeDropdowns.slice(i, i + batchSize);
-
-            batch.forEach(dropdown => {
-                populateTaxCodeDropdownShared(dropdown, sharedTaxCodesOptionsFragment);
-            });
-
-            // Browser is able to update UI
-            await new Promise(resolve => setTimeout(resolve, 0));
-        }
+        const updates = site.table.getData()
+            .filter(data => data.danteTaxCode)
+            .map(data => ({ id: data.id, danteTaxCode: null }));
+        if (updates.length > 0) await site.table.updateData(updates);
     } finally {
         hideLoading();
     }
 }
 
-async function createResult(itemId, row, triggerNext=true) {
+// Create ---------------------------------------------------------------------------------------
 
-    // Get result
-    const item = resultMap.get(itemId);
-    const result = item.result;
-
-    // Get Taxonomy
-    const siteLabel = result.sample.feature.site.label;
-    const siteLabelSafe = siteLabel.replace(/\s+/g, '_');
-    const taxonomyDropdown = document.getElementById(`taxonomyDropdown_${siteLabelSafe}`);
-    const taxonomyLabel = taxonomyDropdown ? taxonomyDropdown.options[taxonomyDropdown.selectedIndex].text : null;
-
-    if (taxonomyLabel) {
-
-        if (result.taxCode == null) {
-            // Get taxCode
-            const taxCodeDropdown = document.getElementById(`taxCodeDropdown_${item.id}`);
-            const taxCodeId = taxCodeDropdown ? taxCodeDropdown.value : null;
-            const taxCodeLabel = taxCodeDropdown ? taxCodeDropdown.options[taxCodeDropdown.selectedIndex]?.text : null;
-
-            if (taxCodeId && taxCodeLabel) {
-                // Set taxCode
-                result.taxCode = {
-                        id:       taxCodeId,
-                        label:    taxCodeLabel,
-                        taxonomy: taxonomyLabel
-                };            
-            } else {
-                if (triggerNext) {
-                    toast.info("Please select a 'dante taxCode'.");
-                }
-                return false;
-            }
-        }
-
-        // Get fraction
-        const fractionAnalyzedCell  = row.cells[5];
-        const orgOrMinCell          = row.cells[6];
-        const sieveSizeCell         = row.cells[7];
-
-        if (fractionAnalyzedCell.textContent != "") {
-            // Set fractionAnalyzed in result
-            result.fractionAnalyzed = fractionAnalyzedCell.textContent;
-            result.orgOrMin         = orgOrMinCell.textContent
-            result.sieveSize        = parseFloat(sieveSizeCell.textContent);
-
-            // Get and set ClassificationConfer
-            // if (result.classificationConfer == null) {
-            //     const cfDropdown = document.getElementById(`cfDropdown_${item.id}`);
-            //     const cfId = cfDropdown ? cfDropdown.value : null;
-            //     const cfLabel = cfDropdown ? cfDropdown.options[cfDropdown.selectedIndex].text : null;
-
-            //     if (cfId && cfLabel) {
-            //         // Set ClassificationConfer
-            //         result.classificationConfer = {
-            //             id: cfId,
-            //             label: cfLabel
-            //         };
-            //     } else {
-            //         toast.info("Please select a classificationConfer (cf)");
-            //         return;
-            //     }
-            // }
-
-            // Get and set RestType
-            if (result.restType == null) {
-                const restTypeDropdown = document.getElementById(`restTypeDropdown_${item.id}`);
-                const restTypeId = restTypeDropdown ? restTypeDropdown.value : null;
-                const restTypeLabel = restTypeDropdown ? restTypeDropdown.options[restTypeDropdown.selectedIndex].text.trim() : null;
-
-                if (restTypeId && restTypeLabel) {
-                    // Set RestType
-                    result.restType = {
-                        id: restTypeId,
-                        label: restTypeLabel
-                    };
-                } else {
-                    if (triggerNext) {
-                        toast.info("Please select a restType.");
-                    }
-                    return false;
-                }
-            }
-            // Get and set StateOfPreservation
-            if (result.stateOfPreservation == null) {
-                const stateOfPreservationDropdown = document.getElementById(`stateOfPreservationDropdown_${item.id}`);
-                const stateOfPreservationId = stateOfPreservationDropdown ? stateOfPreservationDropdown.value : null;
-                const stateOfPreservationLabel = stateOfPreservationDropdown ? stateOfPreservationDropdown.options[stateOfPreservationDropdown.selectedIndex].text : null;
-
-                if (stateOfPreservationId && stateOfPreservationLabel) {
-                    // Set StateOfPreservation
-                    result.stateOfPreservation = {
-                        id: stateOfPreservationId,
-                        label: stateOfPreservationLabel
-                    };
-                } else {
-                    if (triggerNext) {
-                        toast.info("Please select a stateOfPreservation.");
-                    }
-                    return false;
-                }
-            }
-
-            // Only add sampleId to parse JSON in backend correct
-            const payload = {
-                ...result,
-                sample: {
-                    id: result.sample.id
-                }
-            };
-
-            try {
-                const response = await fetch(
-                    `api/results/createViaMigration/${taxonomyLabel}`,
-                    {
-                        method: 'POST',
-                        headers: {
-                            'Content-Type': 'application/json'
-                        },
-                        body: JSON.stringify(payload)
-                    }
-                );
-                if (!response.ok) {
-                    throw new Error(`HTTP Error! Status: ${response.status}`);
-                }
-                const data = await response.text();
-
-                if (data == "result already exists") {
-                    console.log(data);
-                } else {
-                    // data is result id
-                    console.log("result is created");
-                }                
-
-                row.remove();
-
-                if (triggerNext) {
-                    const tableBodyId = `resultTableBody_${siteLabel}`;
-                    createCheckedResults(tableBodyId);
-                }
-                
-                return true;
-
-            } catch (error) {
-                console.error('Error:', error);
-                toast.error("Failed to create result.");
-            };
-
-        } else {
-            if (triggerNext) {
-                if (!hasPendingFractionAnalyzedRow(siteLabel, result.sample.id, item.fractionAnalyzed.fraction)) {
-                    openCreateFractionModal(item, row);
-                } else {
-                    toast.info("Before you can create a result, you must create the corresponding fraction analysed for the corresponding sample in the ‘Fraction Analyzed’ accordion.");
-                }
-            }
-            return false;
-        }
-    } else {
-        if (triggerNext) {
-            toast.info("Please select a 'Taxonomy' for this site.");
-        }
-        return false;
+// Checks a result row. Returns { payload } or { reason, message } if the result can not be created yet.
+function buildResultPayload(data, site) {
+    if (!site.taxonomyLabel) {
+        return { reason: "no taxonomy selected", message: "Please select a 'Taxonomy' for this site." };
     }
+    if (data.needsTaxCode && !data.danteTaxCode) {
+        return { reason: "no dante taxCode", message: "Please select a 'dante taxCode'." };
+    }
+    if (data.fractionAnalyzed === "") {
+        return { reason: NO_FRACTION_ANALYZED, message: "Before you can create a result, you must create the corresponding fraction analysed for the corresponding sample in the ‘Fraction Analyzed’ accordion." };
+    }
+    if (data.needsRestType && !data.danteRestType) {
+        return { reason: "no restType", message: "Please select a restType." };
+    }
+    if (data.needsStateOfPreservation && !data.danteStateOfPreservation) {
+        return { reason: "no stateOfPreservation", message: "Please select a stateOfPreservation." };
+    }
+    return { payload: resultPayload(data, site) };
 }
 
-async function createCheckedResults(tableBodyId) {
-    const tableBody = document.getElementById(tableBodyId);
-    if (tableBody) {
-        const checkboxes = Array.from(
-            tableBody.querySelectorAll('input[type="checkbox"]:checked')
-        );
-        const concurrencyLimit = 100;
-        showLoading();
-        try {
-            for (let i = 0; i < checkboxes.length; i += concurrencyLimit) {
-                const batch = checkboxes.slice(i, i + concurrencyLimit);
+// The result to send to the backend, with the values chosen in the dante dropdowns
+// (also used for 'Add to JSON', where some of them may still be missing)
+function resultPayload(data, site) {
+    const result = { ...data.item.result };
 
-                const promises = batch.map(async checkbox => {
-                    if (checkbox.disabled) return true;
+    if (data.needsTaxCode && data.danteTaxCode) {
+        result.taxCode = {
+            id:       data.danteTaxCode,
+            label:    getTaxCodeOptions(site.taxonomyUri).labels.get(data.danteTaxCode),
+            taxonomy: site.taxonomyLabel,
+        };
+    }
+    if (data.needsRestType && data.danteRestType) {
+        result.restType = {
+            id:    data.danteRestType,
+            label: danteListOptions.get("restType").labels.get(data.danteRestType),
+        };
+    }
+    if (data.needsStateOfPreservation && data.danteStateOfPreservation) {
+        result.stateOfPreservation = {
+            id:    data.danteStateOfPreservation,
+            label: danteListOptions.get("stateOfPreservation").labels.get(data.danteStateOfPreservation),
+        };
+    }
+    if (data.fractionAnalyzed !== "") {
+        result.fractionAnalyzed = data.fractionAnalyzed;
+        result.orgOrMin         = data.orgOrMin;
+        result.sieveSize        = parseFloat(data.sieveSize);
+    }
 
-                    const row = checkbox.closest('tr');               
-                    const itemId = row.dataset.itemId;
+    // Only the sample id, to parse the JSON in the backend correctly
+    result.sample = { id: data.sampleId };
+    return result;
+}
 
-                    return createResult(itemId, row, false);
-                });
+// 'Create' button: creates the result of the clicked row and of all other selected rows
+async function createResult(row) {
+    const data = row.getData();
+    const site = resultTables.get(data.siteLabel);
 
-                await Promise.allSettled(promises);
-            };
-        } finally {
-            hideLoading();
+    const clicked = buildResultPayload(data, site);
+    if (!clicked.payload) {
+        if (clicked.reason === NO_FRACTION_ANALYZED &&
+            !hasPendingFractionAnalyzedRow(data.siteLabel, data.sampleId, data.originalFraction)) {
+            openCreateFractionModal(data, () => createResult(site.table.getRow(data.id)));
+        } else {
+            toast.info(clicked.message);
         }
+        return;
+    }
+
+    const items = [{ clientId: data.id, result: clicked.payload }];
+    const skippedReasons = [];
+    site.table.getSelectedData().forEach(other => {
+        if (other.id === data.id) return;
+        const entry = buildResultPayload(other, site);
+        if (entry.payload) {
+            items.push({ clientId: other.id, result: entry.payload });
+        } else {
+            skippedReasons.push(entry.reason);
+        }
+    });
+
+    await createResults(site, items, skippedReasons);
+}
+
+// Sends the results in chunks to the bulk endpoint. Created (and already existing) results are removed
+// from the table, rows which failed stay with the reason.
+async function createResults(site, items, skippedReasons = []) {
+    const done   = [];
+    const errors = [];
+
+    showLoading();
+    try {
+        for (let i = 0; i < items.length; i += RESULT_CHUNK_SIZE) {
+            const chunk = items.slice(i, i + RESULT_CHUNK_SIZE);
+            try {
+                const response = await axios.post(
+                    `api/results/createViaMigration/bulk/${encodeURIComponent(site.taxonomyLabel)}`, chunk);
+                response.data.forEach(status => {
+                    if (status.status === "error") {
+                        errors.push({ id: status.clientId, error: status.message || "failed" });
+                    } else {
+                        done.push(status.clientId);
+                    }
+                });
+            } catch (error) {
+                console.error("Error during bulk create of results: ", error);
+                const message = getErrorMessage(error);
+                chunk.forEach(item => errors.push({ id: item.clientId, error: message }));
+            }
+        }
+
+        if (done.length > 0)   await deleteResultRows(site.table, done);
+        if (errors.length > 0) await site.table.updateData(errors);
+    } finally {
+        hideLoading();
+    }
+
+    // Summary --------------------------------------------------
+    if (items.length > 1 || skippedReasons.length > 0) {
+        let message = `${done.length} ${done.length === 1 ? "result" : "results"} created.`;
+        if (skippedReasons.length > 0) {
+            message += ` ${skippedReasons.length} selected skipped (${[...new Set(skippedReasons)].join(", ")}).`;
+        }
+        if (errors.length > 0) {
+            message += ` ${errors.length} failed (see the rows).`;
+        }
+        (errors.length > 0 ? toast.error : toast.success)(message);
+    } else if (errors.length > 0) {
+        toast.error("Failed to create result: " + errors[0].error);
     }
 }

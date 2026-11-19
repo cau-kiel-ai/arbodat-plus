@@ -9,9 +9,12 @@ import com.healthmarketscience.jackcess.Database;
 import com.healthmarketscience.jackcess.DatabaseBuilder;
 import com.healthmarketscience.jackcess.Table;
 import com.healthmarketscience.jackcess.Row;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Example;
 import org.springframework.stereotype.Service;
+import org.springframework.util.StopWatch;
 
 import java.io.File;
 import java.io.IOException;
@@ -19,9 +22,12 @@ import java.io.UncheckedIOException;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
 import java.util.*;
+import java.util.function.Function;
 
 @Service
 public class MigrationService {
+
+    private static final Logger log = LoggerFactory.getLogger(MigrationService.class);
 
     @Autowired
     ResearchProjectService researchProjectService;
@@ -128,6 +134,33 @@ public class MigrationService {
     private Map<String, UUID> featureLabelIdMap = new HashMap<>();
     private Map<String, UUID> sampleLabelIdMap = new HashMap<>();
 
+    // Looked up DANTE entities (by uri or label) of the current migration,
+    // so every distinct value is queried only once instead of once per row
+    private final Map<String, Optional<?>> lookupCache = new HashMap<>();
+
+    @SuppressWarnings("unchecked")
+    private <T> Optional<T> cachedLookup(String type, String key, Function<String, Optional<T>> lookup) {
+        if (key == null) {
+            return Optional.empty();
+        }
+        return (Optional<T>) lookupCache.computeIfAbsent(type + "|" + key, k -> lookup.apply(key));
+    }
+
+    // Rows of an ArboDat table grouped by "siteLabel_featureLabel" (columns 'Projekt' and 'Befu').
+    // Replaces a scan of the whole table for every feature / sample.
+    private Map<String, List<Row>> groupBySiteAndFeature(Database db, String tableName) throws IOException {
+        Table table = db.getTable(tableName);
+        if (table == null) {
+            throw new IllegalArgumentException("table '" + tableName + "' doesn't exist");
+        }
+        Map<String, List<Row>> rowsBySiteAndFeature = new HashMap<>();
+        for (Row line : table) {
+            String key = line.getString("Projekt") + "_" + line.getString("Befu");
+            rowsBySiteAndFeature.computeIfAbsent(key, k -> new ArrayList<>()).add(line);
+        }
+        return rowsBySiteAndFeature;
+    }
+
     public MigrationResponse migrateData(String dataFilePath, String strukDataFilePath,
                                          List<ResearchProject> transferredResearchProjectList,
                                          List<String> siteLabelList) {
@@ -139,12 +172,18 @@ public class MigrationService {
         List<ResearchProject> researchProjectList = researchProjectService.
                                                         create(transferredResearchProjectList);
 
+        // Selected sites (set: is looked up for every row)
+        Set<String> siteLabels = new HashSet<>(siteLabelList);
+
         // Migrate all tables to the corresponding sites for the research project(s)
+        StopWatch stopWatch = new StopWatch("migration");
         for (String tableName : tableNames) {
+            stopWatch.start(tableName);
             MigrationResponse tableMigrationResponse = migrateTables(dataFilePath, strukDataFilePath,
                                                                      tableName,
                                                                      researchProjectList,
-                                                                     siteLabelList);
+                                                                     siteLabels);
+            stopWatch.stop();
 
             // Add all table migration response lists ----------------------------------
             migrationResponse.getNonMatchingDanteAttributeList().addAll(tableMigrationResponse.getNonMatchingDanteAttributeList());
@@ -162,10 +201,13 @@ public class MigrationService {
             // -------------------------------------------------------------------------
         }
 
+        log.info(stopWatch.prettyPrint());
+
         // Reset maps
         siteLabelIdMap.clear();
         featureLabelIdMap.clear();
         sampleLabelIdMap.clear();
+        lookupCache.clear();
 
         return migrationResponse;
     }
@@ -173,7 +215,7 @@ public class MigrationService {
     private MigrationResponse migrateTables(String dataFilePath, String strukDataFilePath,
                                             String tableName,
                                             List<ResearchProject> researchProjectList,
-                                            List<String> siteLabelList) {
+                                            Set<String> siteLabelList) {
 
         // Init returned data
         MigrationResponse tableMigrationResponse = new MigrationResponse();
@@ -304,6 +346,12 @@ public class MigrationService {
                 throw new IllegalArgumentException("table '" + tableName + "' doesn't exist");
             }
 
+            // Rows of other tables, which are needed for every feature / sample
+            Map<String, List<Row>> excavationYearsBySiteAndFeature = tableName.equals("Befunde")
+                    ? groupBySiteAndFeature(db, "Grabungsjahre") : Map.of();
+            Map<String, List<Row>> featureRowsBySiteAndFeature = tableName.equals("Proben")
+                    ? groupBySiteAndFeature(db, "Befunde") : Map.of();
+
             // Migrate lines
             for (Row row : table) {
                 switch (tableName) {
@@ -363,8 +411,7 @@ public class MigrationService {
                                 // Set natural unit
                                 String naturalUnitLabel = row.getString("NaturE");
                                 String naturalUnitUri = naturalUnitMapper.getUri(naturalUnitLabel);
-                                Optional<NaturalUnit> naturalUnit = (naturalUnitUri != null) ? naturalUnitRepository.findById(naturalUnitUri)
-                                        : Optional.empty();
+                                Optional<NaturalUnit> naturalUnit = cachedLookup("naturalUnit", naturalUnitUri, naturalUnitRepository::findById);
                                 if (naturalUnit.isPresent()) {
                                     newSite.setNaturalUnit(naturalUnit.get());
                                 } else {
@@ -502,8 +549,7 @@ public class MigrationService {
                                     // Set natural unit
                                     String naturalUnitLabel = row.getString("NaturE");
                                     String naturalUnitUri = naturalUnitMapper.getUri(naturalUnitLabel);
-                                    Optional<NaturalUnit> naturalUnit = (naturalUnitUri != null) ? naturalUnitRepository.findById(naturalUnitUri)
-                                            : Optional.empty();
+                                    Optional<NaturalUnit> naturalUnit = cachedLookup("naturalUnit", naturalUnitUri, naturalUnitRepository::findById);
                                     if (naturalUnit.isPresent()) {
                                         matchingSite.setNaturalUnit(naturalUnit.get());
                                         siteRepository.save(matchingSite);
@@ -641,16 +687,9 @@ public class MigrationService {
                                 // Set excavation years ---------------------------------------------------------
                                 List<Integer> excavationYears = new ArrayList<>();
 
-                                Table excavationYearsTable = db.getTable("Grabungsjahre");
-                                if (excavationYearsTable == null) {
-                                    throw new IllegalArgumentException("table 'Grabungsjahre' doesn't exist");
-                                }
-                                for (Row line : excavationYearsTable) {
-                                    String site_ = line.getString("Projekt");
-                                    String feature_ = line.getString("Befu");
-
+                                for (Row line : excavationYearsBySiteAndFeature.getOrDefault(uniqueFeatureString, List.of())) {
                                     Short year = line.getShort("Jahr");
-                                    if (year != null && Objects.equals(site_, siteLabel) && Objects.equals(feature_, featureLabel)) {
+                                    if (year != null) {
                                         excavationYears.add(year.intValue());
                                     }
                                 }
@@ -677,8 +716,7 @@ public class MigrationService {
                                     // Set site type
                                     String siteTypeLabel = row.getString("FustelTyp");
                                     String siteTypeUri = siteTypeMapper.getUri(siteTypeLabel);
-                                    Optional<SiteType> siteType = (siteTypeUri != null) ? siteTypeRepository.findById(siteTypeUri)
-                                            : Optional.empty();
+                                    Optional<SiteType> siteType = cachedLookup("siteType", siteTypeUri, siteTypeRepository::findById);
                                     if (siteType.isPresent()) {
                                         site.getSiteTypeList().add(siteType.get());
                                     } else {
@@ -706,8 +744,7 @@ public class MigrationService {
                                 // Set feature type
                                 String featureTypeLabel = row.getString("BefuTyp");
                                 String featureTypeUri = featureTypeMapper.getUri(featureTypeLabel);
-                                Optional<FeatureType> featureType = (featureTypeUri != null) ? featureTypeRepository.findById(featureTypeUri)
-                                        : Optional.empty();
+                                Optional<FeatureType> featureType = cachedLookup("featureType", featureTypeUri, featureTypeRepository::findById);
                                 if (featureType.isPresent()) {
                                     newFeature.setFeatureType(featureType.get());
                                 } else {
@@ -726,9 +763,7 @@ public class MigrationService {
                                     case 2 -> {preservationConditionLabel = "bad";}
                                 }
                                 String preservationConditionUri = preservationConditionMapper.getUri(preservationConditionLabel);
-                                Optional<PreservationCondition> preservationCondition = (preservationConditionUri != null)
-                                        ? preservationConditionRepository.findById(preservationConditionUri)
-                                        : Optional.empty();
+                                Optional<PreservationCondition> preservationCondition = cachedLookup("preservationCondition", preservationConditionUri, preservationConditionRepository::findById);
                                 if (preservationCondition.isPresent()) {
                                     newFeature.setPreservationCondition(preservationCondition.get());
                                 } else {
@@ -767,8 +802,7 @@ public class MigrationService {
                                         // Set site type
                                         String siteTypeLabel = row.getString("FustelTyp");
                                         String siteTypeUri = siteTypeMapper.getUri(siteTypeLabel);
-                                        Optional<SiteType> siteType = (siteTypeUri != null) ? siteTypeRepository.findById(siteTypeUri)
-                                                : Optional.empty();
+                                        Optional<SiteType> siteType = cachedLookup("siteType", siteTypeUri, siteTypeRepository::findById);
                                         if (siteType.isPresent()) {
                                             site.getSiteTypeList().add(siteType.get());
                                             siteRepository.save(site);
@@ -799,8 +833,7 @@ public class MigrationService {
                                     // Set feature type
                                     String featureTypeLabel = row.getString("BefuTyp");
                                     String featureTypeUri = featureTypeMapper.getUri(featureTypeLabel);
-                                    Optional<FeatureType> featureType = (featureTypeUri != null) ? featureTypeRepository.findById(featureTypeUri)
-                                            : Optional.empty();
+                                    Optional<FeatureType> featureType = cachedLookup("featureType", featureTypeUri, featureTypeRepository::findById);
                                     if (featureType.isPresent()) {
                                         matchingFeature.setFeatureType(featureType.get());
                                         featureRepository.save(matchingFeature);
@@ -824,9 +857,7 @@ public class MigrationService {
                                         case 2 -> {preservationConditionLabel = "bad";}
                                     }
                                     String preservationConditionUri = preservationConditionMapper.getUri(preservationConditionLabel);
-                                    Optional<PreservationCondition> preservationCondition = (preservationConditionUri != null)
-                                            ? preservationConditionRepository.findById(preservationConditionUri)
-                                            : Optional.empty();
+                                    Optional<PreservationCondition> preservationCondition = cachedLookup("preservationCondition", preservationConditionUri, preservationConditionRepository::findById);
                                     if (preservationCondition.isPresent()) {
                                         matchingFeature.setPreservationCondition(preservationCondition.get());
                                         featureRepository.save(matchingFeature);
@@ -951,33 +982,23 @@ public class MigrationService {
                                 }
 
                                 // Set botanical determination year and get bot.Det.By (user)
-                                Table featureTable = db.getTable("Befunde");
-                                if (featureTable == null) {
-                                    throw new IllegalArgumentException("table 'Befunde' doesn't exist");
-                                }
-                                for (Row line : featureTable) {
-                                    String site_ = line.getString("Projekt");
-                                    String feature_ = line.getString("Befu");
-
-                                    if (Objects.equals(site_, siteLabel) && Objects.equals(feature_, featureLabel)) {
-                                        String botDetYear = line.getString("BestJa");
-                                        if (botDetYear != null) {
-                                            newSample.setBotanicalDeterminationYear(botDetYear);
-                                        }
-                                        // Add user info to userList ---------------------------------------------
-                                        String userLabel = line.getString("BotBest");
-                                        if (userLabel != null) {
-                                            userList.add(new UserMigration("sample", sampleId, sampleLabel,
-                                                    userLabel, "botanicalDeterminationBy", siteLabel, featureLabel));
-                                        } // ---------------------------------------------------------------------
+                                for (Row line : featureRowsBySiteAndFeature.getOrDefault(uniqueFeatureString, List.of())) {
+                                    String botDetYear = line.getString("BestJa");
+                                    if (botDetYear != null) {
+                                        newSample.setBotanicalDeterminationYear(botDetYear);
                                     }
+                                    // Add user info to userList ---------------------------------------------
+                                    String userLabel = line.getString("BotBest");
+                                    if (userLabel != null) {
+                                        userList.add(new UserMigration("sample", sampleId, sampleLabel,
+                                                userLabel, "botanicalDeterminationBy", siteLabel, featureLabel));
+                                    } // ---------------------------------------------------------------------
                                 }
 
                                 // Set chronozone
                                 String chronozoneLabel = row.getString("ChronoDat");
                                 String chronozoneUri = chronozoneMapper.getUri(chronozoneLabel);
-                                Optional<Chronozone> chronozone = (chronozoneUri != null) ? chronozoneRepository.findById(chronozoneUri)
-                                        : Optional.empty();
+                                Optional<Chronozone> chronozone = cachedLookup("chronozone", chronozoneUri, chronozoneRepository::findById);
                                 if (chronozone.isPresent()) {
                                     newSample.setChronozone(chronozone.get());
                                 } else {
@@ -987,40 +1008,15 @@ public class MigrationService {
                                                                                                     "chronozone",
                                                                                                     chronozoneLabel));
                                 }
-//                                // Set archaeological dating
+                                // Set archaeological dating
                                 newSample.setArchaeologicalDating(row.getString("ArchDat"));
-//                                String archaeologicalDatingLabel = row.getString("ArchDat");
-//                                Optional<ArchaeologicalDating> archaeologicalDating
-//                                        = archaeologicalDatingRepository.findByLabel(archaeologicalDatingLabel);
-//                                if (archaeologicalDating.isPresent()) {
-//                                    newSample.setArchaeologicalDating(archaeologicalDating.get());
-//                                } else {
-//                                    nonMatchingDanteAttributeList.add(new NonMatchingDanteAttribute("sample",
-//                                                                                                    sampleId,
-//                                                                                                    sampleLabel,
-//                                                                                                    "archaeologicalDating",
-//                                                                                                    archaeologicalDatingLabel));
-//                                }
-//                                // Set cultural group
+                                // Set cultural group
                                 newSample.setCulturalGroup(row.getString("KultGr"));
-//                                String culturalGroupLabel = row.getString("KultGr");
-//                                if (culturalGroupLabel != null) {
-//                                    Optional<CulturalGroup> culturalGroup = culturalGroupRepository.findByLabel(culturalGroupLabel);
-//                                    if (culturalGroup.isPresent()) {
-//                                        newSample.setCulturalGroup(culturalGroup.get());
-//                                    } else {
-//                                        nonMatchingDanteAttributeList.add(new NonMatchingDanteAttribute("sample",
-//                                                sampleId,
-//                                                sampleLabel,
-//                                                "culturalGroup",
-//                                                culturalGroupLabel));
-//                                    }
-//                                }
+                                
                                 // Set sample type
                                 String sampleTypeLabel = row.getString("ProbTyp");
                                 String sampleTypeUri = sampleTypeMapper.getUri(sampleTypeLabel);
-                                Optional<SampleType> sampleType = (sampleTypeUri != null) ? sampleTypeRepository.findById(sampleTypeUri)
-                                        : Optional.empty();
+                                Optional<SampleType> sampleType = cachedLookup("sampleType", sampleTypeUri, sampleTypeRepository::findById);
                                 if (sampleType.isPresent()) {
                                     newSample.setSampleType(sampleType.get());
                                 } else {
@@ -1033,8 +1029,7 @@ public class MigrationService {
                                 // Set seedsAndFruits
                                 String seedsAndFruitsLabel = row.getString("Inventar_SaFr");
                                 String seedsAnsFruitsUri = sampleInvestigatedMapper.getUri(seedsAndFruitsLabel);
-                                Optional<SampleInvestigated> seedsAndFruits = (seedsAnsFruitsUri != null ) ? sampleInvestigatedRepository.findById(seedsAnsFruitsUri)
-                                        : Optional.empty();
+                                Optional<SampleInvestigated> seedsAndFruits = cachedLookup("sampleInvestigated", seedsAnsFruitsUri, sampleInvestigatedRepository::findById);
                                 if (seedsAndFruits.isPresent()) {
                                     newSample.setSeedsAndFruits(seedsAndFruits.get());
                                 } else {
@@ -1047,8 +1042,7 @@ public class MigrationService {
                                 // Set charcoalInvestigated
                                 String charcoalInvestigatedLabel = row.getString("Inventar_HK");
                                 String charcoalInvestigatedUri = sampleInvestigatedMapper.getUri(charcoalInvestigatedLabel);
-                                Optional<SampleInvestigated> charcoalInvestigated = (charcoalInvestigatedUri != null ) ? sampleInvestigatedRepository.findById(charcoalInvestigatedUri)
-                                        : Optional.empty();
+                                Optional<SampleInvestigated> charcoalInvestigated = cachedLookup("sampleInvestigated", charcoalInvestigatedUri, sampleInvestigatedRepository::findById);
                                 if (charcoalInvestigated.isPresent()) {
                                     newSample.setCharcoalInvestigated(charcoalInvestigated.get());
                                 } else {
@@ -1061,8 +1055,7 @@ public class MigrationService {
                                 // Set woodSubfossile
                                 String woodSubfossileLabel = row.getString("Inventar_Holz_sf");
                                 String woodSubfossileUri = sampleInvestigatedMapper.getUri(woodSubfossileLabel);
-                                Optional<SampleInvestigated> woodSubfossile = (woodSubfossileUri != null ) ? sampleInvestigatedRepository.findById(woodSubfossileUri)
-                                        : Optional.empty();
+                                Optional<SampleInvestigated> woodSubfossile = cachedLookup("sampleInvestigated", woodSubfossileUri, sampleInvestigatedRepository::findById);
                                 if (woodSubfossile.isPresent()) {
                                     newSample.setWoodSubfossile(woodSubfossile.get());
                                 } else {
@@ -1108,22 +1101,13 @@ public class MigrationService {
 
                                 // BotanicalDeterminationBy (user) ---------------------------------------
                                 if (matchingSample.getBotanicalDeterminationBy() == null || matchingSample.getBotanicalDeterminationBy().isEmpty()) {
-                                    Table featureTable = db.getTable("Befunde");
-                                    if (featureTable == null) {
-                                        throw new IllegalArgumentException("table 'Befunde' doesn't exist");
-                                    }
-                                    for (Row line : featureTable) {
-                                        String site_ = line.getString("Projekt");
-                                        String feature_ = line.getString("Befu");
-
-                                        if (Objects.equals(site_, siteLabel) && Objects.equals(feature_, featureLabel)) {
-                                            // Add user info to userList -------------------------------------------
-                                            String userLabel = line.getString("BotBest");
-                                            if (userLabel != null) {
-                                                userList.add(new UserMigration("sample", sampleId, sampleLabel,
-                                                        userLabel, "botanicalDeterminationBy", siteLabel, featureLabel));
-                                            } // -------------------------------------------------------------------
-                                        }
+                                    for (Row line : featureRowsBySiteAndFeature.getOrDefault(uniqueFeatureString, List.of())) {
+                                        // Add user info to userList -------------------------------------------
+                                        String userLabel = line.getString("BotBest");
+                                        if (userLabel != null) {
+                                            userList.add(new UserMigration("sample", sampleId, sampleLabel,
+                                                    userLabel, "botanicalDeterminationBy", siteLabel, featureLabel));
+                                        } // -------------------------------------------------------------------
                                     }
                                 }
 
@@ -1131,8 +1115,7 @@ public class MigrationService {
                                 if (matchingSample.getChronozone() == null) {
                                     String chronozoneLabel = row.getString("ChronoDat");
                                     String chronozoneUri = chronozoneMapper.getUri(chronozoneLabel);
-                                    Optional<Chronozone> chronozone = (chronozoneUri != null) ? chronozoneRepository.findById(chronozoneUri)
-                                            : Optional.empty();
+                                    Optional<Chronozone> chronozone = cachedLookup("chronozone", chronozoneUri, chronozoneRepository::findById);
                                     if (chronozone.isPresent()) {
                                         matchingSample.setChronozone(chronozone.get());
                                         sampleRepository.save(matchingSample);
@@ -1144,45 +1127,11 @@ public class MigrationService {
                                                 chronozoneLabel));
                                     }
                                 }
-//                                // Archaeological dating -------------------------------------------------
-//                                if (matchingSample.getArchaeologicalDating() == null) {
-//                                    String archaeologicalDatingLabel = row.getString("ArchDat");
-//                                    Optional<ArchaeologicalDating> archaeologicalDating
-//                                            = archaeologicalDatingRepository.findByLabel(archaeologicalDatingLabel);
-//                                    if (archaeologicalDating.isPresent()) {
-//                                        matchingSample.setArchaeologicalDating(archaeologicalDating.get());
-//                                        sampleRepository.save(matchingSample);
-//                                    } else {
-//                                        nonMatchingDanteAttributeList.add(new NonMatchingDanteAttribute("sample",
-//                                                sampleId,
-//                                                sampleLabel,
-//                                                "archaeologicalDating",
-//                                                archaeologicalDatingLabel));
-//                                    }
-//                                }
-//                                // Cultural group --------------------------------------------------------
-//                                if (matchingSample.getCulturalGroup() == null) {
-//                                    String culturalGroupLabel = row.getString("KultGr");
-//                                    if (culturalGroupLabel != null) {
-//                                        Optional<CulturalGroup> culturalGroup = culturalGroupRepository.findByLabel(culturalGroupLabel);
-//                                        if (culturalGroup.isPresent()) {
-//                                            matchingSample.setCulturalGroup(culturalGroup.get());
-//                                            sampleRepository.save(matchingSample);
-//                                        } else {
-//                                            nonMatchingDanteAttributeList.add(new NonMatchingDanteAttribute("sample",
-//                                                    sampleId,
-//                                                    sampleLabel,
-//                                                    "culturalGroup",
-//                                                    culturalGroupLabel));
-//                                        }
-//                                    }
-//                                }
                                 // Sample type -----------------------------------------------------------
                                 if (matchingSample.getSampleType() == null) {
                                     String sampleTypeLabel = row.getString("ProbTyp");
                                     String sampleTypeUri = sampleTypeMapper.getUri(sampleTypeLabel);
-                                    Optional<SampleType> sampleType = (sampleTypeUri != null) ? sampleTypeRepository.findById(sampleTypeUri)
-                                            : Optional.empty();
+                                    Optional<SampleType> sampleType = cachedLookup("sampleType", sampleTypeUri, sampleTypeRepository::findById);
                                     if (sampleType.isPresent()) {
                                         matchingSample.setSampleType(sampleType.get());
                                         sampleRepository.save(matchingSample);
@@ -1198,8 +1147,7 @@ public class MigrationService {
                                 if (matchingSample.getSeedsAndFruits() == null) {
                                     String seedsAndFruitsLabel = row.getString("Inventar_SaFr");
                                     String seedsAnsFruitsUri = sampleInvestigatedMapper.getUri(seedsAndFruitsLabel);
-                                    Optional<SampleInvestigated> seedsAndFruits = (seedsAnsFruitsUri != null ) ? sampleInvestigatedRepository.findById(seedsAnsFruitsUri)
-                                            : Optional.empty();
+                                    Optional<SampleInvestigated> seedsAndFruits = cachedLookup("sampleInvestigated", seedsAnsFruitsUri, sampleInvestigatedRepository::findById);
                                     if (seedsAndFruits.isPresent()) {
                                         matchingSample.setSeedsAndFruits(seedsAndFruits.get());
                                         sampleRepository.save(matchingSample);
@@ -1215,8 +1163,7 @@ public class MigrationService {
                                 if (matchingSample.getCharcoalInvestigated() == null) {
                                     String charcoalInvestigatedLabel = row.getString("Inventar_HK");
                                     String charcoalInvestigatedUri = sampleInvestigatedMapper.getUri(charcoalInvestigatedLabel);
-                                    Optional<SampleInvestigated> charcoalInvestigated = (charcoalInvestigatedUri != null ) ? sampleInvestigatedRepository.findById(charcoalInvestigatedUri)
-                                            : Optional.empty();
+                                    Optional<SampleInvestigated> charcoalInvestigated = cachedLookup("sampleInvestigated", charcoalInvestigatedUri, sampleInvestigatedRepository::findById);
                                     if (charcoalInvestigated.isPresent()) {
                                         matchingSample.setCharcoalInvestigated(charcoalInvestigated.get());
                                         sampleRepository.save(matchingSample);
@@ -1232,8 +1179,7 @@ public class MigrationService {
                                 if (matchingSample.getWoodSubfossile() == null) {
                                     String woodSubfossileLabel = row.getString("Inventar_HK");
                                     String woodSubfossileUri = sampleInvestigatedMapper.getUri(woodSubfossileLabel);
-                                    Optional<SampleInvestigated> woodSubfossile = (woodSubfossileUri != null ) ? sampleInvestigatedRepository.findById(woodSubfossileUri)
-                                            : Optional.empty();
+                                    Optional<SampleInvestigated> woodSubfossile = cachedLookup("sampleInvestigated", woodSubfossileUri, sampleInvestigatedRepository::findById);
                                     if (woodSubfossile.isPresent()) {
                                         matchingSample.setWoodSubfossile(woodSubfossile.get());
                                         sampleRepository.save(matchingSample);
@@ -1620,7 +1566,7 @@ public class MigrationService {
                                 // Set material
                                 String materialLabel = row.getString("Material");
                                 if (materialLabel != null) {
-                                    Optional<Material> material = materialRepository.findByLabel(materialLabel);
+                                    Optional<Material> material = cachedLookup("materialLabel", materialLabel, materialRepository::findByLabel);
                                     if (material.isPresent()) {
                                         newAbsoluteDating.setMaterial(material.get());
                                     } else {
@@ -1635,8 +1581,7 @@ public class MigrationService {
                                 String datingMethodLabel = row.getString("Methode");
                                 if(datingMethodLabel != null) {
                                     String datingMethodUri = datingMethodMapper.getUri(datingMethodLabel);
-                                    Optional<DatingMethod> datingMethod = (datingMethodUri != null) ? datingMethodRepository.findById(datingMethodUri)
-                                            : Optional.empty();
+                                    Optional<DatingMethod> datingMethod = cachedLookup("datingMethod", datingMethodUri, datingMethodRepository::findById);
                                     if (datingMethod.isPresent()) {
                                         newAbsoluteDating.setDatingMethod(datingMethod.get());
                                     } else {
@@ -1723,7 +1668,7 @@ public class MigrationService {
                                 if (matchingAbsoluteDating.getMaterial() == null) {
                                     String materialLabel = row.getString("Material");
                                     if (materialLabel != null) {
-                                        Optional<Material> material = materialRepository.findByLabel(materialLabel);
+                                        Optional<Material> material = cachedLookup("materialLabel", materialLabel, materialRepository::findByLabel);
                                         if (material.isPresent()) {
                                             matchingAbsoluteDating.setMaterial(material.get());
                                             absoluteDatingRepository.save(matchingAbsoluteDating);
@@ -1743,8 +1688,7 @@ public class MigrationService {
                                 if (matchingAbsoluteDating.getDatingMethod() == null) {
                                     if(datingMethodLabel != null) {
                                         String datingMethodUri = datingMethodMapper.getUri(datingMethodLabel);
-                                        Optional<DatingMethod> datingMethod = (datingMethodUri != null) ? datingMethodRepository.findById(datingMethodUri)
-                                                : Optional.empty();
+                                        Optional<DatingMethod> datingMethod = cachedLookup("datingMethod", datingMethodUri, datingMethodRepository::findById);
                                         if (datingMethod.isPresent()) {
                                             matchingAbsoluteDating.setDatingMethod(datingMethod.get());
                                             absoluteDatingRepository.save(matchingAbsoluteDating);
@@ -1852,6 +1796,12 @@ public class MigrationService {
                             Optional<Sample> sample = sampleRepository.findById(sampleId);
                             sample.ifPresent(newResult::setSample);
 
+                            newResultMigration.setSampleId(sampleId);
+                            newResultMigration.setSampleLabel(sampleLabel);
+                            newResultMigration.setFeatureId(featureLabelIdMap.get(siteLabel + "_" + featureLabel));
+                            newResultMigration.setFeatureLabel(featureLabel);
+                            newResultMigration.setSiteLabel(siteLabel);
+
                             // Set result attributes
                             newResult.setRestCount(row.getInt("rAnzahl"));
                             newResult.setRestWeight(row.getDouble("rGewicht"));
@@ -1866,7 +1816,7 @@ public class MigrationService {
                             newResult.setEntryDate(entryDate);
 
                             // Set TaxCode
-                            Optional<TaxCode> taxCode = taxCodeRepository.findByLabel(taxCodeLabel);
+                            Optional<TaxCode> taxCode = cachedLookup("taxCodeLabel", taxCodeLabel, taxCodeRepository::findByLabel);
                             if (taxCode.isPresent()) {
                                 newResult.setTaxCode(taxCode.get());
                             } else {
@@ -1932,9 +1882,7 @@ public class MigrationService {
                             // Set stateOfPreservation
                             String stateOfPreservationLabel = row.getString("Zust");
                             String stateOfPreservationUri = stateOfPreservationMapper.getUri(stateOfPreservationLabel);
-                            Optional<StateOfPreservation> stateOfPreservation = (stateOfPreservationUri != null)
-                                                                                ? stateOfPreservationRepository.findById(stateOfPreservationUri)
-                                                                                : Optional.empty();
+                            Optional<StateOfPreservation> stateOfPreservation = cachedLookup("stateOfPreservation", stateOfPreservationUri, stateOfPreservationRepository::findById);
                             if (stateOfPreservation.isPresent()) {
                                 String mappedStateOfPreservationLabel = stateOfPreservation.get().getLabel();
                                 newResult.setStateOfPreservation(stateOfPreservation.get());
@@ -1944,8 +1892,7 @@ public class MigrationService {
                             // Set rest type
                             String restTypeLabel = row.getString("RTyp");
                             String restTypeUri = restTypeMapper.getUri(restTypeLabel);
-                            Optional<RestType> restType = (restTypeUri != null) ? restTypeRepository.findById(restTypeUri)
-                                                                                : Optional.empty();
+                            Optional<RestType> restType = cachedLookup("restType", restTypeUri, restTypeRepository::findById);
                             if (restType.isPresent()) {
                                 String mappedRestTypeLabel = restType.get().getLabel();
                                 newResult.setRestType(restType.get());
@@ -1955,9 +1902,7 @@ public class MigrationService {
                             // Set classificationConfer
                             String classificationConferLabel = row.getString("cf");
                             String classificationConferUri = classificationConferMapper.getUri(classificationConferLabel);
-                            Optional<ClassificationConfer> classificationConfer = (classificationConferUri != null)
-                                    ? classificationConferRepository.findById(classificationConferUri)
-                                    : Optional.empty();
+                            Optional<ClassificationConfer> classificationConfer = cachedLookup("classificationConfer", classificationConferUri, classificationConferRepository::findById);
                             if (classificationConfer.isPresent()) {
                                 String mappedClassificationConferLabel = classificationConfer.get().getLabel();
                                 newResult.setClassificationConfer(classificationConfer.get());
