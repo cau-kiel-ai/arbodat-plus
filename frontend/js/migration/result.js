@@ -8,8 +8,6 @@ let resultRowCounter = 0;
 
 // Results per bulk request (requests are sent one after another)
 const RESULT_CHUNK_SIZE = 500;
-// Max. number of tax codes shown in the 'dante taxCode' dropdown while typing
-const TAX_CODE_SUGGESTIONS = 100;
 
 function toResultRow(item) {
     const result = item.result;
@@ -45,103 +43,15 @@ function toResultRow(item) {
     };
 }
 
-// Options of the dante dropdowns ---------------------------------------------------------------
-
-// restType / stateOfPreservation: the options of populateDanteDropdown (hierarchy, custom display order),
-// built once per attribute. Guide terms (disabled options) become groups: headings which can't be chosen.
-const danteListOptions = new Map(); // attribute -> { values: [{ value, label } | { label, options }], labels: Map(uri -> label) }
-
-async function getDanteListOptions(attribute) {
-    if (!danteListOptions.has(attribute)) {
-        await fetchDanteAttribute(attribute);
-
-        const select = document.createElement("select");
-        populateDanteDropdown(attribute, select);
-
-        const values = [];
-        const labels = new Map();
-        const groups = []; // open groups: [{ indent, options }]
-        Array.from(select.options).forEach(option => {
-            if (!option.value && !option.disabled) return;
-
-            // The hierarchy level is the indentation (non-breaking spaces) of the text
-            const indent = option.textContent.match(/^\u00a0*/)[0].length;
-            while (groups.length > 0 && groups[groups.length - 1].indent >= indent) groups.pop();
-            const parent = groups.length > 0 ? groups[groups.length - 1].options : values;
-
-            if (option.disabled) {
-                const group = { label: option.textContent, options: [] };
-                parent.push(group);
-                groups.push({ indent, options: group.options });
-            } else {
-                parent.push({ value: option.value, label: option.textContent });
-                labels.set(option.value, option.getAttribute("data-label") ?? option.textContent.trim());
-            }
-        });
-        danteListOptions.set(attribute, { values: withoutEmptyGroups(values), labels });
-    }
-    return danteListOptions.get(attribute);
-}
-
-function withoutEmptyGroups(values) {
-    return values
-        .map(value => value.options ? { ...value, options: withoutEmptyGroups(value.options) } : value)
-        .filter(value => !value.options || value.options.length > 0);
-}
-
-// taxCodes of a taxonomy with lowercased search keys, built once per taxonomy
-const taxCodeOptions = new Map(); // taxonomyUri -> { values: [{ value, label, codeKey, nameKey }], labels: Map(uri -> label) }
-
-function getTaxCodeOptions(taxonomyUri) {
-    if (!taxCodeOptions.has(taxonomyUri)) {
-        const values = (cachedTaxCodesForURI.get(taxonomyUri) || []).map(item => ({
-            value:   item.uri,
-            label:   [item.notation, item.prefLabel?.la].filter(Boolean).join(", "),
-            codeKey: codeSearchKey(item.notation),                     // "|a|b"
-            nameKey: String(item.prefLabel?.la ?? "").toLowerCase(),
-        }));
-        const labels = new Map(values.map(option => [option.value, option.label]));
-        taxCodeOptions.set(taxonomyUri, { values, labels });
-    }
-    return taxCodeOptions.get(taxonomyUri);
-}
-
-// The first TAX_CODE_SUGGESTIONS taxCodes whose code starts with the typed text,
-// followed by those whose name contains it. Without text: the first taxCodes,
-// the chosen one (currentValue) on top, so the list shows it as selected.
-function suggestTaxCodes(taxonomyUri, term, currentValue) {
-    term = String(term ?? "").trim().toLowerCase();
-    if (!term) {
-        const { values, labels } = getTaxCodeOptions(taxonomyUri);
-        const first = values.filter(option => option.value !== currentValue).slice(0, TAX_CODE_SUGGESTIONS);
-        const current = labels.has(currentValue) ? [{ value: currentValue, label: labels.get(currentValue) }] : [];
-        return current.concat(first.map(option => ({ value: option.value, label: option.label })));
-    }
-
-    const byCode = [];
-    const byName = [];
-    for (const option of getTaxCodeOptions(taxonomyUri).values) {
-        if (option.codeKey.includes("|" + term)) {
-            byCode.push(option);
-            if (byCode.length >= TAX_CODE_SUGGESTIONS) break;
-        } else if (byName.length < TAX_CODE_SUGGESTIONS && option.nameKey.includes(term)) {
-            byName.push(option);
-        }
-    }
-    return byCode.concat(byName).slice(0, TAX_CODE_SUGGESTIONS)
-        .map(option => ({ value: option.value, label: option.label }));
-}
-
 // Table ----------------------------------------------------------------------------------------
 
 async function populateResults(resultList) {
 
     const resultForm = document.getElementById("resultForm");
 
-    // Load the dante lists once for all tables (requests run in parallel)
-    const [restTypes, statesOfPreservation] = await Promise.all([
-        getDanteListOptions("restType"),
-        getDanteListOptions("stateOfPreservation"),
+    // Load the dante lists once for all tables (requests run in parallel, see danteListEditor.js)
+    await Promise.all([
+        loadDanteListOptions(["restType", "stateOfPreservation"]),
         fetchDanteAttribute("taxonomy"),
     ]);
 
@@ -185,12 +95,12 @@ async function populateResults(resultList) {
         const entryOfSite = { table: null, taxonomyUri: "", taxonomyLabel: "" };
         entryOfSite.table = createResultTable(siteResultsContainer.querySelector(".migration-result-table"),
                                               siteResultsContainer.querySelector(".migration-result-counter"),
-                                              rows, entryOfSite, restTypes, statesOfPreservation);
+                                              rows, entryOfSite);
         resultTables.set(siteLabel, entryOfSite);
     }
 }
 
-function createResultTable(element, counter, rows, site, restTypes, statesOfPreservation) {
+function createResultTable(element, counter, rows, site) {
 
     // Cell of a dante dropdown: the label of the chosen value, "select" if none is chosen yet,
     // empty in rows where the value matched (no dropdown needed)
@@ -203,16 +113,12 @@ function createResultTable(element, counter, rows, site, restTypes, statesOfPres
     };
 
     // Column of a dante dropdown: only editable in rows where the value didn't match
-    const danteColumn = (title, field, needsField, options) => ({
+    const danteColumn = (title, field, needsField, attribute) => ({
         title, field, headerSort: false, minWidth: 140,
         editable: cell => cell.getRow().getData()[needsField],
         editor: "list",
-        editorParams: {
-            values: options.values,
-            autocomplete: true, listOnEmpty: true, clearable: true, allowEmpty: true,
-            emptyValue: null, placeholderEmpty: "no results",
-        },
-        formatter: danteFormatter(needsField, value => options.labels.get(value)),
+        editorParams: { ...danteEditorParams(attribute), clearable: true, allowEmpty: true },
+        formatter: danteFormatter(needsField, value => danteListOptions.get(attribute).labels.get(value)),
     });
 
     const filterColumn = (title, field) => ({
@@ -241,12 +147,7 @@ function createResultTable(element, counter, rows, site, restTypes, statesOfPres
             {title: "dante taxCode", field: "danteTaxCode", headerSort: false, minWidth: 160,
                 editable: cell => cell.getRow().getData().needsTaxCode && !!site.taxonomyUri,
                 editor: "list",
-                editorParams: {
-                    valuesLookup: (cell, term) => suggestTaxCodes(site.taxonomyUri, term, cell.getValue()),
-                    filterRemote: true, filterDelay: 150, filterFunc: () => true,
-                    autocomplete: true, listOnEmpty: true, clearable: true, allowEmpty: true,
-                    emptyValue: null, placeholderEmpty: "no matching taxCode",
-                },
+                editorParams: taxCodeEditorParams(() => site.taxonomyUri),
                 formatter: danteFormatter("needsTaxCode", value => getTaxCodeOptions(site.taxonomyUri).labels.get(value)),
                 cellClick: (e, cell) => {
                     if (cell.getRow().getData().needsTaxCode && !site.taxonomyUri) {
@@ -262,10 +163,10 @@ function createResultTable(element, counter, rows, site, restTypes, statesOfPres
             {title: "cf", field: "cf", headerSort: false, formatter: "plaintext"},
 
             filterColumn("restType", "restType"),
-            danteColumn("dante restType", "danteRestType", "needsRestType", restTypes),
+            danteColumn("dante restType", "danteRestType", "needsRestType", "restType"),
 
             filterColumn("stateOfPreservation", "stateOfPreservation"),
-            danteColumn("dante stateOfPreservation", "danteStateOfPreservation", "needsStateOfPreservation", statesOfPreservation),
+            danteColumn("dante stateOfPreservation", "danteStateOfPreservation", "needsStateOfPreservation", "stateOfPreservation"),
 
             {title: "Create Result Add to JSON", headerSort: false, hozAlign: "center", minWidth: 110,
                 formatter: cell => {

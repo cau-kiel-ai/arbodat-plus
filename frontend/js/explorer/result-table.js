@@ -4,6 +4,9 @@
 
 let resultTable;
 
+// Labels of the JSON download ("label (group)"), filled in createResultTable
+let restTypeDownloadLabels = new Map();
+
 // GET results (paged), optionally filtered e.g. by { sampleId } ---------------------
 async function loadResults(params = {}) {
     const results = [];
@@ -85,6 +88,12 @@ async function createResultTable({ selector, results, hiddenFields = [], height 
     } catch (error) {
         console.error("Error loading rest types:", error)
     }
+
+    restTypeDownloadLabels = new Map(restTypes.map(restType =>
+        [restType.id, restType.label]));
+
+    // Dropdowns of the DANTE columns (same entries and order as on the input page, see danteListEditor.js)
+    await loadDanteListOptions(["classificationConfer", "restType", "stateOfPreservation"]);
 
     function formatRestType(restTypeId){
         if (!restTypeId) return "";
@@ -316,25 +325,9 @@ async function createResultTable({ selector, results, hiddenFields = [], height 
                 }
             },
             {title:"*tax code", titleDownload:"taxCode", field:"taxCode.id", headerSortTristate:true,
-                editor:"list", editorParams: function(cell) {
-                    const rowData = cell.getRow().getData();
-
-                    const sample = samples.find(s => s.id === rowData.sample?.id);
-                    if (!sample) {
-                        return{ values: [], emptyValue: null };
-                    }
-
-                    const taxonomyUri = sample.feature.site.taxonomy?.id;
-                    const taxCodes = cachedTaxCodesForURI.get(taxonomyUri) || [];
-
-                    return {
-                        values: taxCodes.map(item => ({
-                            value: item.uri,
-                            label: [item.notation, item.prefLabel?.la].filter(Boolean).join(", "),
-                        })),
-                        emptyValue: null
-                    };
-                },
+                // taxCodes of the taxonomy of the row's site
+                editor:"list", editorParams: taxCodeEditorParams(cell =>
+                    samples.find(s => s.id === cell.getRow().getData().sample?.id)?.feature.site.taxonomy?.id),
                 headerFilter:"input",
                 headerFilterFunc: function(headerValue, rowValue, rowData) {
                     if (!headerValue) return true;
@@ -444,12 +437,7 @@ async function createResultTable({ selector, results, hiddenFields = [], height 
                 },
             },
             {title:"*classification confer", titleDownload:"classificationConfer", field:"classificationConfer.id", headerSortTristate:true,
-                editor:"list", editorParams:{
-                    values: cachedClassificationConfers.map(item => ({
-                            value: item.uri,
-                            label: item.prefLabel.en
-                        }))       
-                },
+                editor:"list", editorParams: danteEditorParams("classificationConfer"),
                 headerFilter:true, headerFilterParams: {
                     values: cachedClassificationConfers.map(item => ({
                             value: item.uri,
@@ -467,16 +455,12 @@ async function createResultTable({ selector, results, hiddenFields = [], height 
                 accessorDownload: value => formatClassificationConfer(value),
             },
             {title:"*rType", titleDownload:"restType", field:"restType.id", headerSortTristate:true,
-                editor:"list", editorParams:{
-                    values: restTypes.map(item => ({
-                            value: item.id,
-                            label: item.label + (item.structuralConcept ? ` (${item.structuralConcept})` : "")
-                        }))       
-                },
+                editor:"list", editorParams: danteEditorParams("restType", {
+                    fallback: restTypes.map(restType => ({ value: restType.id, label: restTypeDownloadLabels.get(restType.id) })) }),
                 headerFilter:true, headerFilterParams: {
                     values: restTypes.map(item => ({
                             value: item.id,
-                            label: item.label + (item.structuralConcept ? ` (${item.structuralConcept})` : "")
+                            label: item.label
                         })),
                     multiselect:true
                 },
@@ -490,12 +474,7 @@ async function createResultTable({ selector, results, hiddenFields = [], height 
                 accessorDownload: value => formatRestType(value),
             },
             {title:"*state of preservation", titleDownload:"stateOfPreservation", field:"stateOfPreservation.id", headerSortTristate:true,
-                editor:"list", editorParams:{
-                    values: cachedStateOfPreservation.map(item => ({
-                            value: item.uri,
-                            label: item.prefLabel.en
-                        }))       
-                },
+                editor:"list", editorParams: danteEditorParams("stateOfPreservation"),
                 headerFilter:true, headerFilterParams: {
                     values: cachedStateOfPreservation.map(item => ({
                             value: item.uri,
@@ -727,22 +706,14 @@ function downloadResultsJson(table) {
             const site       = siteValues.find(s => s.value === siteId);
             // Tax code
             const taxCodeId     = row.taxCode?.id;
-            const taxCodeValues = table.getColumn("taxCode.id").getDefinition().editorParams({
-                getRow: () => ({
-                    getData: () => row
-                })
-            }).values;
-            const taxCode       = taxCodeValues.find(tc => tc.value === taxCodeId);
             // Classification confer
             const classificationConferId = row.classificationConfer?.id;
             const classificationConfer   = cachedClassificationConfers.find(cf => cf.uri === classificationConferId);
             // Rest type
             const restTypeId     = row.restType.id;
-            const restTypeValues = table.getColumn("restType.id").getDefinition().editorParams.values;
-            const restType       = restTypeValues.find(rt => rt.value === restTypeId);
             // State of preservation
             const stateOfPreservationId = row.stateOfPreservation.id;
-            const stateOfPreservation   = cachedStateOfPreservation.find(sop => sop.uri = stateOfPreservationId);
+            const stateOfPreservation   = cachedStateOfPreservation.find(sop => sop.uri === stateOfPreservationId);
             
             return {
                 id:        row.id,
@@ -768,7 +739,7 @@ function downloadResultsJson(table) {
                 entryDate: row.entryDate,
                 taxCode: taxCodeId && {
                     id:   taxCodeId,
-                    name: taxCode.label
+                    name: taxCodeLabel(taxCodeId)
                 },
                 orgOrMin: row.orgOrMin,
                 sieveSize: row.sieveSize,
@@ -776,8 +747,8 @@ function downloadResultsJson(table) {
                 classificationConfer: classificationConferId
                     ? { id: classificationConferId, label: classificationConfer?.prefLabel.en ?? "" }
                     : null,
-                restType: restType
-                    ? { id: restType, name: restType?.label ?? "" }
+                restType: restTypeId
+                    ? { id: restTypeId, name: restTypeDownloadLabels.get(restTypeId) ?? "" }
                     : null,
                 stateOfPreservation: stateOfPreservationId
                     ? { id: stateOfPreservationId, label: stateOfPreservation?.prefLabel.en ?? "" }

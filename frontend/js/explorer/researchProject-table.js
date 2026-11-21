@@ -47,6 +47,9 @@ async function buildResearchProjectTable() {
         return license?.prefLabel.en ?? licenseId;
     }
 
+    // Dropdowns of the DANTE columns (same entries and order as on the input page, see danteListEditor.js)
+    await loadDanteListOptions(["license"]);
+
     // Create Table -------------------------------------------------------------
     researchProjectTable = newTabulator("#table", {
         height:"100%",
@@ -60,16 +63,7 @@ async function buildResearchProjectTable() {
             {title:"funder", field:"funder", editor:"input", headerFilter:true, headerSortTristate:true},
             {title:"authorisation number", field:"authorisationNumber", titleDownload:"authorisationNumber", editor:"input", headerFilter:true, headerSortTristate:true},
             {title:"license", titleDownload:"license", field:"license.id", headerSort:false,
-                editor:"list", editorParams:{
-                    values: [
-                        { value: null, label: "none" },
-                        ...cachedLicenses.map(license => ({
-                            value: license.uri,
-                            label: license.prefLabel.en
-                        }))
-                    ],
-                    emptyValue:null             
-                },
+                editor:"list", editorParams: danteEditorParams("license", { none: true }),
                 headerFilter:true, headerFilterParams: {
                     values: cachedLicenses.map(license => ({
                         value: license.uri,

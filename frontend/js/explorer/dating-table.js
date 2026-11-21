@@ -167,6 +167,9 @@ async function buildDatingTable() {
     });
 
 
+    // Dropdowns of the DANTE columns (same entries and order as on the input page, see danteListEditor.js)
+    await loadDanteListOptions(["material", "datingMethod", "c14Laboratory"]);
+
     // Create Table -------------------------------------------------------------
     datingTable = newTabulator("#table", {
         height: "100%",
@@ -310,16 +313,7 @@ async function buildDatingTable() {
                 accessorDownload: value => formatLit(literature, value),
             },
             {title:"material", field:"material.id", headerSortTristate:true,
-                editor:"list", editorParams:{
-                    values: [
-                        { value: null, label: "none" },
-                        ...cachedMaterials.map(item => ({
-                            value: item.uri,
-                            label: item.prefLabel.en
-                        }))
-                    ],
-                    emptyValue:null
-                },
+                editor:"list", editorParams: danteEditorParams("material", { none: true }),
                 headerFilter:true, headerFilterParams: {
                     values: cachedMaterials.map(item => ({
                             value: item.uri,
@@ -338,12 +332,7 @@ async function buildDatingTable() {
             },
             {title:"remarks", field:"remarks", editor:"input", headerFilter:true, headerSort:false},
             {title:"dating method", titleDownload:"datingMethod", field:"datingMethod.id", headerSortTristate:true,
-                editor:"list", editorParams:{
-                    values: cachedDatingMethods.map(item => ({
-                            value: item.uri,
-                            label: item.prefLabel.en
-                        })),
-                },
+                editor:"list", editorParams: danteEditorParams("datingMethod"),
                 headerFilter:"list", headerFilterParams: {
                     values: cachedDatingMethods.map(item => ({
                             value: item.uri,
@@ -381,13 +370,7 @@ async function buildDatingTable() {
             ]},
             {title:"radiocarbon", columns:[
                 datingColumn("c14", {title:"C14 Laboratory", titleDownload:"c14Laboratory", field:"c14Dating.c14Laboratory.id",
-                    editor:"list", editorParams: () => ({
-                        values: cachedC14Laboratories.map(item => ({ value: item.uri, label: c14LaboratoryLabel(item) })),
-                        autocomplete: true,
-                        clearable: true,
-                        listOnEmpty: true,
-                        emptyValue: null,
-                    }),
+                    editor:"list", editorParams: { ...danteEditorParams("c14Laboratory"), clearable: true },
                     headerFilter:"input",
                     headerFilterFunc: (headerValue, rowValue) =>
                         !headerValue || formatC14Laboratory(rowValue).toLowerCase().includes(headerValue.toString().toLowerCase()),

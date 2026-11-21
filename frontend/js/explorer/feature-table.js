@@ -45,6 +45,9 @@ async function buildFeatureTable() {
         return featureType?.prefLabel.en ?? featureTypeId;
     }
 
+    // Dropdowns of the DANTE columns (same entries and order as on the input page, see danteListEditor.js)
+    await loadDanteListOptions(["preservationCondition", "featureType"]);
+
     // Create Table -------------------------------------------------------------
     featureTable = newTabulator("#table", {
         height: "100%",
@@ -134,16 +137,7 @@ async function buildFeatureTable() {
                 }
             },
             {title:"preservation condition", titleDownload:"preservationCondition", field:"preservationCondition.id", headerSortTristate:true,
-                editor:"list", editorParams:{
-                    values: [
-                        { value: null, label: "none" },
-                        ...cachedPreservationConditions.map(item => ({
-                            value: item.uri,
-                            label: item.prefLabel.en
-                        }))
-                    ],
-                    emptyValue:null             
-                },
+                editor:"list", editorParams: danteEditorParams("preservationCondition", { none: true }),
                 headerFilter:true, headerFilterParams: {
                     values: cachedPreservationConditions.map(item => ({
                         value: item.uri,
@@ -161,16 +155,7 @@ async function buildFeatureTable() {
                 accessorDownload: value => formatPreservationCondition(value),
             },
             {title:"feature type", titleDownload:"featureType", field:"featureType.id", headerSortTristate:true,
-                editor:"list", editorParams:{
-                    values: [
-                        { value: null, label: "none" },
-                        ...cachedFeatureTypes.map(item => ({
-                            value: item.uri,
-                            label: item.prefLabel.en
-                        }))
-                    ],
-                    emptyValue:null             
-                },
+                editor:"list", editorParams: danteEditorParams("featureType", { none: true }),
                 headerFilter:true, headerFilterParams: {
                     values: cachedFeatureTypes.map(item => ({
                         value: item.uri,

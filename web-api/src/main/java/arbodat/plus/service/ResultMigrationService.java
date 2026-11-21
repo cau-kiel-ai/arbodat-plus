@@ -36,6 +36,9 @@ public class ResultMigrationService {
     @Autowired
     StateOfPreservationRepository stateOfPreservationRepository;
 
+    @Autowired
+    ClassificationConferRepository classificationConferRepository;
+
     // Values which make a result unique (see ResultRepository.findAlreadyExisting).
     // Like the query, a result with an empty value never counts as already existing.
     private record ResultKey(UUID sampleId, String taxCode, String orgOrMin, Double sieveSize,
@@ -82,6 +85,9 @@ public class ResultMigrationService {
         Map<String, StateOfPreservation> statesOfPreservation = saveMissing(
                 results.stream().map(Result::getStateOfPreservation).toList(),
                 StateOfPreservation::getId, stateOfPreservationRepository);
+        Map<String, ClassificationConfer> classificationConfers = saveMissing(
+                results.stream().map(Result::getClassificationConfer).toList(),
+                ClassificationConfer::getId, classificationConferRepository);
 
         // Samples and their existing results (one query each)
         Set<UUID> sampleIds = results.stream()
@@ -126,6 +132,9 @@ public class ResultMigrationService {
             result.setTaxCode(taxCodes.get(result.getTaxCode().getId()));
             result.setRestType(restTypes.get(result.getRestType().getId()));
             result.setStateOfPreservation(statesOfPreservation.get(result.getStateOfPreservation().getId()));
+            if (result.getClassificationConfer() != null) {
+                result.setClassificationConfer(classificationConfers.get(result.getClassificationConfer().getId()));
+            }
 
             Optional<ResultKey> key = ResultKey.of(result);
             if (key.isPresent() && !existingKeys.add(key.get())) {

@@ -97,6 +97,9 @@ async function buildSampleTable() {
         return chronozone?.prefLabel.en ?? chronozonedId;
     }
 
+    // Dropdowns of the DANTE columns (same entries and order as on the input page, see danteListEditor.js)
+    await loadDanteListOptions(["coordinateSystem", "sampleType", "chronozone", "seedsAndFruits", "woodSubfossile", "charcoalInvestigated"]);
+
     // Create Table -------------------------------------------------------------
     sampleTable = newTabulator("#table", {
         height: "100%",
@@ -191,16 +194,7 @@ async function buildSampleTable() {
             },
             // Coordinate ---------------------------------------------------------------------------------------------
             {title:"coordinate system", titleDownload:"coordinateSystem", field:"coordinate.coordinateSystem.id", headerSortTristate:true,
-                editor:"list", editorParams:{
-                    values: [
-                        { value: null, label: "none" },
-                        ...cachedCoordinateSystems.map(crs => ({
-                            value: crs.uri,
-                            label: [crs.prefLabel.en, crs.notation].filter(Boolean).join(" - ")
-                        }))
-                    ],
-                    emptyValue:null             
-                },
+                editor:"list", editorParams: danteEditorParams("coordinateSystem", { none: true }),
                 headerFilter:true, headerFilterParams: {
                     values: cachedCoordinateSystems.map(crs => ({
                             value: crs.uri,
@@ -326,16 +320,7 @@ async function buildSampleTable() {
                 cellClick: (e, cell) => openFractionModal(cell.getRow()),
             },
             {title:"sample type", titleDownload:"sampleType", field:"sampleType.id", headerSortTristate:true,
-                editor:"list", editorParams:{
-                    values: [
-                        { value: null, label: "none" },
-                        ...cachedSampleTypes.map(item => ({
-                            value: item.uri,
-                            label: item.prefLabel.en
-                        }))
-                    ],
-                    emptyValue:null             
-                },
+                editor:"list", editorParams: danteEditorParams("sampleType", { none: true }),
                 headerFilter:true, headerFilterParams: {
                     values: cachedSampleTypes.map(item => ({
                             value: item.uri,
@@ -439,16 +424,7 @@ async function buildSampleTable() {
                 }
             },
             {title:"seeds and fruits", titleDownload:"seedsAndFruits", field:"seedsAndFruits.id", headerSortTristate:true,
-                editor:"list", editorParams:{
-                    values: [
-                        { value: null, label: "none" },
-                        ...cachedSampleInvestigated.map(item => ({
-                            value: item.uri,
-                            label: item.prefLabel.en
-                        }))
-                    ],
-                    emptyValue:null             
-                },
+                editor:"list", editorParams: danteEditorParams("seedsAndFruits", { none: true }),
                 headerFilter:true, headerFilterParams: {
                     values: cachedSampleInvestigated.map(item => ({
                             value: item.uri,
@@ -466,16 +442,7 @@ async function buildSampleTable() {
                 accessorDownload: value => formatSampleInvestigated(value),
             },
             {title:"wood subfossile", titleDownload:"woodSubfossile", field:"woodSubfossile.id", headerSortTristate:true,
-                editor:"list", editorParams:{
-                    values: [
-                        { value: null, label: "none" },
-                        ...cachedSampleInvestigated.map(item => ({
-                            value: item.uri,
-                            label: item.prefLabel.en
-                        }))
-                    ],
-                    emptyValue:null             
-                },
+                editor:"list", editorParams: danteEditorParams("woodSubfossile", { none: true }),
                 headerFilter:true, headerFilterParams: {
                     values: cachedSampleInvestigated.map(item => ({
                             value: item.uri,
@@ -493,16 +460,7 @@ async function buildSampleTable() {
                 accessorDownload: value => formatSampleInvestigated(value),
             },
             {title:"charcoal investigated", titleDownload:"charcoalInvestigated", field:"charcoalInvestigated.id", headerSortTristate:true,
-                editor:"list", editorParams:{
-                    values: [
-                        { value: null, label: "none" },
-                        ...cachedSampleInvestigated.map(item => ({
-                            value: item.uri,
-                            label: item.prefLabel.en
-                        }))
-                    ],
-                    emptyValue:null             
-                },
+                editor:"list", editorParams: danteEditorParams("charcoalInvestigated", { none: true }),
                 headerFilter:true, headerFilterParams: {
                     values: cachedSampleInvestigated.map(item => ({
                             value: item.uri,
@@ -547,16 +505,7 @@ async function buildSampleTable() {
                 },
             },
             {title:"chronozone", field:"chronozone.id", headerSortTristate:true,
-                editor:"list", editorParams:{
-                    values: [
-                        { value: null, label: "none" },
-                        ...cachedChronozones.map(item => ({
-                            value: item.uri,
-                            label: item.prefLabel.en
-                        }))
-                    ],
-                    emptyValue:null             
-                },
+                editor:"list", editorParams: danteEditorParams("chronozone", { none: true }),
                 headerFilter:true, headerFilterParams: {
                     values: cachedChronozones.map(item => ({
                             value: item.uri,
