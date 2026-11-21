@@ -298,7 +298,6 @@
               type="button"
               id="fractionAnalyzedModalSubmitButton"
               class="MySubmitButton"
-              style="width: unset; padding-left: 10px; padding-right: 10px;"
             >
               create
             </button>
@@ -1343,32 +1342,30 @@
             <div class="accordion-body">
 
               <form id="fractionAnalyzedForm">
-                <p style="margin-bottom: 0;">
+                <p style="margin-bottom: 0px;">
                   List of the fractions analyzed from the samples taken at the selected sites.<br>
-                  - To sort the rows by sieveSize click on 'sieveSize' in the table header.<br>
+                  Please check that 'orgOrMin' and 'sieveSize' are correct. These values can be edited.<br>
                   - To edit orgOrMin and sieveSize in several rows simultaneously select multiple rows.<br>
                   - To create fraction analyzed in several rows simultaneously select multiple rows.<br>
-                  - To select or deselect a row use the checkbox on the left. To select or deselect <u>all</u> rows use the checkbox at the top left of a table.
+                  - To select or deselect a row use the checkbox on the left. To select or deselect <u>all</u> rows use the checkbox at the top left of a table.<br>
+                  - To sort the rows by sieveSize click on 'sieveSize' in the table header.<br>
+                  - To filter rows by site, feature or sample use the fields in the table header.
                 </p>
-                
-                <table class="table table-striped">
-                  <thead>
-                      <tr>
-                        <th>
-                          <input type="checkbox" onclick="toggleAllCheckboxes(this, 'fractionAnalyzedTableBody')">
-                        </th>
-                        <th>Site<br>Feature<br>Sample</th>
-                        <th>fractionAnalyzed</th>
-                        <th>modifiedFraction</th>
-                        <th>orgOrMin</th>
-                        <th id="sieveSizeHeader" style="cursor:pointer;">sieveSize</th>
-                        <th>Create Fraction Analyzed</th>
-                      </tr>
-                  </thead>
-                  <tbody id="fractionAnalyzedTableBody">
-                      <!-- Rows will be dynamically added here by populateFractionsAnalyzed function -->
-                  </tbody>
-                </table>
+
+                <div class="d-flex flex-wrap align-items-center gap-3 mb-2">
+                  <label class="d-flex align-items-center gap-2 mb-0">
+                    group by
+                    <select id="fractionAnalyzedGroupBy" class="form-select form-select-sm w-auto">
+                      <option value="">-</option>
+                      <option value="orgOrMinAndSieveSize">orgOrMin and sieveSize</option>
+                      <option value="sieveSize">sieveSize</option>
+                    </select>
+                  </label>
+                  <span id="fractionAnalyzedCounter" class="small text-muted"></span>
+                </div>
+
+                <!-- Tabulator, created by populateFractionsAnalyzed (fractionAnalyzed.js) -->
+                <div id="fractionAnalyzedTable" class="migration-result-table"></div>
 
               </form>
 

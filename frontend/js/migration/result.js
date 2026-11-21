@@ -126,7 +126,7 @@ function createResultTable(element, counter, rows, site) {
         headerFilter: "list",
         headerFilterParams: { valuesLookup: true, clearable: true, sort: "asc" },
         headerFilterFunc: "=",
-        headerFilterPlaceholder: "all",
+        headerFilterPlaceholder: "filter",
         formatter: "plaintext",
     });
 
@@ -134,7 +134,7 @@ function createResultTable(element, counter, rows, site) {
         data: rows,
         index: "id",
         maxHeight: "70vh",
-        layout: "fitDataStretch",
+        layout: "fitDataFill", // columns as wide as their content (no stretched last column)
         placeholder: "no results",
         columns: [
             {cssClass: "selectionColumn", formatter: "rowSelection", titleFormatter: "rowSelection",
@@ -168,17 +168,20 @@ function createResultTable(element, counter, rows, site) {
             filterColumn("stateOfPreservation", "stateOfPreservation"),
             danteColumn("dante stateOfPreservation", "danteStateOfPreservation", "needsStateOfPreservation", "stateOfPreservation"),
 
-            {title: "Create Result Add to JSON", headerSort: false, hozAlign: "center", minWidth: 110,
+            {title: "Create", headerSort: false, hozAlign: "center", width: 80, // as wide as the button
                 formatter: cell => {
                     const error = cell.getRow().getData().error;
-                    return `<button type="button" data-action="create">Create</button><br>
-                            <button type="button" data-action="json" class="mt-1">Add&#8239;to&#8239;JSON</button>
+                    return `<button type="button">Create</button>
                             ${error ? `<div class="text-danger small text-wrap">${escapeHtml(error)}</div>` : ""}`;
                 },
                 cellClick: (e, cell) => {
-                    const action = e.target.closest("button")?.dataset.action;
-                    if (action === "create") createResult(cell.getRow());
-                    if (action === "json")   addResultsToJSON(cell.getRow());
+                    if (e.target.closest("button")) createResult(cell.getRow());
+                },
+            },
+            {title: "Add to JSON", headerSort: false, hozAlign: "center", width: 110, // as wide as the button
+                formatter: () => `<button type="button">Add&#8239;to&#8239;JSON</button>`,
+                cellClick: (e, cell) => {
+                    if (e.target.closest("button")) addResultsToJSON(cell.getRow());
                 },
             },
         ],
@@ -200,7 +203,7 @@ function createResultTable(element, counter, rows, site) {
         const updates = table.getSelectedData()
             .filter(data => data.id !== row.getData().id && data[needsField])
             .map(data => ({ id: data.id, [field]: cell.getValue() }));
-        if (updates.length > 0) table.updateData(updates);
+        if (updates.length > 0) updateTableRows(table, updates);
     });
 
     // Rows hidden by a filter are deselected, so the bulk actions skip them
@@ -228,14 +231,6 @@ document.addEventListener("shown.bs.collapse", event => {
     }
 });
 
-// Removes rows by id. Tabulator deletes rows one by one and re-renders after each,
-// so for many rows the remaining data is set instead (much faster).
-function deleteResultRows(table, ids) {
-    const remove = new Set(ids);
-    if (remove.size < 50) return table.deleteRow([...remove]);
-    return table.replaceData(table.getData().filter(data => !remove.has(data.id)));
-}
-
 // Clears the chosen taxCodes: they belong to the previous taxonomy
 async function handleTaxonomyChange(siteLabel, select) {
     const site = resultTables.get(siteLabel);
@@ -251,7 +246,7 @@ async function handleTaxonomyChange(siteLabel, select) {
         const updates = site.table.getData()
             .filter(data => data.danteTaxCode)
             .map(data => ({ id: data.id, danteTaxCode: null }));
-        if (updates.length > 0) await site.table.updateData(updates);
+        if (updates.length > 0) await updateTableRows(site.table, updates);
     } finally {
         hideLoading();
     }
@@ -372,8 +367,8 @@ async function createResults(site, items, skippedReasons = []) {
             }
         }
 
-        if (done.length > 0)   await deleteResultRows(site.table, done);
-        if (errors.length > 0) await site.table.updateData(errors);
+        if (done.length > 0)   await deleteTableRows(site.table, done);
+        if (errors.length > 0) await updateTableRows(site.table, errors);
     } finally {
         hideLoading();
     }

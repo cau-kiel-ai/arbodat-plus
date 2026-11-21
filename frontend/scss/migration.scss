@@ -161,6 +161,19 @@ input[type=radio] {
     z-index: 0;
 }
 
+// Button of the 'Create new Fraction' popup (the popup is outside the accordion): blue, centered
+#fractionAnalyzedModal .MySubmitButton {
+    display: block;
+    height: 42px;
+    margin: 16px auto 0;
+    padding: 0 20px;
+    cursor: pointer;
+    border-radius: 5px;
+    border-color: #f2f2f2;
+    background-color: rgb(37, 16, 193);
+    color: #FFFFFF;
+}
+
 .accordion .MySubmitButton {
     width: 20%;
     height: 42px;

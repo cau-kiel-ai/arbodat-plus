@@ -1,129 +1,150 @@
+// Fractions analyzed accordion: one Tabulator for all sites.
+// Tabulator renders only the visible rows (virtual DOM), the rows are plain objects (see toFractionRow).
+// 'Create' and the result table (fillResultFractionCells, hasPendingFractionAnalyzedRow) use these objects.
+
+let fractionTable = null;
+let fractionRowCounter = 0;
+
+// Fractions per bulk request (requests are sent one after another)
+const FRACTION_CHUNK_SIZE = 500;
+
+function toFractionRow(item) {
+    return {
+        id:               `fraction_${++fractionRowCounter}`,
+        siteLabel:        item.siteLabel,
+        featureLabel:     item.featureLabel,
+        sampleLabel:      item.sampleLabel,
+        sampleId:         String(item.sampleId),
+        fractionAnalyzed: item.fractionAnalyzed,
+        modifiedFraction: item.modifiedFraction ? item.fraction : "",
+        originalFraction: item.fraction,
+        orgOrMin:         item.orgOrMin ?? "",
+        sieveSize:        item.sieveSize ?? "",
+        error:            "", // reason, if the last 'Create' failed
+    };
+}
+
 function populateFractionsAnalyzed(fractionAnalyzedList) {
-    const tableBody = document.getElementById("fractionAnalyzedTableBody");
+    const rows = fractionAnalyzedList.map(toFractionRow);
 
-    // Create lines
-    fractionAnalyzedList.forEach((item, index) => {
-        const row = document.createElement("tr");
-        row.dataset.originalIndex = index;
-        
-        const siteLabel        = item.siteLabel;
-        const sampleId         = item.sampleId;
-        const fractionAnalyzed = item.fractionAnalyzed;
-        const orgOrMin         = item.orgOrMin;
-        const sieveSize        = item.sieveSize;
-        const originalFraction = item.fraction;
-        const fraction         = item.fraction;
+    // Sites migrated later: add the rows to the table
+    if (fractionTable) {
+        fractionTable.addData(rows);
+        return;
+    }
+    fractionTable = createFractionTable(rows);
+}
 
-        row.dataset.siteLabel        = siteLabel;
-        row.dataset.sampleId         = sampleId;
-        row.dataset.fractionAnalyzed = fractionAnalyzed;
-        row.dataset.originalFraction = originalFraction;
-        row.dataset.fraction         = fraction;
+function createFractionTable(rows) {
+    const counter = document.getElementById("fractionAnalyzedCounter");
 
-        // Add columns
-        row.innerHTML = `
-            <td><input type="checkbox"></td>
-            <td>${escapeHtml(siteLabel)}
-                <br>
-                ${escapeHtml(item.featureLabel)}
-                <br>
-                ${escapeHtml(item.sampleLabel)}
-            </td>
-            <td>${escapeHtml(fractionAnalyzed)}</td>
-            <td>${escapeHtml(item.modifiedFraction ? fraction : '')}</td>
-            <td>
-                <select id="orgOrMin_${sampleId}_${fraction.replace(/[^\w-]/g, '_')}"
-                        onchange="updateCheckedDropdowns(this.value, 'fractionAnalyzedTableBody', 'orgOrMin_')"
-                        original-value="${escapeHtml(originalFraction)}">
-                        <option value="org" ${orgOrMin === 'org' ? 'selected' : ''}>org</option>
-                        <option value="min" ${orgOrMin === 'min' ? 'selected' : ''}>min</option>
-                </select>
-            </td>
-            <td>
-                <input type="text" 
-                        id="sieveSize_${sampleId}_${fraction.replace(/[^\w-]/g, '_')}"
-                        onchange="updateCheckedInputs(this.value, 'fractionAnalyzedTableBody', 'sieveSize_')"
-                        value="${escapeHtml(sieveSize ?? '')}"
-                        original-value="${escapeHtml(originalFraction)}">
-            </td>
-            <td>
-                <button 
-                    id="createButton_${sampleId}_${fraction.replace(/[^\w-]/g, '_')}"
-                    type="button">
-                    Create
-                </button>
-            </td>
-        `;
-
-        const createButton = row.querySelector(`#createButton_${sampleId}_${fraction.replace(/[^\w-]/g, '_')}`);
-        createButton.addEventListener('click', function () {
-            const orgOrMinSelectElement = row.querySelector(`#orgOrMin_${sampleId}_${fraction.replace(/[^\w-]/g, '_')}`);
-            const orgOrMin  = orgOrMinSelectElement.value;
-
-            const sieveSizeInputElement = row.querySelector(`#sieveSize_${sampleId}_${fraction.replace(/[^\w-]/g, '_')}`);
-            const sieveSize = sieveSizeInputElement.value;
-
-            createFractionAnalyzed (orgOrMin, sieveSize, row)
-        });
-        
-        tableBody.appendChild(row);
+    const table = newTabulator(document.getElementById("fractionAnalyzedTable"), {
+        data: rows,
+        index: "id",
+        maxHeight: "70vh",
+        layout: "fitDataFill", // columns as wide as their content (no stretched last column)
+        placeholder: "no fractions analyzed",
+        groupHeader: (value, count, data, group) => {
+            const allSelected = group.getRows().every(row => row.isSelected());
+            return `<label class="mb-0">
+                        <input type="checkbox" class="group-select" ${allSelected ? "checked" : ""}>
+                        <strong>${escapeHtml(value || "(empty)")}</strong> (${count})
+                    </label>`;
+        },
+        columns: [
+            {cssClass: "selectionColumn", formatter: "rowSelection", titleFormatter: "rowSelection",
+                titleFormatterParams: { rowRange: "active" }, // only (de)select the filtered rows
+                hozAlign: "center", headerSort: false, width: 40},
+            {title: "Site",    field: "siteLabel",    headerSort: false, minWidth: 90, formatter: "plaintext", headerFilter: "input", headerFilterPlaceholder: "filter"},
+            {title: "Feature", field: "featureLabel", headerSort: false, minWidth: 90, formatter: "plaintext", headerFilter: "input", headerFilterPlaceholder: "filter"},
+            {title: "Sample",  field: "sampleLabel",  headerSort: false, minWidth: 90, formatter: "plaintext", headerFilter: "input", headerFilterPlaceholder: "filter"},
+            {title: "fractionAnalyzed", field: "fractionAnalyzed", headerSort: false, formatter: "plaintext"},
+            {title: "modifiedFraction", field: "modifiedFraction", headerSort: false, formatter: "plaintext"},
+            {title: "orgOrMin", field: "orgOrMin", headerSort: false, minWidth: 90,
+                editor: "list", editorParams: { values: ["org", "min"] },
+                formatter: cell => escapeHtml(cell.getValue()) || `<span class="migration-result-placeholder">select</span>`},
+            {title: "sieveSize", field: "sieveSize", sorter: "number", headerSortTristate: true, minWidth: 90,
+                editor: "input",
+                formatter: cell => escapeHtml(cell.getValue()) || `<span class="migration-result-placeholder">enter</span>`},
+            {title: "Create", headerSort: false, hozAlign: "center", width: 80, // as wide as the button
+                formatter: cell => {
+                    const error = cell.getRow().getData().error;
+                    return `<button type="button">Create</button>
+                            ${error ? `<div class="text-danger small text-wrap">${escapeHtml(error)}</div>` : ""}`;
+                },
+                cellClick: (e, cell) => {
+                    if (e.target.closest("button")) createFractionAnalyzed(cell.getRow());
+                },
+            },
+        ],
     });
+
+    // orgOrMin / sieveSize changed in a selected row is copied to all other selected rows
+    table.on("cellEdited", cell => {
+        const row = cell.getRow();
+        if (!row.isSelected()) return;
+
+        const field = cell.getField();
+        const updates = table.getSelectedData()
+            .filter(data => data.id !== row.getData().id)
+            .map(data => ({ id: data.id, [field]: cell.getValue() }));
+        if (updates.length > 0) updateTableRows(table, updates);
+    });
+
+    // Group header checkbox: (de)select the rows of the group
+    table.on("groupClick", (e, group) => {
+        const checkbox = e.target.closest("input.group-select");
+        if (!checkbox) return;
+        group.getRows().forEach(row => checkbox.checked ? row.select() : row.deselect());
+    });
+
+    // Rows hidden by a filter are deselected, so the bulk actions skip them
+    const updateCounter = () => {
+        const total  = table.getDataCount();
+        const active = table.getDataCount("active");
+        counter.textContent = active === total ? `${total} rows` : `${active} of ${total} rows`;
+    };
+    table.on("dataFiltered", (filters, activeRows) => {
+        const active = new Set(activeRows);
+        table.getSelectedRows().filter(row => !active.has(row)).forEach(row => row.deselect());
+        setTimeout(updateCounter);
+    });
+    table.on("dataChanged",   updateCounter);
+    table.on("rowDeleted",    updateCounter);
+    table.on("dataProcessed", updateCounter);
+
+    return table;
 }
 
-document.getElementById("sieveSizeHeader").addEventListener("click", sortBySieveSize);
+// Group by orgOrMin and sieveSize (e.g. 'org 0.5') or by sieveSize only
+const fractionGroups = {
+    orgOrMinAndSieveSize: {
+        groupBy: data => `${data.orgOrMin} ${data.sieveSize}`.trim(),
+        sort:    [{ column: "orgOrMin", dir: "asc" }, { column: "sieveSize", dir: "asc" }],
+    },
+    sieveSize: {
+        groupBy: data => String(data.sieveSize ?? ""),
+        sort:    [{ column: "sieveSize", dir: "asc" }],
+    },
+};
 
-let sieveSizeSortState = 0;
-// 0 = original
-// 1 = ascending
-// 2 = descending
-
-function sortBySieveSize() {
-    const tableBody = document.getElementById("fractionAnalyzedTableBody");
-    const header = document.getElementById("sieveSizeHeader");
-    const rows = Array.from(tableBody.querySelectorAll("tr:not(.group-header)"));
-
-    sieveSizeSortState = (sieveSizeSortState + 1) % 3;
-
-    // Original order
-    if (sieveSizeSortState === 0) {
-        rows.sort((a, b) => {
-            return Number(a.dataset.originalIndex)
-                - Number(b.dataset.originalIndex);
-        });
-        header.innerHTML = "sieveSize";
+document.getElementById("fractionAnalyzedGroupBy").addEventListener("change", event => {
+    if (!fractionTable) return;
+    const group = fractionGroups[event.target.value];
+    if (group) {
+        fractionTable.setSort(group.sort);
+        fractionTable.setGroupBy(group.groupBy);
+    } else {
+        fractionTable.setGroupBy(false);
     }
+});
 
-    // Ascending order
-    else if (sieveSizeSortState === 1) {
-        rows.sort((a, b) => {
-            const aValue = parseFloat(
-                a.querySelector('input[id^="sieveSize_"]').value
-            ) || 0;
-            const bValue = parseFloat(
-                b.querySelector('input[id^="sieveSize_"]').value
-            ) || 0;
-            return aValue - bValue;
-        });
-        header.innerHTML = "sieveSize ▲";
+// Tabulator can't measure itself in a collapsed accordion -> redraw when it is opened
+document.addEventListener("shown.bs.collapse", event => {
+    if (event.target.id === "panelsStayOpen-collapseEight" && fractionTable) {
+        fractionTable.redraw();
     }
-
-    // Descending order
-    else {
-        rows.sort((a, b) => {
-            const aValue = parseFloat(
-                a.querySelector('input[id^="sieveSize_"]').value
-            ) || 0;
-            const bValue = parseFloat(
-                b.querySelector('input[id^="sieveSize_"]').value
-            ) || 0;
-            return bValue - aValue;
-        });
-        header.innerHTML = "sieveSize ▼";
-    }
-
-    tableBody.innerHTML = "";
-    rows.forEach(row => tableBody.appendChild(row));
-}
+});
 
 async function postFractionAnalyzed(payload) {
     const response = await fetch(
@@ -144,22 +165,40 @@ async function postFractionAnalyzed(payload) {
 
 // Fill fractionAnalyzed, orgOrMin and sieveSize in all matching result rows (see result.js)
 function fillResultFractionCells(siteLabel, sampleId, originalFraction, fractionAnalyzed, orgOrMin, sieveSize) {
-    const site = resultTables.get(siteLabel);
-    if (!site) return;
+    fillResultFractions([{ siteLabel, sampleId, originalFraction, fractionAnalyzed, orgOrMin, sieveSize }]);
+}
 
-    const updates = site.table.getData()
-        .filter(data => data.sampleId === String(sampleId) && data.originalFraction === originalFraction)
-        .map(data => ({ id: data.id, fractionAnalyzed, orgOrMin, sieveSize }));
-    if (updates.length > 0) site.table.updateData(updates);
+// The same for many fractions: one pass and one update per result table
+function fillResultFractions(fractions) {
+    const bySite = new Map(); // siteLabel -> Map("sampleId|originalFraction" -> fraction)
+    fractions.forEach(fraction => {
+        if (!bySite.has(fraction.siteLabel)) bySite.set(fraction.siteLabel, new Map());
+        bySite.get(fraction.siteLabel).set(`${fraction.sampleId}|${fraction.originalFraction}`, fraction);
+    });
+
+    bySite.forEach((fractionsOfSite, siteLabel) => {
+        const site = resultTables.get(siteLabel);
+        if (!site) return;
+
+        const updates = [];
+        site.table.getData().forEach(data => {
+            const fraction = fractionsOfSite.get(`${data.sampleId}|${data.originalFraction}`);
+            if (fraction) {
+                updates.push({ id: data.id, fractionAnalyzed: fraction.fractionAnalyzed,
+                               orgOrMin: fraction.orgOrMin, sieveSize: fraction.sieveSize });
+            }
+        });
+        if (updates.length > 0) updateTableRows(site.table, updates);
+    });
 }
 
 // True if the 'Fractions Analyzed' table still has a row for this site + sample + fraction
 function hasPendingFractionAnalyzedRow(siteLabel, sampleId, fraction) {
-    const tableBody = document.getElementById("fractionAnalyzedTableBody");
-    return Array.from(tableBody.rows).some(row =>
-        row.dataset.siteLabel === siteLabel &&
-        row.dataset.sampleId === String(sampleId) &&
-        row.dataset.originalFraction === fraction
+    if (!fractionTable) return false;
+    return fractionTable.getData().some(data =>
+        data.siteLabel === siteLabel &&
+        data.sampleId === String(sampleId) &&
+        data.originalFraction === fraction
     );
 }
 
@@ -237,122 +276,103 @@ function openCreateFractionModal(rowData, onCreated) {
     };
 }
 
-async function createFractionAnalyzed (orgOrMin, sieveSize, row, triggerNext=true) {
-    const siteLabel = row.dataset.siteLabel;
-    const sampleId = row.dataset.sampleId;
-    const fractionAnalyzed = row.dataset.fractionAnalyzed;
-    const originalFraction = row.dataset.originalFraction;
+// Create ---------------------------------------------------------------------------------------
 
-    if (orgOrMin && sieveSize) {
-
-        const payload = {
-            fractionAnalyzed: fractionAnalyzed,
-            orgOrMin: orgOrMin,
-            sieveSize: sieveSize,
-            sample: {
-                id: sampleId 
-            }
-        };
-
-        try {
-            const responseMessage = await postFractionAnalyzed(payload);
-
-            if (responseMessage === "fraction analyzed already exists") {
-                if (triggerNext) {
-                    toast.info("fraction analyzed already exists.");
-                }
-                return false;
-        
-            } else if (responseMessage === "fraction analyzed is created") {
-                fillResultFractionCells(siteLabel, sampleId, originalFraction, fractionAnalyzed, orgOrMin, sieveSize);    
-                row.remove();
-                if (triggerNext) { updateCheckedFractionAnalyzed(); }
-                return true;                
-            }
-        } catch (error) {
-            console.error('Error:', error);
-            toast.error("Failed to create FractionAnalyzed.");
-        }
-    } else {
-        if (triggerNext) {
-            toast.info(`No orgOrMin selected and/or sieveSize entered.`);
-        }
-        return false;
-    }    
+// Checks a fraction row. Returns { payload } or { reason, message } if it can not be created yet.
+function buildFractionPayload(data) {
+    // A decimal comma is accepted as well (e.g. '0,5')
+    const sieveSize = parseFloat(String(data.sieveSize).trim().replace(",", "."));
+    if (!data.orgOrMin || Number.isNaN(sieveSize)) {
+        return { reason: "no orgOrMin and/or sieveSize", message: "No orgOrMin selected and/or sieveSize entered." };
+    }
+    return {
+        payload: {
+            fractionAnalyzed: data.fractionAnalyzed,
+            orgOrMin:         data.orgOrMin,
+            sieveSize:        sieveSize,
+            sample:           { id: data.sampleId },
+        },
+    };
 }
 
-async function updateCheckedFractionAnalyzed() {
-    const tableBody = document.getElementById('fractionAnalyzedTableBody');
-    if (tableBody) {
-        const checkboxes = Array.from(
-            tableBody.querySelectorAll('input[type="checkbox"]:checked:not(.group-select)')
-        );
-        const concurrencyLimit = 100;
-        showLoading();
-        try {
-            for (let i = 0; i < checkboxes.length; i += concurrencyLimit) {
-                const batch = checkboxes.slice(i, i + concurrencyLimit);
+// 'Create' button: creates the fraction analyzed of the clicked row and of all other selected rows
+async function createFractionAnalyzed(row) {
+    const data = row.getData();
 
-                const promises = batch.map(async checkbox => {
-                    if (checkbox.disabled) return true;
+    const clicked = buildFractionPayload(data);
+    if (!clicked.payload) {
+        toast.info(clicked.message);
+        return;
+    }
 
-                    const row = checkbox.closest('tr');
-
-                    const sampleId = row.dataset.sampleId;
-                    const fraction = row.dataset.fraction;
-                    const orgOrMinSelectElement =
-                        row.querySelector(
-                            `#orgOrMin_${sampleId}_${fraction.replace(/[^\w-]/g, '_')}`
-                        );
-                    const orgOrMin =
-                        orgOrMinSelectElement.value;
-
-                    const sieveSizeInputElement =
-                        row.querySelector(
-                            `#sieveSize_${sampleId}_${fraction.replace(/[^\w-]/g, '_')}`
-                        );
-                    const sieveSize =
-                        sieveSizeInputElement.value;
-
-                    return createFractionAnalyzed(orgOrMin, sieveSize, row, false);
-                });
-
-                await Promise.allSettled(promises);
-            }
-        } finally {
-            hideLoading();
+    const items = [{ clientId: data.id, fractionAnalyzed: clicked.payload }];
+    const skippedReasons = [];
+    fractionTable.getSelectedData().forEach(other => {
+        if (other.id === data.id) return;
+        const entry = buildFractionPayload(other);
+        if (entry.payload) {
+            items.push({ clientId: other.id, fractionAnalyzed: entry.payload });
+        } else {
+            skippedReasons.push(entry.reason);
         }
+    });
+
+    await createFractionsAnalyzed(items, skippedReasons);
+}
+
+// Sends the fractions in chunks to the bulk endpoint. Created and already existing fractions are filled
+// into the result table and removed from this table, rows which failed stay with the reason.
+async function createFractionsAnalyzed(items, skippedReasons = []) {
+    const payloads = new Map(items.map(item => [item.clientId, item.fractionAnalyzed]));
+    const created = [];
+    const existing = [];
+    const errors = [];
+
+    showLoading();
+    try {
+        for (let i = 0; i < items.length; i += FRACTION_CHUNK_SIZE) {
+            const chunk = items.slice(i, i + FRACTION_CHUNK_SIZE);
+            try {
+                const response = await axios.post("api/fractions_analyzed/bulk", chunk);
+                response.data.forEach(status => {
+                    if (status.status === "created")     created.push(status.clientId);
+                    else if (status.status === "exists") existing.push(status.clientId);
+                    else errors.push({ id: status.clientId, error: status.message || "failed" });
+                });
+            } catch (error) {
+                console.error("Error during bulk create of fractions analyzed: ", error);
+                const message = getErrorMessage(error);
+                chunk.forEach(item => errors.push({ id: item.clientId, error: message }));
+            }
+        }
+
+        // The fraction is in the database now (created or already there): the results can use it
+        const done = new Set([...created, ...existing]);
+        fillResultFractions(fractionTable.getData()
+            .filter(data => done.has(data.id))
+            .map(data => ({ siteLabel: data.siteLabel, sampleId: data.sampleId, originalFraction: data.originalFraction,
+                            ...payloads.get(data.id) })));
+
+        if (done.size > 0)     await deleteTableRows(fractionTable, [...done]);
+        if (errors.length > 0) await updateTableRows(fractionTable, errors);
+    } finally {
+        hideLoading();
+    }
+
+    // Summary --------------------------------------------------
+    if (items.length > 1 || skippedReasons.length > 0 || existing.length > 0) {
+        let message = `${created.length} fractions analyzed created.`;
+        if (existing.length > 0) {
+            message += ` ${existing.length} already existed.`;
+        }
+        if (skippedReasons.length > 0) {
+            message += ` ${skippedReasons.length} selected skipped (${[...new Set(skippedReasons)].join(", ")}).`;
+        }
+        if (errors.length > 0) {
+            message += ` ${errors.length} failed (see the rows).`;
+        }
+        (errors.length > 0 ? toast.error : toast.success)(message);
+    } else if (errors.length > 0) {
+        toast.error("Failed to create fraction analyzed: " + errors[0].error);
     }
 }
-
-// Group by orgOrMin and sieveSize (e.g. 'org 0.5') or by sieveSize only, see tableFilter.js.
-// The values are read live, because both are editable.
-const fractionOrgOrMin  = row => row.querySelector('select[id^="orgOrMin_"]')?.value ?? "";
-const fractionSieveSize = row => row.querySelector('input[id^="sieveSize_"]')?.value.trim() ?? "";
-const fractionKey       = row => `${fractionOrgOrMin(row)} ${fractionSieveSize(row)}`.trim();
-
-const compareFractionSieveSize = (a, b) => {
-    const diff = (parseFloat(fractionSieveSize(a)) || 0) - (parseFloat(fractionSieveSize(b)) || 0);
-    return sieveSizeSortState === 2 ? -diff : diff;
-};
-
-createTableFilter({
-    tbody: "fractionAnalyzedTableBody",
-    groups: [
-        {
-            label: "orgOrMin and sieveSize",
-            getKey: fractionKey,
-            // orgOrMin, then sieveSize (ascending, or descending if the sieveSize header sort is 'descending')
-            compare: (a, b) => {
-                const byOrgOrMin = fractionOrgOrMin(a).localeCompare(fractionOrgOrMin(b));
-                if (byOrgOrMin !== 0) return byOrgOrMin;
-                return compareFractionSieveSize(a, b) || fractionKey(a).localeCompare(fractionKey(b)); // keep equal keys together
-            }
-        },
-        {
-            label: "sieveSize",
-            getKey: fractionSieveSize,
-            compare: (a, b) => compareFractionSieveSize(a, b) || fractionSieveSize(a).localeCompare(fractionSieveSize(b))
-        }
-    ]
-});

@@ -238,7 +238,7 @@ function removeResultRows(rows) {
         if (!idsBySite.has(siteLabel)) idsBySite.set(siteLabel, []);
         idsBySite.get(siteLabel).push(id);
     });
-    idsBySite.forEach((ids, siteLabel) => deleteResultRows(resultTables.get(siteLabel).table, ids));
+    idsBySite.forEach((ids, siteLabel) => deleteTableRows(resultTables.get(siteLabel).table, ids));
 }
 
 // Adds the clicked result and all results with the same non matching values
@@ -363,6 +363,34 @@ function addC14LabCodesToJSON(row) {
         nonMatching_C14LabCode: newC14LabCode,
         items: items
     }, rows, skippedReasons);
+}
+
+// Bulk changes of the migration Tabulators. Tabulator updates and deletes rows one by one
+// (thousands of rows take seconds), so for many rows the data is replaced instead (~100x faster).
+// replaceData keeps filters, sorting and the scroll position; the selection is restored.
+const BULK_ROWS = 50;
+
+async function replaceTableData(table, data) {
+    const selected = table.getSelectedData().map(row => row.id);
+    await table.replaceData(data);
+    if (selected.length > 0) {
+        const remaining = new Set(data.map(row => row.id));
+        table.selectRow(selected.filter(id => remaining.has(id)));
+    }
+}
+
+// Updates rows by id: updates = [{ id, ...changed fields }]
+function updateTableRows(table, updates) {
+    if (updates.length < BULK_ROWS) return table.updateData(updates);
+    const byId = new Map(updates.map(update => [update.id, update]));
+    return replaceTableData(table, table.getData().map(row => byId.has(row.id) ? { ...row, ...byId.get(row.id) } : row));
+}
+
+// Removes rows by id
+function deleteTableRows(table, ids) {
+    const remove = new Set(ids);
+    if (remove.size < BULK_ROWS) return table.deleteRow([...remove]);
+    return replaceTableData(table, table.getData().filter(row => !remove.has(row.id)));
 }
 
 function hideTableIfTbodyEmpty(tbody) {
