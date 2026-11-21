@@ -1389,51 +1389,23 @@
                   - If a C14Laboratory you are looking for is not in the central thesauri list (dropdown), you can use the ‘Add to JSON’ option to save a new C14 laboratory code at the bottom of the page.<br>
                   - To create/select laboratories in several rows simultaneously select multiple rows.<br>
                   - To update datings in several rows simultaneously select multiple rows.<br>
-                  - To select or deselect a row use the checkbox on the left. To select or deselect <u>all</u> rows use the checkbox at the top left of a table.
+                  - To select or deselect a row use the checkbox on the left. To select or deselect <u>all</u> rows use the checkbox at the top left of a table.<br>
+                  - To filter rows by site, feature, sample or subSample use the fields in the table header.
                 </p>
 
-                C14 Dating
-                <table class="table table-striped">
-                  <thead>
-                      <tr>
-                          <th>
-                            <input type="checkbox" onclick="toggleAllCheckboxes(this, 'C14LabAndNumberTableBody')">
-                          </th>
-                          <th>Site<br>Feature<br>Sample<br>SubSample</th>
-                          <th>labAndNumber</th>
-                          <th style="width: 35%;">Select C14Laboratory</th>
-                          <th>New C14Laboratory</th>
-                          <th style="min-width: none 110px;">Set Number</th>
-                          <th style="width: 85px;">Update Dating</th>
-                      </tr>
-                  </thead>
-                  <tbody id="C14LabAndNumberTableBody">
-                      <!-- Rows will be dynamically added here by populateLabsAndNumbers function -->
-                  </tbody>
-                </table>
+                <div class="d-flex flex-wrap align-items-center gap-3 mb-2">
+                  <strong>C14 Dating</strong>
+                  <span id="C14LabAndNumberCounter" class="small text-muted"></span>
+                </div>
+                <!-- Tabulator, created by populateLabsAndNumbers (labsAndNumbers.js) -->
+                <div id="C14LabAndNumberTable" class="migration-result-table"></div>
 
-                <br>
-
-                <datalist id="lab_list"></datalist>
-
-                <table class="table table-striped">
-                  <thead>
-                      <tr>
-                          <th>
-                            <input type="checkbox" onclick="toggleAllCheckboxes(this, 'LabAndNumberTableBody')">
-                          </th>
-                          <th>Site<br>Feature<br>Sample<br>SubSample</th>
-                          <th>datingMethod</th>
-                          <th>labAndNumber</th>
-                          <th>Create/Select Laboratory</th>
-                          <th style="width: 100px;">Set Number</th>
-                          <th style="width: 85px;">Update Dating</th>
-                      </tr>
-                  </thead>
-                  <tbody id="LabAndNumberTableBody">
-                      <!-- Rows will be dynamically added here by populateLabsAndNumbers function -->
-                  </tbody>
-                </table>
+                <div class="d-flex flex-wrap align-items-center gap-3 mb-2 mt-4">
+                  <strong>Dendrochronology and other datings</strong>
+                  <span id="LabAndNumberCounter" class="small text-muted"></span>
+                </div>
+                <!-- Tabulator, created by populateLabsAndNumbers (labsAndNumbers.js) -->
+                <div id="LabAndNumberTable" class="migration-result-table"></div>
 
               </form>
             </div>

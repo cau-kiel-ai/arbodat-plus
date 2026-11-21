@@ -152,15 +152,11 @@ function addLabelToJSON(itemId, attribute, button) {
 }
 
 function addLabelToJSONWithItem(button, attribute) {
-    // attributes: 'coordinateSystemSite', 'coordinateSystemSample', 'C14LabCode' (results: see addResultsToJSON)
+    // attributes: 'coordinateSystemSite', 'coordinateSystemSample' (results: addResultsToJSON, C14 laboratories: addC14LabCodesToJSON)
     const row = button.closest("tr");
 
     if (attribute == "coordinateSystemSite" || attribute == "coordinateSystemSample") {
         addCoordinatesToJSON(row, attribute);
-    }
-
-    if (attribute == "C14LabCode") {
-        addC14LabCodesToJSON(row);
     }
 }
 
@@ -324,45 +320,100 @@ function addCoordinatesToJSON(row, attribute) {
 }
 
 // C14 laboratories ----------------------------------------------------------
+// (rows are Tabulator rows of the C14 table, see labsAndNumbers.js)
 
 // Adds the clicked C14 dating and all C14 datings with the same new laboratory entered
 function addC14LabCodesToJSON(row) {
-    // Get number
-    const number = row.cells[5].querySelector("input").value.trim();
+    const data = row.getData();
+
+    const number = String(data.number ?? "").trim();
     if (!number) {
         toast.info(`No number entered.`);
         return;
     }
-
-    // Get labelInput
-    const newC14LabCode = row.cells[4].querySelector("input").value.trim();
+    const newC14LabCode = String(data.newC14Laboratory ?? "").trim();
     if (!newC14LabCode) {
         toast.info(`No new C14Laboratory entered.`);
         return;
     }
 
     const rows  = [row];
-    const items = [{ absoluteDatingId: row.dataset.absoluteDatingId, number: number }];
+    const items = [{ absoluteDatingId: data.absoluteDatingId, number: number }];
     const skippedReasons = [];
 
-    Array.from(row.closest("tbody").rows).forEach(otherRow => {
-        if (otherRow === row) return;
-        if (otherRow.cells[4].querySelector("input").value.trim() !== newC14LabCode) return;
+    c14LabTable.getRows().forEach(otherRow => {
+        const other = otherRow.getData();
+        if (other.id === data.id) return;
+        if (String(other.newC14Laboratory ?? "").trim() !== newC14LabCode) return;
 
-        const otherNumber = otherRow.cells[5].querySelector("input").value.trim();
+        const otherNumber = String(other.number ?? "").trim();
         if (!otherNumber) {
             skippedReasons.push("no number entered");
             return;
         }
         rows.push(otherRow);
-        items.push({ absoluteDatingId: otherRow.dataset.absoluteDatingId, number: otherNumber });
+        items.push({ absoluteDatingId: other.absoluteDatingId, number: otherNumber });
     });
 
     addGroupToJSON({
         itemType: "C14Dating",
         nonMatching_C14LabCode: newC14LabCode,
         items: items
-    }, rows, skippedReasons);
+    }, rows, skippedReasons, rows => deleteTableRows(c14LabTable, rows.map(row => row.getData().id)));
+}
+
+// Common parts of the migration Tabulators (results, fractions analyzed, labs and numbers) ----------
+
+// Checkbox column; the checkbox in the header (de)selects only the filtered rows
+function selectionColumn() {
+    return {cssClass: "selectionColumn", formatter: "rowSelection", titleFormatter: "rowSelection",
+            titleFormatterParams: { rowRange: "active" }, hozAlign: "center", headerSort: false, width: 40};
+}
+
+// Text column with a filter field in the header (site, feature, sample, ...)
+function filterTextColumn(title, field) {
+    return {title, field, headerSort: false, minWidth: 90, formatter: "plaintext",
+            headerFilter: "input", headerFilterPlaceholder: "filter"};
+}
+
+// - counter: element for "x rows" / "x of y rows"
+// - rows hidden by a filter are deselected, so the bulk actions skip them
+// - a value edited in a selected row is copied to the other selected rows:
+//   copyFields = { field: canCopy(rowData) } (rows for which canCopy is false keep their value)
+function setupMigrationTable(table, { counter, copyFields = {} }) {
+    table.on("cellEdited", cell => {
+        const row = cell.getRow();
+        const canCopy = copyFields[cell.getField()];
+        if (!row.isSelected() || !canCopy) return;
+
+        const updates = table.getSelectedData()
+            .filter(data => data.id !== row.getData().id && canCopy(data))
+            .map(data => ({ id: data.id, [cell.getField()]: cell.getValue() }));
+        if (updates.length > 0) updateTableRows(table, updates);
+    });
+
+    const updateCounter = () => {
+        const total  = table.getDataCount();
+        const active = table.getDataCount("active");
+        counter.textContent = active === total ? `${total} rows` : `${active} of ${total} rows`;
+    };
+    table.on("dataFiltered", (filters, activeRows) => {
+        const active = new Set(activeRows);
+        table.getSelectedRows().filter(row => !active.has(row)).forEach(row => row.deselect());
+        setTimeout(updateCounter);
+    });
+    table.on("dataChanged",   updateCounter);
+    table.on("rowDeleted",    updateCounter);
+    table.on("dataProcessed", updateCounter);
+}
+
+// Tabulator can't measure itself in a collapsed accordion: redraw the migration tables once they are visible.
+// Tables which are still being built measure themselves (the accordions are open then).
+function redrawMigrationTables() {
+    const tables = [fractionTable, c14LabTable, labTable, ...[...resultTables.values()].map(site => site.table)];
+    tables.forEach(table => {
+        if (table?.initialized) table.redraw(true);
+    });
 }
 
 // Bulk changes of the migration Tabulators. Tabulator updates and deletes rows one by one

@@ -137,9 +137,7 @@ function createResultTable(element, counter, rows, site) {
         layout: "fitDataFill", // columns as wide as their content (no stretched last column)
         placeholder: "no results",
         columns: [
-            {cssClass: "selectionColumn", formatter: "rowSelection", titleFormatter: "rowSelection",
-                titleFormatterParams: { rowRange: "active" }, // only (de)select the filtered rows
-                hozAlign: "center", headerSort: false, width: 40},
+            selectionColumn(),
             {title: "Feature", field: "featureLabel", headerSort: false, formatter: "plaintext"},
             {title: "Sample",  field: "sampleLabel",  headerSort: false, formatter: "plaintext"},
 
@@ -187,39 +185,12 @@ function createResultTable(element, counter, rows, site) {
         ],
     });
 
-    // A value chosen in a selected row is copied to all other selected rows (where it applies)
-    table.on("cellEdited", cell => {
-        const row = cell.getRow();
-        if (!row.isSelected()) return;
-
-        const field = cell.getField();
-        const needsField = {
-            danteTaxCode:             "needsTaxCode",
-            danteRestType:            "needsRestType",
-            danteStateOfPreservation: "needsStateOfPreservation",
-        }[field];
-        if (!needsField) return;
-
-        const updates = table.getSelectedData()
-            .filter(data => data.id !== row.getData().id && data[needsField])
-            .map(data => ({ id: data.id, [field]: cell.getValue() }));
-        if (updates.length > 0) updateTableRows(table, updates);
-    });
-
-    // Rows hidden by a filter are deselected, so the bulk actions skip them
-    const updateCounter = () => {
-        const total  = table.getDataCount();
-        const active = table.getDataCount("active");
-        counter.textContent = active === total ? `${total} rows` : `${active} of ${total} rows`;
-    };
-    table.on("dataFiltered", (filters, activeRows) => {
-        const active = new Set(activeRows);
-        table.getSelectedRows().filter(row => !active.has(row)).forEach(row => row.deselect());
-        setTimeout(updateCounter);
-    });
-    table.on("dataChanged", updateCounter);
-    table.on("rowDeleted",  updateCounter);
-    table.on("dataProcessed", updateCounter);
+    // A value chosen in a selected row is copied to the other selected rows which need it
+    setupMigrationTable(table, { counter, copyFields: {
+        danteTaxCode:             data => data.needsTaxCode,
+        danteRestType:            data => data.needsRestType,
+        danteStateOfPreservation: data => data.needsStateOfPreservation,
+    } });
 
     return table;
 }

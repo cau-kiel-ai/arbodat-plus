@@ -5,7 +5,7 @@ import lombok.Getter;
 
 import java.util.UUID;
 
-// Outcome of one item of a bulk create: "created" (with id), "exists" or "error" (with message)
+// Outcome of one item of a bulk create / update: "created" (with id), "updated", "exists" or "error" (with message)
 @Getter
 @AllArgsConstructor
 public class BulkItemStatus {
@@ -16,6 +16,10 @@ public class BulkItemStatus {
 
     public static BulkItemStatus created(String clientId, UUID id) {
         return new BulkItemStatus(clientId, "created", id, null);
+    }
+
+    public static BulkItemStatus updated(String clientId) {
+        return new BulkItemStatus(clientId, "updated", null, null);
     }
 
     public static BulkItemStatus exists(String clientId) {

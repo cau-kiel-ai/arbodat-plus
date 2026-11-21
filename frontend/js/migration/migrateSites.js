@@ -84,7 +84,7 @@ async function migrateSites(researchProjectList) {
         populateCoordinates(coordinateList);
         populateUsers(userList);
         populateFractionsAnalyzed(fractionAnalyzedList);
-        populateLabsAndNumbers(labAndNumberList);
+        await populateLabsAndNumbers(labAndNumberList);
         await populateResults(resultList);
 
         // show accordion sections 4-10, when something is included in the corresponding lists
@@ -137,6 +137,9 @@ async function migrateSites(researchProjectList) {
                 accordionElement10.classList.add("show");
             }
         }
+
+        // The tables were built in collapsed accordions (no size): draw them now that they are visible
+        redrawMigrationTables();
 
     } catch (error) {
         console.error("Error during site migration: ", error);

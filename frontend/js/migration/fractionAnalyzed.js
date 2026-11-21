@@ -52,12 +52,10 @@ function createFractionTable(rows) {
                     </label>`;
         },
         columns: [
-            {cssClass: "selectionColumn", formatter: "rowSelection", titleFormatter: "rowSelection",
-                titleFormatterParams: { rowRange: "active" }, // only (de)select the filtered rows
-                hozAlign: "center", headerSort: false, width: 40},
-            {title: "Site",    field: "siteLabel",    headerSort: false, minWidth: 90, formatter: "plaintext", headerFilter: "input", headerFilterPlaceholder: "filter"},
-            {title: "Feature", field: "featureLabel", headerSort: false, minWidth: 90, formatter: "plaintext", headerFilter: "input", headerFilterPlaceholder: "filter"},
-            {title: "Sample",  field: "sampleLabel",  headerSort: false, minWidth: 90, formatter: "plaintext", headerFilter: "input", headerFilterPlaceholder: "filter"},
+            selectionColumn(),
+            filterTextColumn("Site", "siteLabel"),
+            filterTextColumn("Feature", "featureLabel"),
+            filterTextColumn("Sample", "sampleLabel"),
             {title: "fractionAnalyzed", field: "fractionAnalyzed", headerSort: false, formatter: "plaintext"},
             {title: "modifiedFraction", field: "modifiedFraction", headerSort: false, formatter: "plaintext"},
             {title: "orgOrMin", field: "orgOrMin", headerSort: false, minWidth: 90,
@@ -79,17 +77,8 @@ function createFractionTable(rows) {
         ],
     });
 
-    // orgOrMin / sieveSize changed in a selected row is copied to all other selected rows
-    table.on("cellEdited", cell => {
-        const row = cell.getRow();
-        if (!row.isSelected()) return;
-
-        const field = cell.getField();
-        const updates = table.getSelectedData()
-            .filter(data => data.id !== row.getData().id)
-            .map(data => ({ id: data.id, [field]: cell.getValue() }));
-        if (updates.length > 0) updateTableRows(table, updates);
-    });
+    // orgOrMin / sieveSize changed in a selected row is copied to the other selected rows
+    setupMigrationTable(table, { counter, copyFields: { orgOrMin: () => true, sieveSize: () => true } });
 
     // Group header checkbox: (de)select the rows of the group
     table.on("groupClick", (e, group) => {
@@ -97,21 +86,6 @@ function createFractionTable(rows) {
         if (!checkbox) return;
         group.getRows().forEach(row => checkbox.checked ? row.select() : row.deselect());
     });
-
-    // Rows hidden by a filter are deselected, so the bulk actions skip them
-    const updateCounter = () => {
-        const total  = table.getDataCount();
-        const active = table.getDataCount("active");
-        counter.textContent = active === total ? `${total} rows` : `${active} of ${total} rows`;
-    };
-    table.on("dataFiltered", (filters, activeRows) => {
-        const active = new Set(activeRows);
-        table.getSelectedRows().filter(row => !active.has(row)).forEach(row => row.deselect());
-        setTimeout(updateCounter);
-    });
-    table.on("dataChanged",   updateCounter);
-    table.on("rowDeleted",    updateCounter);
-    table.on("dataProcessed", updateCounter);
 
     return table;
 }

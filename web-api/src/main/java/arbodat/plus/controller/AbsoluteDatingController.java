@@ -1,8 +1,14 @@
 package arbodat.plus.controller;
 
+import arbodat.plus.dto_migration.BulkItemStatus;
+import arbodat.plus.dto_migration.BulkLabAndNumberItem;
 import arbodat.plus.model.*;
 import arbodat.plus.repository.*;
+import arbodat.plus.service.LabAndNumberMigrationService;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.dao.DataAccessException;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.HashSet;
@@ -13,6 +19,11 @@ import java.util.UUID;
 @RestController
 @RequestMapping("/absolute_datings")
 public class AbsoluteDatingController {
+
+    private static final Logger log = LoggerFactory.getLogger(AbsoluteDatingController.class);
+
+    @Autowired
+    LabAndNumberMigrationService labAndNumberMigrationService;
 
     @Autowired
     AbsoluteDatingRepository absoluteDatingRepository;
@@ -328,5 +339,23 @@ public class AbsoluteDatingController {
         absoluteDatingRepository.save(absoluteDating);
 
         return "absoluteDating is updated with new laboratory and number";
+    }
+
+    /**
+     * Sets laboratory and number of many datings (labs and numbers accordion of the migration).
+     * Every item gets its own status ("updated" or "error"), so one bad row doesn't stop the others.
+     */
+    @PutMapping("/labAndNumber/bulk")
+    public List<BulkItemStatus> updateLabsAndNumbers(@RequestBody List<BulkLabAndNumberItem> items) {
+        try {
+            return labAndNumberMigrationService.updateAll(items);
+        } catch (DataAccessException e) {
+            // The transaction is rolled back -> none of the items is updated
+            log.error("Bulk update of laboratories and numbers failed", e);
+            String message = e.getMostSpecificCause().getMessage();
+            return items.stream()
+                    .map(item -> BulkItemStatus.error(item.getClientId(), message))
+                    .toList();
+        }
     }
 }
