@@ -3,4 +3,4 @@
 /**
  * Why a backup was made. Only `Auto` backups are ever deleted (by the retention policy).
  */
-export type BackupKind = "manual" | "auto" | "beforeUpdate" | "beforeRestore";
+export type BackupKind = "manual" | "auto" | "beforeUpdate" | "beforeRestore" | "beforeImport";

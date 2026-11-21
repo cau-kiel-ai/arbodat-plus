@@ -53,6 +53,7 @@ pub enum BackupKind {
     Auto,
     BeforeUpdate,
     BeforeRestore,
+    BeforeImport,
 }
 
 impl BackupKind {
@@ -62,6 +63,7 @@ impl BackupKind {
             BackupKind::Auto => "auto",
             BackupKind::BeforeUpdate => "before-update",
             BackupKind::BeforeRestore => "before-restore",
+            BackupKind::BeforeImport => "before-import",
         }
     }
 }
@@ -1010,6 +1012,12 @@ mod tests {
             BackupKind::BeforeRestore,
             "2026-10-25T07:40:00+01:00",
         );
+        write_backup(
+            d,
+            "arbodat-plus_i1",
+            BackupKind::BeforeImport,
+            "2026-10-25T07:50:00+01:00",
+        );
         // Not the app's name, or no sidecar: never touched.
         write_backup(
             d,
@@ -1031,6 +1039,7 @@ mod tests {
             "arbodat-plus_m1.dump",
             "arbodat-plus_u1.dump",
             "arbodat-plus_r1.dump",
+            "arbodat-plus_i1.dump",
             "my-own-copy.dump",
             "arbodat-plus_nosidecar.dump",
         ] {

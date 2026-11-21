@@ -45,16 +45,17 @@ public class AbsoluteDating implements Serializable {
     @ManyToMany(mappedBy = "absoluteDatingList")
     private Set<Literature> literatureList;
 
-    // Datings ---------------------------------------------------------------------
-    @OneToOne(cascade = CascadeType.ALL)
+    // Datings: each belongs to this absolute dating only (one-to-one); one that is replaced is deleted
+    // (it would be unreachable, and its laboratory number blocked for good).
+    @OneToOne(cascade = CascadeType.ALL, orphanRemoval = true)
     @JoinColumn(name = "c14_dating_id", referencedColumnName = "id")
     private C14Dating c14Dating;
 
-    @OneToOne(cascade = CascadeType.ALL)
+    @OneToOne(cascade = CascadeType.ALL, orphanRemoval = true)
     @JoinColumn(name = "dendrochronological_dating_id", referencedColumnName = "id")
     private DendrochronologicalDating dendrochronologicalDating;
 
-    @OneToOne(cascade = CascadeType.ALL)
+    @OneToOne(cascade = CascadeType.ALL, orphanRemoval = true)
     @JoinColumn(name = "other_dating_id", referencedColumnName = "id")
     private OtherDating otherDating;
     // -----------------------------------------------------------------------------

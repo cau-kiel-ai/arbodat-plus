@@ -31,6 +31,7 @@
     auto: "daily",
     beforeUpdate: "before update",
     beforeRestore: "before restore",
+    beforeImport: "before import",
   };
   /** Why the retention policy keeps an automatic backup. */
   const retainedLabels: Record<Retained, string> = { daily: "daily", weekly: "weekly", monthly: "monthly" };

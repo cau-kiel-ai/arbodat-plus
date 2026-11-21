@@ -5,7 +5,8 @@
 //   2. alert() (a silent no-op in WKWebView),
 //   3. a toast for "saved to Downloads" (called from Rust),
 //   4. a message that the address behind this window stopped answering (called from Rust),
-//   5. the cog that opens the Control Center (and a warning first if something was typed).
+//   5. the cog that opens the Control Center (and a warning first if something was typed),
+//   6. the backup the Export / Import page asks for before it imports.
 (function () {
   if (window !== window.top || window.__arbodatShims) return;
   // The app's own pages (the Control Center) need none of this.
@@ -199,16 +200,48 @@
     });
   }
 
+  // A page can report work of its own that typing and saving don't tell (the import page's reviewed
+  // preview): window.__arbodatUnsavedWork() returns what would be lost, or nothing.
+  function pageWork() {
+    try {
+      return typeof window.__arbodatUnsavedWork === 'function' ? window.__arbodatUnsavedWork() : null;
+    } catch (e) {
+      return null;
+    }
+  }
+
   // Also called from Rust (menu, Dock) so that it gets the same warning.
   window.__arbodatOpenControl = function () {
     var go = function () { window.location.assign(CONTROL_URL); };
-    if (!dirty) { go(); return; }
+    var work = pageWork();
+    if (!dirty && !work) { go(); return; }
     confirmLeave(
-      isMigration
+      work
+        ? 'Opening the Control Center closes this page and loses ' + work + '.'
+        : isMigration
         ? 'Opening the Control Center closes this page and loses the whole migration: the chosen files, the steps done and the results.'
         : 'Something you typed here may not be saved yet. Opening the Control Center closes this page and loses it.',
       go
     );
+  };
+
+  // 6. A backup right before an import. The page asks by "navigating" to an address the app
+  // recognises (and cancels), like the cog; the app answers through __arbodatBackupDone with
+  // "done", "unavailable" (ArboDat+ runs on a server) or "failed", and a message.
+  var BACKUP_URL = 'arbodat-desktop://backup-before-import';
+  var backupAnswer = null;
+  window.__arbodatBackupBeforeImport = function () {
+    if (backupAnswer) return backupAnswer.promise; // one at a time
+    var answer = {};
+    answer.promise = new Promise(function (resolve) { answer.resolve = resolve; });
+    backupAnswer = answer;
+    window.location.assign(BACKUP_URL);
+    return answer.promise;
+  };
+  window.__arbodatBackupDone = function (status, message) {
+    var answer = backupAnswer;
+    backupAnswer = null;
+    if (answer) answer.resolve({ status: status, message: message });
   };
 
   // The gear is drawn here (a ring of teeth, a ring, a hub), no icon set involved.

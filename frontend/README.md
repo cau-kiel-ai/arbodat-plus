@@ -30,12 +30,12 @@ frontend
 | `migration.html` | Data Migration (import from legacy MS Access ArboDat) |
 | `explorer.html` | Data Explorer (query/filter/edit/export) |
 | `report.html` | Data Report (placeholder WIP) |
-| `export.html` | Data Export |
+| `export-import.html` | Export / Import (JSON export, and import that merges an export into the data) |
 | `settings.html` | Settings page (default values for DANTE dropdowns, custom order of their options) |
 | `contact.html`, `license.html` | Static pages |
 
 Each page's JS lives under `js/` in a matching subfolder (`js/input/`, `js/migration/`,
-`js/explorer/`, `js/export/`, `js/settings/`), plus `js/danteAttributes/` (shared: loads/pushes the
+`js/explorer/`, `js/export-import/`, `js/settings/`), plus `js/danteAttributes/` (shared: loads/pushes the
 DANTE vocabulary lists used across Data Input and Migration). The default values and the custom order of the
 dropdown options are edited on the Settings page, stored in the backend (`api/default_values`, `api/display_order`)
 and applied by the shared `js/defaultValues.js` and `js/displayOrder.js`. Further shared helpers sit directly in `js/`

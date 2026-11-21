@@ -40,7 +40,7 @@ web-api
    the Data Input page with internet access.
 
 Build the runnable jar with `./gradlew bootJar` (output: `build/libs/web-api.jar`).
-`./gradlew test` exists but is currently disabled (see the commented-out block in `build.gradle`).
+`./gradlew test` runs the tests against a real Postgres 16 (Testcontainers), so Docker has to be running.
 
 ## API
 

@@ -2,7 +2,11 @@ package arbodat.plus.controller;
 
 import arbodat.plus.model.*;
 import arbodat.plus.repository.*;
+import org.springframework.beans.BeanUtils;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.dao.DataIntegrityViolationException;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.HashSet;
@@ -34,6 +38,15 @@ public class AbsoluteDatingController {
 
     @Autowired
     ResultRepository resultRepository;
+
+    @Autowired
+    C14DatingRepository c14DatingRepository;
+
+    @Autowired
+    DendrochronologicalDatingRepository dendrochronologicalDatingRepository;
+
+    @Autowired
+    OtherDatingRepository otherDatingRepository;
 
     @GetMapping
     public List<AbsoluteDating> getAllAbsoluteDatings() {
@@ -96,6 +109,7 @@ public class AbsoluteDatingController {
             }
         }
 
+        checkLaboratoryNumbers(transferredAbsoluteDating);
         AbsoluteDating absoluteDating = absoluteDatingRepository.save(transferredAbsoluteDating);
 
         // Handle reference literature
@@ -162,28 +176,26 @@ public class AbsoluteDatingController {
 
         // Handle datingMethod
         if (transferredAbsoluteDating.getDatingMethod() != null && transferredAbsoluteDating.getDatingMethod().getId() != null) {
-            // Remove old references
-            absoluteDating.setDendrochronologicalDating(null);
-            absoluteDating.setC14Dating(null);
-            absoluteDating.setOtherDating(null);
-
             DatingMethod datingMethod = datingMethodRepository.findById(transferredAbsoluteDating.getDatingMethod().getId())
                     .orElseGet(() -> datingMethodRepository.save(transferredAbsoluteDating.getDatingMethod()));
 
             absoluteDating.setDatingMethod(datingMethod);
 
-            // The dating is saved even without a laboratory (the lab stays null)
+            // Only the dating of the chosen method stays (the dating is saved even without a laboratory)
+            String methodLabel = transferredAbsoluteDating.getDatingMethod().getLabel();
+            DendrochronologicalDating dendroDating = null;
+            C14Dating c14Dating = null;
+            OtherDating otherDating = null;
             // Dendro dating
-            if (transferredAbsoluteDating.getDatingMethod().getLabel().equals("Dendrochronology")) {
-                DendrochronologicalDating dendroDating = transferredAbsoluteDating.getDendrochronologicalDating();
+            if ("Dendrochronology".equals(methodLabel)) {
+                dendroDating = transferredAbsoluteDating.getDendrochronologicalDating();
                 if (dendroDating != null) {
                     dendroDating.setLaboratory(resolveLaboratory(dendroDating.getLaboratory()));
-                    absoluteDating.setDendrochronologicalDating(dendroDating);
                 }
             }
             // C14 dating
-            else if (transferredAbsoluteDating.getDatingMethod().getLabel().equals("Radiocarbon Dating")) {
-                C14Dating c14Dating = transferredAbsoluteDating.getC14Dating();
+            else if ("Radiocarbon Dating".equals(methodLabel)) {
+                c14Dating = transferredAbsoluteDating.getC14Dating();
                 if (c14Dating != null) {
                     C14Laboratory transferredC14Lab = c14Dating.getC14Laboratory();
                     if (transferredC14Lab != null && transferredC14Lab.getId() != null) {
@@ -192,21 +204,24 @@ public class AbsoluteDatingController {
                     } else {
                         c14Dating.setC14Laboratory(null);
                     }
-                    absoluteDating.setC14Dating(c14Dating);
                 }
             }
             // Other dating
             else {
-                OtherDating otherDating = transferredAbsoluteDating.getOtherDating();
+                otherDating = transferredAbsoluteDating.getOtherDating();
                 if (otherDating != null) {
                     otherDating.setLaboratory(resolveLaboratory(otherDating.getLaboratory()));
-                    absoluteDating.setOtherDating(otherDating);
                 }
             }
+            // The existing dating is changed, not replaced; one of another method is deleted
+            absoluteDating.setDendrochronologicalDating(changeOrReplace(absoluteDating.getDendrochronologicalDating(), dendroDating));
+            absoluteDating.setC14Dating(changeOrReplace(absoluteDating.getC14Dating(), c14Dating));
+            absoluteDating.setOtherDating(changeOrReplace(absoluteDating.getOtherDating(), otherDating));
         } else {
             absoluteDating.setDatingMethod(null);
         }
 
+        checkLaboratoryNumbers(absoluteDating);
         absoluteDatingRepository.save(absoluteDating);
         return "absolute dating is updated";
     }
@@ -287,6 +302,7 @@ public class AbsoluteDatingController {
         absoluteDating.getC14Dating().setC14Laboratory(c14Laboratory);
         absoluteDating.getC14Dating().setNumber(number);
 
+        checkLaboratoryNumbers(absoluteDating);
         absoluteDatingRepository.save(absoluteDating);
 
         return "absoluteDating is updated with new c14 laboratory and number";
@@ -325,8 +341,105 @@ public class AbsoluteDatingController {
             return "invalid dating method: " + datingMethod;
         }
 
+        checkLaboratoryNumbers(absoluteDating);
         absoluteDatingRepository.save(absoluteDating);
 
         return "absoluteDating is updated with new laboratory and number";
+    }
+
+    // Laboratory numbers -----------------------------------------------------------
+
+    /*
+    The existing dating takes the transferred values (it keeps its id); without an existing one the
+    transferred dating is used, and without a transferred one the existing dating goes (orphanRemoval).
+    */
+    private static <T> T changeOrReplace(T existing, T transferred) {
+        if (transferred == null || existing == null) return transferred;
+        BeanUtils.copyProperties(transferred, existing, "id", "absoluteDating");
+        return existing;
+    }
+
+    /*
+    A laboratory number identifies one dating: no other dating may have the same laboratory and number.
+    Numbers are stored without surrounding spaces (an empty number is none).
+    */
+    private void checkLaboratoryNumbers(AbsoluteDating absoluteDating) {
+        C14Dating c14 = absoluteDating.getC14Dating();
+        if (c14 != null) {
+            c14.setNumber(cleanNumber(c14.getNumber()));
+            if (c14.getC14Laboratory() != null && c14.getNumber() != null) {
+                c14DatingRepository.findByC14LaboratoryIdAndNumber(c14.getC14Laboratory().getId(), c14.getNumber())
+                        .filter(other -> !other.getId().equals(c14.getId()))
+                        .ifPresent(other -> { throw new LaboratoryNumberTakenException("C14", c14LaboratoryName(c14.getC14Laboratory()),
+                                c14.getNumber(), other.getAbsoluteDating()); });
+            }
+        }
+        DendrochronologicalDating dendro = absoluteDating.getDendrochronologicalDating();
+        if (dendro != null) {
+            dendro.setNumber(cleanNumber(dendro.getNumber()));
+            if (dendro.getLaboratory() != null && dendro.getLaboratory().getId() != null && dendro.getNumber() != null) {
+                dendrochronologicalDatingRepository.findByLaboratoryIdAndNumber(dendro.getLaboratory().getId(), dendro.getNumber())
+                        .filter(other -> !other.getId().equals(dendro.getId()))
+                        .ifPresent(other -> { throw new LaboratoryNumberTakenException("dendro", laboratoryName(dendro.getLaboratory().getLabel()),
+                                dendro.getNumber(), other.getAbsoluteDating()); });
+            }
+        }
+        OtherDating otherDating = absoluteDating.getOtherDating();
+        if (otherDating != null) {
+            otherDating.setNumber(cleanNumber(otherDating.getNumber()));
+            if (otherDating.getLaboratory() != null && otherDating.getLaboratory().getId() != null && otherDating.getNumber() != null) {
+                otherDatingRepository.findByLaboratoryIdAndNumber(otherDating.getLaboratory().getId(), otherDating.getNumber())
+                        .filter(other -> !other.getId().equals(otherDating.getId()))
+                        .ifPresent(other -> { throw new LaboratoryNumberTakenException("other", laboratoryName(otherDating.getLaboratory().getLabel()),
+                                otherDating.getNumber(), other.getAbsoluteDating()); });
+            }
+        }
+    }
+
+    private static String c14LaboratoryName(C14Laboratory laboratory) {
+        if (laboratory.getLabel() != null && !laboratory.getLabel().isBlank()) return laboratory.getLabel();
+        if (laboratory.getNotation() != null && !laboratory.getNotation().isBlank()) return laboratory.getNotation();
+        return laboratory.getId();
+    }
+
+    private static String laboratoryName(String label) {
+        return label == null || label.isBlank() ? "this laboratory" : label;
+    }
+
+    private static String cleanNumber(String number) {
+        if (number == null) return null;
+        String trimmed = number.trim();
+        return trimmed.isEmpty() ? null : trimmed;
+    }
+
+    static class LaboratoryNumberTakenException extends RuntimeException {
+        LaboratoryNumberTakenException(String kind, String laboratory, String number, AbsoluteDating owner) {
+            super("The " + kind + " dating number " + number + " of " + laboratory + " is already used"
+                    + (owner == null ? "" : " by absolute dating " + describe(owner)) + ". A laboratory number can belong to one dating only.");
+        }
+
+        private static String describe(AbsoluteDating owner) {
+            StringBuilder path = new StringBuilder();
+            Sample sample = owner.getSample();
+            if (sample != null) {
+                Feature feature = sample.getFeature();
+                if (feature != null && feature.getSite() != null) path.append(feature.getSite().getLabel()).append(" › ");
+                if (feature != null) path.append(feature.getLabel()).append(" › ");
+                path.append(sample.getLabel()).append(" › ");
+            }
+            return path.append(owner.getSubSample() == null ? "(no sub-sample)" : owner.getSubSample()).toString();
+        }
+    }
+
+    @ExceptionHandler(LaboratoryNumberTakenException.class)
+    public ResponseEntity<String> handleLaboratoryNumberTaken(LaboratoryNumberTakenException e) {
+        return ResponseEntity.status(HttpStatus.CONFLICT).body(e.getMessage());
+    }
+
+    // Another request took the number between the check and the save
+    @ExceptionHandler(DataIntegrityViolationException.class)
+    public ResponseEntity<String> handleDataIntegrityViolation(DataIntegrityViolationException e) {
+        return ResponseEntity.status(HttpStatus.CONFLICT)
+                .body("The dating could not be saved: its laboratory number is already used by another dating.");
     }
 }

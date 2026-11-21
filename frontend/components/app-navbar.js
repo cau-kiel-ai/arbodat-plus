@@ -5,7 +5,7 @@ const NAV_ENTRIES = [
     ['Data Migration', 'migration.html'],
     ['Data Explorer', 'explorer.html'],
     ['Report', 'report.html'],
-    ['Data Export', 'export.html'],
+    ['Export / Import', 'export-import.html'],
     ['Settings', 'settings.html'],
 ];
 
