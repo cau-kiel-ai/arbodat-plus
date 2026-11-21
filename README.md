@@ -18,7 +18,7 @@ ArboDat+ is the continued development of the archaeobotanical database program A
 - Existing data sets from legacy MS Access ArboDat can be imported via the **'Data Migration'** module.
 - Data entries can be queried, filtered, modified, and exported into various file formats through the **'Data Explorer'** module.
 - An interactive map provides easy location management of sites and reverse geocoding allows address details to be filled in automatically.
-- The **'Data Export'** module exports the whole database, or only selected research projects, sites, features or samples, to a JSON file.
+- The **'Export / Import'** module exports the whole database, or only selected research projects, sites, features or samples, to a JSON file, and imports such a file into another ArboDat+: records already there are recognised and completed, nothing is deleted, and conflicting values are decided in a preview.
 - Default values and custom order of Dante attributes in the 'Data Input' forms can be configured in the **'Settings'** module.
 
 Please note that this is an early public release, and further improvements are recommended. For example, the data import functionality is still to be refined, and integration with a data repository would further enhance the system's capabilities.

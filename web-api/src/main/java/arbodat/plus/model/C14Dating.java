@@ -9,8 +9,10 @@ import java.util.UUID;
 
 @Data
 @Entity
+// A laboratory number identifies one dating: unique per laboratory (rows without laboratory or
+// number don't count). LabNumberConstraints adds it to databases that had duplicates before.
 @Table(name = "c14_dating",
-        uniqueConstraints = {@UniqueConstraint(columnNames = {"c14_lab_code", "number"})})
+        uniqueConstraints = @UniqueConstraint(name = "uk_c14_dating_laboratory_number", columnNames = {"c14_laboratory", "number"}))
 public class C14Dating implements Serializable {
 
     @Id

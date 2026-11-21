@@ -8,6 +8,10 @@
 //!
 //! Links that leave ArboDat+ open in the browser, links within it stay in the window, and downloads
 //! land in the Downloads folder.
+//!
+//! The page reaches the app in exactly two ways, both by "navigating" to an address the window
+//! recognises and cancels: the cog (the Control Center) and the backup the Export / Import page
+//! asks for before it imports. Neither takes anything from the page.
 
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::{Mutex, PoisonError};
@@ -17,12 +21,20 @@ use tauri::webview::NewWindowResponse;
 use tauri::{AppHandle, Manager, Url, WebviewWindowBuilder};
 
 use super::{MAIN, bring_forward, download, main_window, open_external};
+use crate::runtime::RuntimeManager;
+use crate::runtime::backup::BackupKind;
+use crate::runtime::model::ProgressEvent;
+use crate::settings::{Mode, SettingsStore};
 
 const SHIMS: &str = include_str!("scripts/shims.js");
 
 /// A navigation to this address is how the cog in the ArboDat+ page asks for the Control Center:
 /// the page has no other way to reach the app, and needs none.
 pub const CONTROL_CENTER_URL: &str = "arbodat-desktop://control-center";
+
+/// A navigation to this address is how the Export / Import page asks for a backup before it
+/// imports. The answer goes back to the page as `window.__arbodatBackupDone(status, message)`.
+pub const BACKUP_BEFORE_IMPORT_URL: &str = "arbodat-desktop://backup-before-import";
 
 const TITLE: &str = "ArboDat+";
 
@@ -85,6 +97,8 @@ pub enum Navigation {
     OpenExternally,
     /// The cog in the ArboDat+ page: show the Control Center.
     ControlCenter,
+    /// The Export / Import page: make a backup before importing.
+    BackupBeforeImport,
     /// Nothing a web page should be able to trigger.
     Block,
 }
@@ -115,7 +129,7 @@ pub fn window_title(url: &Url, home: Option<&Url>, app: &Url) -> String {
         "migration.html" => "Data Migration",
         "explorer.html" => "Data Explorer",
         "report.html" => "Report",
-        "export.html" => "Data Export",
+        "export-import.html" => "Export / Import",
         "settings.html" => "Settings",
         "license.html" => "License",
         "contact.html" => "Contact",
@@ -129,6 +143,7 @@ pub fn classify(url: &Url, home: Option<&Url>, app: &Url) -> Navigation {
         // Created by the page itself (downloads, generated documents).
         "blob" | "data" | "about" => Navigation::Stay,
         _ if url.as_str() == CONTROL_CENTER_URL => Navigation::ControlCenter,
+        _ if url.as_str() == BACKUP_BEFORE_IMPORT_URL => Navigation::BackupBeforeImport,
         "tauri" | "http" | "https" if same_site(url, app) => Navigation::Stay,
         "http" | "https" if home.is_some_and(|home| same_site(url, home)) => Navigation::Stay,
         "http" | "https" | "mailto" => Navigation::OpenExternally,
@@ -198,6 +213,10 @@ pub fn create_main(app: &AppHandle) -> tauri::Result<()> {
                     show_control_center_later(&nav_app);
                     false
                 }
+                Navigation::BackupBeforeImport => {
+                    backup_before_import(&nav_app);
+                    false
+                }
                 Navigation::Block => {
                     log::warn!("blocked navigation to a {}: URL", url.scheme());
                     false
@@ -218,7 +237,8 @@ pub fn create_main(app: &AppHandle) -> tauri::Result<()> {
                 }
                 Navigation::OpenExternally => open_external(&win_app, &url),
                 Navigation::ControlCenter => show_control_center_later(&win_app),
-                Navigation::Block => {
+                // Only ever asked for by navigating; a new window for it is a mistake.
+                Navigation::BackupBeforeImport | Navigation::Block => {
                     log::warn!("blocked a new window for a {}: URL", url.scheme())
                 }
             }
@@ -326,6 +346,61 @@ fn show_control_center_later(app: &AppHandle) {
     });
 }
 
+/// Makes the backup the Export / Import page asks for right before it imports, and tells the
+/// page how it went: "done", "unavailable" (ArboDat+ runs on a server, which whoever runs it backs
+/// up) or "failed", with a message. Another operation running (an update, another backup) is a
+/// failure: the page doesn't import then.
+fn backup_before_import(app: &AppHandle) {
+    let app = app.clone();
+    tauri::async_runtime::spawn(async move {
+        let store = app.state::<SettingsStore>();
+        let (status, message) = if store.get().mode != Mode::Local {
+            (
+                "unavailable",
+                "ArboDat+ runs on a server, which the app doesn't back up.".to_string(),
+            )
+        } else {
+            let runtime = app.state::<RuntimeManager>();
+            let quiet = |event: ProgressEvent| {
+                if let ProgressEvent::Log { text } = event {
+                    log::debug!("backup before import: {text}");
+                }
+            };
+            match runtime
+                .backup(
+                    BackupKind::BeforeImport,
+                    None,
+                    &store.backup_folder(),
+                    &quiet,
+                )
+                .await
+            {
+                Ok(info) => {
+                    log::info!("backup before import saved: {}", info.file_name);
+                    ("done", info.file_name)
+                }
+                Err(e) => {
+                    log::warn!("backup before import failed: {}", e.message);
+                    ("failed", e.message)
+                }
+            }
+        };
+        let script = format!(
+            "window.__arbodatBackupDone && window.__arbodatBackupDone({}, {});",
+            serde_json::to_string(status).expect("a string is serialisable"),
+            serde_json::to_string(&message).expect("a string is serialisable"),
+        );
+        let on_main = app.clone();
+        let _ = app.run_on_main_thread(move || {
+            if shows_arbodat(&on_main)
+                && let Some(window) = main_window(&on_main)
+            {
+                let _ = window.eval(script);
+            }
+        });
+    });
+}
+
 /// The menu and the Dock ask for the Control Center: through the page if it is ArboDat+, so its
 /// warning about unsaved input can come first.
 pub fn request_control_center(app: &AppHandle) {
@@ -427,6 +502,27 @@ mod tests {
     }
 
     #[test]
+    fn the_backup_before_an_import_is_recognised_only_by_its_exact_address() {
+        assert_eq!(
+            classify_str(BACKUP_BEFORE_IMPORT_URL),
+            Navigation::BackupBeforeImport
+        );
+        for url in [
+            "arbodat-desktop://backup-before-import/x",
+            "arbodat-desktop://backup-before-import?folder=/tmp",
+            "arbodat-desktop://backup",
+        ] {
+            assert_eq!(classify_str(url), Navigation::Block, "{url}");
+        }
+    }
+
+    #[test]
+    fn the_page_script_uses_the_addresses_the_window_recognises() {
+        assert!(SHIMS.contains(&format!("'{CONTROL_CENTER_URL}'")));
+        assert!(SHIMS.contains(&format!("'{BACKUP_BEFORE_IMPORT_URL}'")));
+    }
+
+    #[test]
     fn everything_else_on_the_web_goes_to_the_system() {
         for url in [
             "https://www.gbv.de/",
@@ -501,7 +597,7 @@ mod tests {
             ("migration.html", "Data Migration"),
             ("explorer.html", "Data Explorer"),
             ("report.html", "Report"),
-            ("export.html", "Data Export"),
+            ("export-import.html", "Export / Import"),
             ("settings.html", "Settings"),
             ("license.html", "License"),
             ("contact.html", "Contact"),

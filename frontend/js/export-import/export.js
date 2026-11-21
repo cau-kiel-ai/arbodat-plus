@@ -311,7 +311,7 @@ function determineExportFilter() {
 }
 
 /*
-Removes diacritics and anything that isn't alphanumeric, mirrors the backend sanitizing.
+Removes diacritics and anything that isn't alphanumeric.
 */
 function sanitizeNamePart(raw) {
     const MAX_NAME_PART_LENGTH = 40;
@@ -370,7 +370,7 @@ function buildExportFileName(level, names) {
 
 /*
 Light sanitizing for a manually typed file name
-(only strips filesystem-unsafe characters)
+(only strips filesystem-unsafe characters; ExportController.sanitizeFileName does the same)
 */
 function sanitizeCustomFileName(raw) {
     return raw.replace(/[\\/:*?"<>|]+/g, '-').trim();

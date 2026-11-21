@@ -32,6 +32,14 @@ repositories {
 	mavenCentral()
 }
 
+// 1.21+ negotiates the Docker API version (Docker 29 refuses the 1.32 that older releases send).
+ext['testcontainers.version'] = '1.21.3'
+
+// Writes META-INF/build-info.properties, so the export can name the app version (BuildProperties).
+springBoot {
+	buildInfo()
+}
+
 dependencies {
 	implementation 'org.springframework.boot:spring-boot-starter-data-jpa'
 	implementation 'org.springframework.boot:spring-boot-starter-web'
@@ -40,9 +48,15 @@ dependencies {
 	runtimeOnly 'org.postgresql:postgresql'
 	annotationProcessor 'org.projectlombok:lombok'
 	testImplementation 'org.springframework.boot:spring-boot-starter-test'
+	testImplementation 'org.springframework.boot:spring-boot-testcontainers'
+	testImplementation 'org.testcontainers:junit-jupiter'
+	testImplementation 'org.testcontainers:postgresql'
 	testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
 }
 
-// tasks.named('test') {
-// 	useJUnitPlatform()
-// }
+// The tests run against a real Postgres 16 in Docker (Testcontainers), so Docker must be running.
+tasks.named('test') {
+	useJUnitPlatform()
+	// Like the container (eclipse-temurin defaults to UTC): timestamps without time zone are read as UTC.
+	systemProperty 'user.timezone', 'UTC'
+}

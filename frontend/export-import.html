@@ -4,7 +4,7 @@
         <meta charset="UTF-8">
         <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
-        <title>ArboDat+ | Data Export</title>
+        <title>ArboDat+ | Export / Import</title>
 
         <link href="img/favicon.png" rel="icon">
         <link href="css/input.min.css" rel="stylesheet">
@@ -85,6 +85,13 @@
                         <div class="accordion-body">
 
                             <fieldset>
+
+                                <p class="text-body-secondary">
+                                    Exports the existing data as a JSON file. Without a filter selection all data is exported;
+                                    otherwise only the selected research projects, sites, features or samples (the most detailed
+                                    filter selection counts). The file can be imported into another ArboDat+.
+                                </p>
+
                                 <legend>Filter</legend>
 
                                 <!-- research projects -->
@@ -167,6 +174,68 @@
                         </div>
                     </div>
                 </div>
+
+                <!-- Data Import -->
+                <div class="accordion-item">
+
+                    <h2 class="accordion-header">
+                        <button
+                            class="accordion-button"
+                            type="button"
+                            data-bs-toggle="collapse"
+                            data-bs-target="#panelsStayOpen-collapseTwo"
+                            aria-expanded="true"
+                            aria-controls="panelsStayOpen-collapseTwo"
+                        >
+                            DATA IMPORT
+                        </button>
+                    </h2>
+
+                    <div id="panelsStayOpen-collapseTwo" class="accordion-collapse show">
+                        <div class="accordion-body">
+
+                            <fieldset>
+
+                                <p class="text-body-secondary">
+                                    Inserts an ArboDat+ export into the existing data. Existing data records are identified
+                                    (by their id, else by their label within the same parent element) and completed;
+                                    nothing is deleted, and nothing is overwritten unless it is selected in the preview.
+                                </p>
+
+                                <!-- import file -->
+                                <div class="row">
+                                    <div class="col-25">
+                                        <label for="importFileInput">file:</label>
+                                    </div>
+                                    <div class="col-75" style=" padding-top: 10px;">
+                                        <input type="file" id="importFileInput" accept=".json,.gz,application/json,application/gzip">
+                                    </div>
+                                </div>
+
+                                <!-- preview button -->
+                                <div style="display: flex; justify-content: center; margin-top: 20px;">
+                                    <button
+                                        type="button"
+                                        id="importPreviewButton"
+                                        onclick="previewImport()"
+                                        disabled
+                                        style="
+                                            padding-left: 10px; padding-right: 10px; padding-top: 2px; padding-bottom: 2px;
+                                            border: 2px solid; border-radius: 4px;
+                                        "
+                                    >
+                                        Preview
+                                    </button>
+                                </div>
+
+                            </fieldset>
+
+                            <!-- filled by import.js -->
+                            <div id="importPreview" hidden></div>
+                            <div id="importResult" hidden></div>
+                        </div>
+                    </div>
+                </div>
             </div>
         </div>
 
@@ -174,7 +243,9 @@
         <!--------------------------- Scripts ---------------------------->
         <script src="js/escapeHtml.js"></script>
         <script src="js/toast.js"></script>
-        <script src="js/export/export.js"></script>
+        <script src="js/confirm.js"></script>
+        <script src="js/export-import/export.js"></script>
+        <script src="js/export-import/import.js"></script>
         <script src="js/stickyAccordion.js"></script>
         <!---------------------------------------------------------------->
 

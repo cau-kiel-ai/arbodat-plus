@@ -132,7 +132,7 @@ CI (`.github/workflows/ci.yml`) runs on every pull request and every push to `de
 
 | Changed | Run | CI also checks |
 |---|---|---|
-| `web-api/` | `cd web-api && ./gradlew bootJar` | — |
+| `web-api/` | `cd web-api && ./gradlew bootJar test` (the tests need Docker) | `bootJar` only |
 | `frontend/` libraries (`package.json`) | `cd frontend && npm ci && npm run vendor`, commit `vendor/` | `vendor/` is current, `npm audit` |
 | `desktop/` | `cd desktop && pnpm check`, then in `desktop/src-tauri`: `cargo fmt --check`, `cargo clippy --locked --all-targets -- -D warnings`, `cargo test --locked` | the same on Linux, macOS and Windows; the generated TypeScript types in `src/lib/bindings/` are committed (`cargo test` regenerates them) |
 | anything in the stack | `docker compose --profile prod up -d --build --wait`, open http://localhost:8480, then `docker compose --profile prod down` | the same stack with real requests (`smoke`) |

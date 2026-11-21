@@ -24,4 +24,4 @@ WORKDIR /app
 COPY --from=build --chown=1000:1000 /app/build/libs/web-api.jar web-api.jar
 
 EXPOSE 8080
-ENTRYPOINT ["java", "-jar", "/app/web-api.jar"]
+ENTRYPOINT ["java", "-Duser.timezone=UTC", "-jar", "/app/web-api.jar"]
