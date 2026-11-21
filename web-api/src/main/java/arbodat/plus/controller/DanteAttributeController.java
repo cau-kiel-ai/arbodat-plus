@@ -119,7 +119,7 @@ public class DanteAttributeController {
     public List<StateOfPreservation> getAllStateOfPreservation() { return stateOfPreservationRepository.findAll(); }
 
     @PostMapping
-    public void updateDanteAttribute(@RequestBody Map<String, Object> danteAttributes) {
+    public synchronized void updateDanteAttribute(@RequestBody Map<String, Object> danteAttributes) {
 
         danteAttributes.forEach((attribute, values) -> {
             if (values instanceof List<?> list) {
