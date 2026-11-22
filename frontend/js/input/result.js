@@ -190,6 +190,7 @@ $('#result_sample_dropdown')
 // Existing results of the selected sample ------------------------------------------
 // (table code is shared with the explorer: js/explorer/result-table.js)
 const existingResults_hint    = document.getElementById("existingResults-hint");
+const existingResults_sample  = document.getElementById("existingResults-sample");
 const existingResults_buttons = document.getElementById("existingResults-buttons");
 const existingResults_delete  = document.getElementById("existingResults-delete");
 const existingResults_spinner = document.getElementById("existingResults-spinner");
@@ -202,9 +203,29 @@ function clearExistingResults() {
         existingResultsTable = null;
     }
     existingResults_table.style.display = 'none';
+    existingResults_sample.style.display = 'none';
     existingResults_buttons.style.display = 'none';
     existingResults_spinner.style.display = 'none';
     existingResults_hint.style.display = '';
+}
+
+// site, feature and sample of the table, values start at the same horizontal point
+function showExistingResultsSample(sampleId) {
+    const sample = samples.find(s => String(s.id) === sampleId);
+    existingResults_sample.innerHTML = "";
+    [
+        ["site",    sample?.feature?.site?.label],
+        ["feature", sample?.feature?.label],
+        ["sample",  sample?.label],
+    ].forEach(([name, value]) => {
+        const line = document.createElement("div");
+        const nameSpan = document.createElement("span");
+        nameSpan.className = "existingResults-sample-name";
+        nameSpan.textContent = name + ":";
+        line.append(nameSpan, value ?? "");
+        existingResults_sample.appendChild(line);
+    });
+    existingResults_sample.style.display = '';
 }
 
 let existingResults_requestId = 0;
@@ -231,7 +252,7 @@ async function refreshExistingResults() {
     existingResultsTable = await createResultTable({
         selector: "#existingResults-table",
         results,
-        hiddenFields: ["id", "sample.id", "sample.feature.id", "sample.feature.site.id"],
+        hiddenFields: ["id", "sample.id", "sample.feature.id", "sample.feature.site.id", "absoluteDatingList"],
         height: "400px",
     });
     if (requestId !== existingResults_requestId) {
@@ -242,6 +263,7 @@ async function refreshExistingResults() {
     attachResultDeleteHandler(existingResultsTable, existingResults_delete);
 
     existingResults_spinner.style.display = 'none';
+    showExistingResultsSample(sampleId);
     existingResults_buttons.style.display = 'flex';
 }
 

@@ -434,3 +434,17 @@ button:hover{
 @import 'stickyAccordion';
 @import 'footer';
 @import 'navbar';
+
+
+/* ------------ result specific --------------- */
+
+// site, feature and sample above the existing results table (like #fractionModalSample in explorer.scss)
+#existingResults-sample {
+    padding: 4px;
+    margin-bottom: 10px;
+
+    .existingResults-sample-name {
+        display: inline-block;
+        width: 70px; // values of site, feature and sample start at the same point
+    }
+}
