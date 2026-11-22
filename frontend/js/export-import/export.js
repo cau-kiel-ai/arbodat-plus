@@ -27,22 +27,26 @@ let siteLabels           = {};
 let featureLabels        = {};
 let sampleLabels         = {};
 
+/*
+Disables a multi-select while its items load, with "Loading ..." in the empty field
+(select2 shows the placeholder in its search field, see js/input/multi-select.js)
+*/
+function setMultiSelectLoading(selector, loading) {
+    const $select = $(selector).prop('disabled', loading);
+    const selection = $select.data('select2').selection;
+    selection.$search.attr('placeholder', loading ? 'Loading ...' : '');
+    selection.resizeSearch();
+}
+
 // Select2 research project multi-select boxes ----------------------------------
-$('#researchProjectDropdown')
-    .select2({placeholder: 'Loading ...'})
-    .prop('disabled', true);
+initMultiSelect('#researchProjectDropdown');
+setMultiSelectLoading('#researchProjectDropdown', true);
 
 $(document).ready(async function () {
     try {
         // Get research projects
         const response = await axios.get('api/research_projects');
         const researchProjects = sortResearchProjects(response.data);
-
-        // Reset multi-select
-        $('#researchProjectDropdown')
-            .select2('destroy')
-            .select2({placeholder: ''})
-            .prop('disabled', true);
 
         researchProjects.forEach(item => {
             const option = document.createElement('option');
@@ -60,14 +64,13 @@ $(document).ready(async function () {
 
     } finally {
         // Enable multi-select
-        $('#researchProjectDropdown').prop('disabled', false);
+        setMultiSelectLoading('#researchProjectDropdown', false);
     }
 });
 
 // Select2 site multi-select boxes ----------------------------------------------
-$('#siteDropdown')
-    .select2({placeholder: ''})
-    .prop('disabled', true);
+initMultiSelect('#siteDropdown');
+$('#siteDropdown').prop('disabled', true);
 
 $('#researchProjectDropdown').on('change', async function () {
     const selectedResearchProjectIds = $('#researchProjectDropdown').val() || [];
@@ -85,23 +88,15 @@ $('#researchProjectDropdown').on('change', async function () {
 
     // Disable multi-select and show "Loading ..."
     $('#siteDropdown')
-        .select2('destroy')
-        .select2({placeholder: 'Loading ...'})
-        .prop('disabled', true)
         .empty()
         .trigger('change');
+    setMultiSelectLoading('#siteDropdown', true);
 
     try {
         // Get sites
         const response = await axios.get('api/sites');
         if (request !== latestRequest.site) return; // a newer selection has taken over
 
-        // Reset multi-select
-        $('#siteDropdown')
-            .select2('destroy')
-            .select2({placeholder: ''})
-            .prop('disabled', true);
-        
         // Filter sites that match the selected research projects
         const filteredItems = sortSites(response.data).filter(item =>
             item.researchProjectList.some(rp =>
@@ -135,14 +130,13 @@ $('#researchProjectDropdown').on('change', async function () {
 
     } finally {
         // Enable multi-select (the newer request enables it itself)
-        if (request === latestRequest.site) $('#siteDropdown').prop('disabled', false)
+        if (request === latestRequest.site) setMultiSelectLoading('#siteDropdown', false);
     }
 });
 
 // Select2 feature multi-select boxes -------------------------------------------
-$('#featureDropdown')
-    .select2({placeholder: ''})
-    .prop('disabled', true);
+initMultiSelect('#featureDropdown');
+$('#featureDropdown').prop('disabled', true);
 
 $('#siteDropdown').on('change', async function () {
     const selectedSiteIds = $('#siteDropdown').val() || [];
@@ -160,23 +154,15 @@ $('#siteDropdown').on('change', async function () {
 
     // Disable multi-select and show "Loading ..."
     $('#featureDropdown')
-        .select2('destroy')
-        .select2({placeholder: 'Loading ...'})
-        .prop('disabled', true)
         .empty()
         .trigger('change');
+    setMultiSelectLoading('#featureDropdown', true);
 
     try {
         // Get features
         const response = await axios.get('api/features');
         if (request !== latestRequest.feature) return;
 
-        // Reset multi-select
-        $('#featureDropdown')
-            .select2('destroy')
-            .select2({placeholder: ''})
-            .prop('disabled', true);
-        
         // Filter features that match the selected sites
         const filteredItems = sortFeatures(response.data).filter(item =>
             selectedSiteIds.includes(item.site?.id)
@@ -186,7 +172,7 @@ $('#siteDropdown').on('change', async function () {
             const option = document.createElement('option');
             
             option.value = item.id;
-            option.textContent = item.label;
+            option.textContent = `${item.label} (site: ${item.site?.label ?? ''})`;
 
             featureLabels[item.id] = item.label;
 
@@ -197,14 +183,13 @@ $('#siteDropdown').on('change', async function () {
         console.error('Error during features GET request: ', error);
 
     } finally {
-        if (request === latestRequest.feature) $('#featureDropdown').prop('disabled', false)
+        if (request === latestRequest.feature) setMultiSelectLoading('#featureDropdown', false);
     }
 });
 
 // Select2 sample multi-select boxes --------------------------------------------
-$('#sampleDropdown')
-    .select2({placeholder: ''})
-    .prop('disabled', true);
+initMultiSelect('#sampleDropdown');
+$('#sampleDropdown').prop('disabled', true);
 
 $('#featureDropdown').on('change', async function () {
     const selectedFeatureIds = $('#featureDropdown').val() || [];
@@ -222,23 +207,15 @@ $('#featureDropdown').on('change', async function () {
 
     // Disable multi-select and show "Loading ..."
     $('#sampleDropdown')
-        .select2('destroy')
-        .select2({placeholder: 'Loading ...'})
-        .prop('disabled', true)
         .empty()
         .trigger('change');
+    setMultiSelectLoading('#sampleDropdown', true);
 
     try {
         // Get samples
         const response = await axios.get('api/samples');
         if (request !== latestRequest.sample) return;
 
-        // Reset multi-select
-        $('#sampleDropdown')
-            .select2('destroy')
-            .select2({placeholder: ''})
-            .prop('disabled', true)
-        
         // Filter samples that match the selected features
         const filteredItems = sortSamples(response.data).filter(item =>
             selectedFeatureIds.includes(item.feature?.id)
@@ -248,7 +225,7 @@ $('#featureDropdown').on('change', async function () {
             const option = document.createElement('option');
             
             option.value = item.id;
-            option.textContent = item.label;
+            option.textContent = `${item.label} (feature: ${item.feature?.label ?? ''})`;
 
             sampleLabels[item.id] = item.label;
 
@@ -259,7 +236,7 @@ $('#featureDropdown').on('change', async function () {
         console.error('Error during samples GET request: ', error);
 
     } finally {
-        if (request === latestRequest.sample) $('#sampleDropdown').prop('disabled', false)
+        if (request === latestRequest.sample) setMultiSelectLoading('#sampleDropdown', false);
     }
 });
 
