@@ -16,6 +16,23 @@ function initLazyMultiSelect(selector, { load, format, dropdownParent }) {
         closeOnSelect: false,
         width: "100%",
         ...(dropdownParent?.length && { dropdownParent }),
+        // Hide selected items in the list: they can only be removed by the × on their chip
+        matcher: (params, data) =>
+            data.element?.selected ? null : $.fn.select2.defaults.defaults.matcher(params, data),
+    });
+
+    // After a pick: reset the typed search text and refresh the list
+    $select.on('select2:select', function () {
+        $select
+            .next('.select2-container')
+            .find('.select2-search__field')
+            .val('')
+            .trigger('input');
+
+        // An already empty search does not requery: force it, so the picked item leaves the list
+        setTimeout(() => {
+            $select.data('select2')?.trigger('query', { term: '' });
+        }, 0);
     });
 
     let isReopening = false;
