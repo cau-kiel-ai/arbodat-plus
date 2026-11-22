@@ -579,37 +579,12 @@
 
                               <div class="row">
                                 <div class="col-25">
-                                  <label for="activityNumbers" data-tooltip="Optional numbers, for internal use. Press Enter to add several.">activity numbers:</label>
+                                  <label for="activityNumbers" data-tooltip="Optional numbers, for internal use. Pick existing numbers from the list or type new ones (Enter or ';').">activity numbers:</label>
                                 </div>
                                 <div class="col-75">
+                                  <!-- Select2 pills: existing numbers from the list or new ones typed in, see js/input/site.js -->
                                   <select id="activityNumbers" multiple style="width: 100%"></select>
-                                  <!-- Select2 free-text tags (pillbox) without dropdown -->
-                                  <style>
-                                    .select2-dropdown.activity-numbers-dropdown { display: none; }
-                                  </style>
                                   <script>
-                                    $(document).ready(function() {
-                                        $('#activityNumbers').select2({
-                                          tags: true,
-                                          tokenSeparators: [';'],
-                                          placeholder: '',
-                                          allowClear: true,
-                                          selectOnClose: true,
-                                          dropdownCssClass: 'activity-numbers-dropdown',
-                                          createTag: function(params) {
-                                            const term = (params.term || '').trim();
-                                            if (term === '') return null;
-                                            const alreadySelected = ($('#activityNumbers').val() || []).includes(term);
-                                            if (alreadySelected) return null;
-                                            return { id: term, text: term };
-                                          }
-                                        });
-                                        // Drop the <option> of a removed chip, otherwise selectOnClose re-selects it
-                                        $('#activityNumbers').on('select2:unselect', function(e) {
-                                          $(e.params.data.element).remove();
-                                        });
-                                    });
-
                                     // When a click outside closes the open select2 dropdown, select2 focuses its own field.
                                     // That scrolls the page, so the mouseup misses the clicked button (e.g. "update") and no
                                     // click is fired. Keep the scroll position of the mousedown.
@@ -686,13 +661,7 @@
                                   <!-- Select2 Multi-select boxes (pillbox) -->
                                   <script>
                                     $(document).ready(function() {
-                                        $('#site_type').select2({
-                                          placeholder: '',
-                                          allowClear: true,
-                                          templateSelection: function(item) {
-                                            return (item.text || '').trim();
-                                          }
-                                        });
+                                        initMultiSelect('#site_type');
                                     });
                                   </script>
                                 </div>
@@ -1168,10 +1137,10 @@
                   <!-- excavation years -->
                   <div class="row">
                     <div class="col-25">
-                      <label for="excavation_years">year(s) of excavation: </label>
+                      <label for="excavation_years" data-tooltip="Pick existing years from the list or type new ones (Enter or ';').">years of excavation:</label>
                     </div>
                     <div class="col-75">
-                      <select type="int" id="excavation_years" multiple size='6' style="width: 84px;"></select>
+                      <select type="int" id="excavation_years" multiple style="width: 100%"></select>
                     </div>
                   </div>
 
@@ -2498,13 +2467,7 @@
                       <!-- Select2 Multi-select boxes (pillbox) -->
                       <script>
                         $(document).ready(function() {
-                            $('#result_datings').select2({
-                              placeholder: '',
-                              allowClear: true,
-                              templateSelection: function(item) {
-                                return (item.text || '').trim();
-                              }
-                            });
+                            initMultiSelect('#result_datings');
                         });
                       </script>
                     </div>

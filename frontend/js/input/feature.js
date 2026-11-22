@@ -72,21 +72,16 @@ $('#featureSite').on('select2:opening', async function (e) {
     }
 });
 
-// Excavation years -------------------------------------------------------------
-const excavationYears_selectpicker = document.getElementById("excavation_years");
-
-document.addEventListener("DOMContentLoaded", () => {
-    const currentYear = new Date().getFullYear();
-    const endYear = currentYear + 3;
-
-    for (let year = endYear; year >= 1800; year--) {
-        const option = document.createElement("option");
-
-        option.value = year;
-        option.textContent = year;
-
-        excavationYears_selectpicker.appendChild(option);
-    }
+// Excavation years: existing years of all features, or new ones typed in -------
+initLazyMultiSelect('#excavation_years', {
+    load:   async () => {
+        await getFeatures();
+        const years = new Set(features.flatMap(feature => feature.excavationYears ?? []));
+        return [...years].sort((a, b) => b - a).map(year => ({ id: year }));
+    },
+    format: item => String(item.id),
+    tags:   true,
+    isTag:  term => /^\d{4}$/.test(term),
 });
 
 // Populate DANTE dropdowns -----------------------------------------------------
@@ -116,7 +111,7 @@ function create_update_feature() {
         const feature_label = document.getElementById("feature_label").value;
         const exc_area = document.getElementById("excavation_area").value;
         const cond_satisfactory = document.getElementById("feature_condition").checked;
-        const selectedYears = Array.from(excavationYears_selectpicker.selectedOptions).map(opt => parseInt(opt.value));
+        const selectedYears = ($('#excavation_years').val() || []).map(year => parseInt(year, 10));
         const building_context = document.getElementById("building_context").checked;
         const building_context_description = document.getElementById("building_context_description").value;
         const remarks = document.getElementById("remarks_feature").value;        
@@ -191,6 +186,7 @@ function resetFeatureForm() {
     toggleBuildingContextDescription();
     $('#preservation_condition').val(null).trigger('change');
     $('#feature_type').val(null).trigger('change');
+    $('#excavation_years').empty().val(null).trigger('change');
     applyDefaults("feature");
 }
 

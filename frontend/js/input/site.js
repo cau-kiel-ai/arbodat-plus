@@ -17,6 +17,19 @@ initLazyMultiSelect('#siteLiterature', {
     format: formatLiterature,
 });
 
+// Select2 activity numbers: existing numbers of all sites, or new ones typed in ---
+initLazyMultiSelect('#activityNumbers', {
+    load:   async () => {
+        await getSites();
+        const numbers = new Set(sites.flatMap(site => site.activityNumbers ?? []));
+        return [...numbers]
+            .sort((a, b) => a.localeCompare(b, undefined, { numeric: true }))
+            .map(number => ({ id: number }));
+    },
+    format: item => item.id,
+    tags:   true,
+});
+
 // Populate DANTE dropdowns -------------------------------------------------------
 const taxonomyDropdown = document.getElementById("taxonomy");
 const siteTypeDropdown = document.getElementById("site_type");
