@@ -66,10 +66,7 @@ function updateCheckedDropdownsMultiple(values, tableBodyId, selectIdPrefix) {
                     Array.from(dropdown.options).forEach(option => {
                         option.selected = values.includes(option.value);
                     });
-                    if ([
-                        "userDropdown_",
-                        "danteDropdown_",
-                    ].includes(selectIdPrefix)) {
+                    if (selectIdPrefix === "danteDropdown_") {
                         $(dropdown).trigger('change.select2');
                     }
                 }
@@ -362,7 +359,7 @@ function addC14LabCodesToJSON(row) {
     }, rows, skippedReasons, rows => deleteTableRows(c14LabTable, rows.map(row => row.getData().id)));
 }
 
-// Common parts of the migration Tabulators (results, fractions analyzed, labs and numbers) ----------
+// Common parts of the migration Tabulators (team, results, fractions analyzed, labs and numbers) ----
 
 // Checkbox column; the checkbox in the header (de)selects only the filtered rows
 function selectionColumn() {
@@ -374,6 +371,13 @@ function selectionColumn() {
 function filterTextColumn(title, field) {
     return {title, field, headerSort: false, minWidth: 90, formatter: "plaintext",
             headerFilter: "input", headerFilterPlaceholder: "filter"};
+}
+
+// Column with a dropdown filter in the header (the distinct values of the column)
+function filterListColumn(title, field) {
+    return {title, field, headerSort: false, formatter: "plaintext",
+            headerFilter: "list", headerFilterParams: { valuesLookup: true, clearable: true, sort: "asc" },
+            headerFilterFunc: "=", headerFilterPlaceholder: "filter"};
 }
 
 // - counter: element for "x rows" / "x of y rows"
@@ -410,7 +414,7 @@ function setupMigrationTable(table, { counter, copyFields = {} }) {
 // Tabulator can't measure itself in a collapsed accordion: redraw the migration tables once they are visible.
 // Tables which are still being built measure themselves (the accordions are open then).
 function redrawMigrationTables() {
-    const tables = [fractionTable, c14LabTable, labTable, ...[...resultTables.values()].map(site => site.table)];
+    const tables = [userTable, fractionTable, c14LabTable, labTable, ...[...resultTables.values()].map(site => site.table)];
     tables.forEach(table => {
         if (table?.initialized) table.redraw(true);
     });

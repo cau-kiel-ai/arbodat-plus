@@ -82,7 +82,7 @@ async function migrateSites(researchProjectList) {
         populateNonMatchingDanteAttributes(nonMatchingDanteAttributeList);
         populateLiterature(literatureList);
         populateCoordinates(coordinateList);
-        populateUsers(userList);
+        await populateUsers(userList);
         populateFractionsAnalyzed(fractionAnalyzedList);
         await populateLabsAndNumbers(labAndNumberList);
         await populateResults(resultList);

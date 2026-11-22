@@ -121,14 +121,6 @@ function createResultTable(element, counter, rows, site) {
         formatter: danteFormatter(needsField, value => danteListOptions.get(attribute).labels.get(value)),
     });
 
-    const filterColumn = (title, field) => ({
-        title, field, headerSort: false,
-        headerFilter: "list",
-        headerFilterParams: { valuesLookup: true, clearable: true, sort: "asc" },
-        headerFilterFunc: "=",
-        headerFilterPlaceholder: "filter",
-        formatter: "plaintext",
-    });
 
     const table = newTabulator(element, {
         data: rows,
@@ -141,7 +133,7 @@ function createResultTable(element, counter, rows, site) {
             {title: "Feature", field: "featureLabel", headerSort: false, formatter: "plaintext"},
             {title: "Sample",  field: "sampleLabel",  headerSort: false, formatter: "plaintext"},
 
-            filterColumn("taxCode", "taxCode"),
+            filterListColumn("taxCode", "taxCode"),
             {title: "dante taxCode", field: "danteTaxCode", headerSort: false, minWidth: 160,
                 editable: cell => cell.getRow().getData().needsTaxCode && !!site.taxonomyUri,
                 editor: "list",
@@ -160,10 +152,10 @@ function createResultTable(element, counter, rows, site) {
 
             {title: "cf", field: "cf", headerSort: false, formatter: "plaintext"},
 
-            filterColumn("restType", "restType"),
+            filterListColumn("restType", "restType"),
             danteColumn("dante restType", "danteRestType", "needsRestType", "restType"),
 
-            filterColumn("stateOfPreservation", "stateOfPreservation"),
+            filterListColumn("stateOfPreservation", "stateOfPreservation"),
             danteColumn("dante stateOfPreservation", "danteStateOfPreservation", "needsStateOfPreservation", "stateOfPreservation"),
 
             {title: "Create", headerSort: false, hozAlign: "center", width: 80, // as wide as the button
