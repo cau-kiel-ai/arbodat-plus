@@ -16,7 +16,7 @@ async function buildSiteTable() {
     let sites = [];
     try {
         const response = await axios.get("api/sites");
-        sites = response.data;
+        sites = sortSites(response.data);
     } catch (error) {
         console.error("Error loading sites:", error);
     }
@@ -25,7 +25,7 @@ async function buildSiteTable() {
     let researchProjects = [];
     try {
         const response = await axios.get("api/research_projects");
-        researchProjects = response.data;
+        researchProjects = sortResearchProjects(response.data);
     } catch (error) {
         console.error("Error loading research projects:", error)
     }
@@ -49,7 +49,7 @@ async function buildSiteTable() {
     let literature = [];
     try {
         const response = await axios.get("api/literature");
-        literature = response.data;
+        literature = sortLiterature(response.data);
     } catch (error) {
         console.error("Error loading literature:", error)
     }
@@ -97,7 +97,7 @@ async function buildSiteTable() {
     let institutions = [];
     try {
         const response = await axios.get("api/institutions");
-        institutions = response.data;
+        institutions = sortInstitutions(response.data);
     } catch (error) {
         console.error("Error loading institutions:", error)
     }
@@ -106,7 +106,7 @@ async function buildSiteTable() {
     let users = [];
     try {
         const response = await axios.get("api/users");
-        users = response.data;
+        users = sortPeople(response.data);
     } catch (error) {
         console.error("Error loading users:", error)
     }
@@ -137,7 +137,7 @@ async function buildSiteTable() {
                 rowRange:"active" //only toggle the values of the active filtered rows
             }, hozAlign:"center", headerSort:false},
             {title:"id", field:"id", headerFilter:true, headerSort:false},
-            {title:"*label", titleDownload:"label", field:"label", validator: ["required"], editor:"input", headerFilter:true, headerSortTristate:true},
+            {title:"*label", titleDownload:"label", field:"label", validator: ["required"], editor:"input", headerFilter:true, headerSortTristate:true, sorter: compareLabels},
             {title:"label abbreviation", titleDownload:"labelAbbreviation", field:"labelAbbreviation", editor:"input", headerFilter:true, headerSortTristate:true},
             {title:"activity numbers", titleDownload:"activityNumbers", field:"activityNumbers", headerSortTristate:true,
                 mutator: value => Array.isArray(value) ? value : [],
@@ -186,7 +186,7 @@ async function buildSiteTable() {
                     if (!headerValue || headerValue.length === 0) return true;
                     return headerValue.every(val => (rowValue || []).includes(val));
                 },
-                sorter: (a, b) => (a || []).join("; ").localeCompare((b || []).join("; ")),
+                sorter: (a, b) => compareLabels((a || []).join("; "), (b || []).join("; ")),
             },
             {title:"site number", titleDownload:"siteNumber", field:"siteNumber", editor:"input", headerFilter:true, headerSortTristate:true},
             {title:"research project list (multiple selection)", titleDownload:"researchProjectList", field: "researchProjectList", headerSortTristate:true,
@@ -213,9 +213,7 @@ async function buildSiteTable() {
                 headerFilterFunc: function(headerValue, rowValue){
                     return headerValue.every(val => rowValue.includes(val));
                 },
-                sorter:"array", sorterParams:{
-                    valueMap:"label"
-                },
+                sorter: formattedSorter(value => formatResearchProjects(value)),
                 formatter: textFormatter(cell => formatResearchProjects(cell.getValue())),
                 accessorDownload: value => formatResearchProjects(value),
             },
@@ -245,9 +243,7 @@ async function buildSiteTable() {
                 headerFilterFunc: function(headerValue, rowValue){
                     return headerValue.every(val => rowValue.includes(val));
                 },
-                sorter:"array", sorterParams:{
-                    valueMap:"label"
-                },
+                sorter: formattedSorter(value => formatLit(literature, value)),
                 formatter: textFormatter(cell => formatLit(literature, cell.getValue())),
                 accessorDownload: value => formatLit(literature, value),
             },
@@ -425,9 +421,7 @@ async function buildSiteTable() {
                 headerFilterFunc: function(headerValue, rowValue){
                     return headerValue.every(val => rowValue.includes(val));
                 },
-                sorter:"array", sorterParams:{
-                    valueMap:"label"
-                },
+                sorter: formattedSorter(value => formatInst(institutions, value)),
                 formatter: textFormatter(cell => formatInst(institutions, cell.getValue())),
                 accessorDownload: value => formatInst(institutions, value),
             },
@@ -457,9 +451,7 @@ async function buildSiteTable() {
                 headerFilterFunc: function(headerValue, rowValue){
                     return headerValue.every(val => rowValue.includes(val));
                 },
-                sorter:"array", sorterParams:{
-                    valueMap:"label"
-                },
+                sorter: formattedSorter(value => formatUser(users, value)),
                 formatter: textFormatter(cell => formatUser(users, cell.getValue())),
                 accessorDownload: value => formatUser(users, value),
             },
@@ -489,9 +481,7 @@ async function buildSiteTable() {
                 headerFilterFunc: function(headerValue, rowValue){
                     return headerValue.every(val => rowValue.includes(val));
                 },
-                sorter:"array", sorterParams:{
-                    valueMap:"label"
-                },
+                sorter: formattedSorter(value => formatUser(users, value)),
                 formatter: textFormatter(cell => formatUser(users, cell.getValue())),
                 accessorDownload: value => formatUser(users, value),
             },
@@ -521,9 +511,7 @@ async function buildSiteTable() {
                 headerFilterFunc: function(headerValue, rowValue){
                     return headerValue.every(val => rowValue.includes(val));
                 },
-                sorter:"array", sorterParams:{
-                    valueMap:"label"
-                },
+                sorter: formattedSorter(value => formatUser(users, value)),
                 formatter: textFormatter(cell => formatUser(users, cell.getValue())),
                 accessorDownload: value => formatUser(users, value),
             },

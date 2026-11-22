@@ -2,7 +2,7 @@ let authors = [];
 
 async function getAuthors() {
     const { data } = await axios.get('api/authors');    
-    authors = data;
+    authors = sortPeople(data);
 }
 
 // Form and Fields -------------------------------------------------------------

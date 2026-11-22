@@ -13,7 +13,7 @@ async function buildSampleTable() {
     let samples = [];
     try {
         const response = await axios.get("api/samples");
-        samples = response.data;
+        samples = sortSamples(response.data);
     } catch (error) {
         console.error("Error loading samples:", error);
     }
@@ -22,7 +22,7 @@ async function buildSampleTable() {
     let sites = [];
     try {
         const response = await axios.get("api/sites");
-        sites = response.data;
+        sites = sortSites(response.data);
     } catch (error) {
         console.error("Error loading sites:", error)
     }
@@ -31,7 +31,7 @@ async function buildSampleTable() {
     let features = [];
     try {
         const response = await axios.get("api/features");
-        features = response.data;
+        features = sortFeatures(response.data);
     } catch (error) {
         console.error("Error loading features:", error)
     }
@@ -43,7 +43,7 @@ async function buildSampleTable() {
     let users = [];
     try {
         const response = await axios.get("api/users");
-        users = response.data;
+        users = sortPeople(response.data);
     } catch (error) {
         console.error("Error loading users:", error)
     }
@@ -109,8 +109,8 @@ async function buildSampleTable() {
                 rowRange:"active" //only toggle the values of the active filtered rows
             }, hozAlign:"center", headerSort:false},
             {title:"id", field:"id", headerFilter:true, headerSort:false},
-            {title:"*label", titleDownload:"label", field:"label", validator: ["required"], editor:"input", headerFilter:true, headerSortTristate:true},
-            {title: "*feature", titleDownload:"feature", field:"feature.id", headerSortTristate:true,
+            {title:"*label", titleDownload:"label", field:"label", validator: ["required"], editor:"input", headerFilter:true, headerSortTristate:true, sorter: compareLabels},
+            {title: "*feature", titleDownload:"feature", field:"feature.id", headerSortTristate:true, sorter: rankSorter(features),
                 editor:"list", editorParams: function(cell) {
                     const rowData = cell.getRow().getData();
                     const siteId = rowData?.feature?.site?.id;
@@ -144,7 +144,7 @@ async function buildSampleTable() {
                 formatter: textFormatter(cell => formatFeature(features, cell.getValue())),
                 accessorDownload: value => formatFeature(features, value),
             },
-            {title: "*site", titleDownload:"site", field:"feature.site.id", headerSortTristate:true, 
+            {title: "*site", titleDownload:"site", field:"feature.site.id", headerSortTristate:true, sorter: rankSorter(sites), 
                 editor:"list", editorParams:{
                     values: sites.map(item => ({
                             value: item.id,
@@ -269,9 +269,7 @@ async function buildSampleTable() {
                 headerFilterFunc: function(headerValue, rowValue){
                     return headerValue.every(val => rowValue.includes(val));
                 },
-                sorter:"array", sorterParams:{
-                    valueMap:"label"
-                },
+                sorter: formattedSorter(value => formatUser(users, value)),
                 formatter: textFormatter(cell => formatUser(users, cell.getValue())),
                 accessorDownload: value => formatUser(users, value),
             },

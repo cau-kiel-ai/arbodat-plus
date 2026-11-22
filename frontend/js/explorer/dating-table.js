@@ -12,7 +12,7 @@ async function buildDatingTable() {
     let absoluteDatings = [];
     try {
         const response = await axios.get("api/absolute_datings");
-        absoluteDatings = response.data;
+        absoluteDatings = sortDatings(response.data);
     } catch (error) {
         console.error("Error loading absolute datings:", error);
     }
@@ -21,7 +21,7 @@ async function buildDatingTable() {
     let sites = [];
     try {
         const response = await axios.get("api/sites");
-        sites = response.data;
+        sites = sortSites(response.data);
     } catch (error) {
         console.error("Error loading sites:", error)
     }
@@ -30,7 +30,7 @@ async function buildDatingTable() {
     let features = [];
     try {
         const response = await axios.get("api/features");
-        features = response.data;
+        features = sortFeatures(response.data);
     } catch (error) {
         console.error("Error loading features:", error)
     }
@@ -39,7 +39,7 @@ async function buildDatingTable() {
     let samples = [];
     try {
         const response = await axios.get("api/samples");
-        samples = response.data;
+        samples = sortSamples(response.data);
     } catch (error) {
         console.error("Error loading samples:", error)
     }
@@ -48,7 +48,7 @@ async function buildDatingTable() {
     let literature = [];
     try {
         const response = await axios.get("api/literature");
-        literature = response.data;
+        literature = sortLiterature(response.data);
     } catch (error) {
         console.error("Error loading literature:", error)
     }
@@ -179,8 +179,8 @@ async function buildDatingTable() {
                 rowRange:"active" //only toggle the values of the active filtered rows
             }, hozAlign:"center", headerSort:false},
             {title:"id", field:"id", headerFilter:true, headerSort:false},
-            {title:"*subsample", titleDownload:"subSample", field:"subSample", validator: ["required"], editor:"input", headerFilter:true, headerSortTristate:true},
-            {title: "*sample", titleDownload:"sample", field:"sample.id", headerSortTristate:true,
+            {title:"*subsample", titleDownload:"subSample", field:"subSample", validator: ["required"], editor:"input", headerFilter:true, headerSortTristate:true, sorter: compareLabels},
+            {title: "*sample", titleDownload:"sample", field:"sample.id", headerSortTristate:true, sorter: rankSorter(samples),
                 editor:"list", editorParams: function(cell) {
                     const rowData = cell.getRow().getData();
                     const featureId = rowData?.sample.feature.id;
@@ -214,7 +214,7 @@ async function buildDatingTable() {
                 formatter: textFormatter(cell => formatSample(samples, cell.getValue())),
                 accessorDownload: value => formatSample(samples, value),
             },
-            {title: "*feature", titleDownload:"feature", field:"sample.feature.id", headerSortTristate:true,
+            {title: "*feature", titleDownload:"feature", field:"sample.feature.id", headerSortTristate:true, sorter: rankSorter(features),
                 editor:"list", editorParams: function(cell) {
                     const rowData = cell.getRow().getData();
                     const siteId = rowData?.sample.feature.site.id;
@@ -248,7 +248,7 @@ async function buildDatingTable() {
                 formatter: textFormatter(cell => formatFeature(features, cell.getValue())),
                 accessorDownload: value => formatFeature(features, value),
             },
-            {title: "*site", titleDownload:"site", field:"sample.feature.site.id", headerSortTristate:true,
+            {title: "*site", titleDownload:"site", field:"sample.feature.site.id", headerSortTristate:true, sorter: rankSorter(sites),
                 editor:"list", editorParams:{
                     values: sites.map(item => ({
                             value: item.id,
@@ -306,9 +306,7 @@ async function buildDatingTable() {
                 headerFilterFunc: function(headerValue, rowValue){
                     return headerValue.every(val => rowValue.includes(val));
                 },
-                sorter:"array", sorterParams:{
-                    valueMap:"label"
-                },
+                sorter: formattedSorter(value => formatLit(literature, value)),
                 formatter: textFormatter(cell => formatLit(literature, cell.getValue())),
                 accessorDownload: value => formatLit(literature, value),
             },
@@ -374,7 +372,7 @@ async function buildDatingTable() {
                     headerFilter:"input",
                     headerFilterFunc: (headerValue, rowValue) =>
                         !headerValue || formatC14Laboratory(rowValue).toLowerCase().includes(headerValue.toString().toLowerCase()),
-                    sorter: (a, b) => formatC14Laboratory(a).localeCompare(formatC14Laboratory(b)),
+                    sorter: (a, b) => compareLabels(formatC14Laboratory(a), formatC14Laboratory(b)),
                     formatter: textFormatter(cell => formatC14Laboratory(cell.getValue())),
                     accessorDownload: value => formatC14Laboratory(value)}),
                 datingColumn("c14", {title:"number", titleDownload:"c14Number", field:"c14Dating.number", editor:"input"}),

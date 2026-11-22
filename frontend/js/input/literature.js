@@ -2,7 +2,7 @@ let literature = [];
 
 async function getLiterature() {
     const { data } = await axios.get('api/literature');    
-    literature = data;
+    literature = sortLiterature(data);
 }
 
 // Form and Fields ---------------------------------------------------------------

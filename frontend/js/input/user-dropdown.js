@@ -88,10 +88,11 @@ document.addEventListener("DOMContentLoaded", () => {
 
     function populateDropdown(itemList) {  
         dropdown.innerHTML = ""; // Reset dropdown
+        itemList = sortPeople(itemList); // Ascending
         
         itemList.forEach((item, index) => {
             const listItem = document.createElement("li");
-            listItem.textContent = item.lastName + ", " + item.firstName + " " + item.middleName; // Customise here
+            listItem.textContent = formatName(item); // Customise here
             listItem.addEventListener("click", () => {
                 selectItem(item);
             });

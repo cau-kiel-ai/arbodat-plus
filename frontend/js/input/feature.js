@@ -2,7 +2,7 @@ let features = [];
 
 async function getFeatures() {
     const { data } = await axios.get('api/features');    
-    features = data;
+    features = sortFeatures(data);
 }
 
 // Select2 refernece site dropdown ------------------------------------------------

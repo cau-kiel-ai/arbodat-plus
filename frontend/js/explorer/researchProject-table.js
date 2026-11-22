@@ -12,7 +12,7 @@ async function buildResearchProjectTable() {
     let researchProjects = [];
     try {
         const response = await axios.get("api/research_projects");
-        researchProjects = response.data;
+        researchProjects = sortResearchProjects(response.data);
     } catch (error) {
         console.error("Error loading research projects:", error);
     }
@@ -21,7 +21,7 @@ async function buildResearchProjectTable() {
     let sites = [];
     try {
         const response = await axios.get("api/sites");
-        sites = response.data;
+        sites = sortSites(response.data);
     } catch (error) {
         console.error("Error loading sites:", error)
     }
@@ -59,7 +59,7 @@ async function buildResearchProjectTable() {
                 rowRange:"active" //only toggle the values of the active filtered rows
             }, hozAlign:"center", headerSort:false},
             {title:"id", field:"id", headerFilter:true, headerSort:false},
-            {title:"*project name", field:"projectName", titleDownload:"projectName", validator: ["required"], editor:"input", headerFilter:true, headerSortTristate:true},
+            {title:"*project name", field:"projectName", titleDownload:"projectName", validator: ["required"], editor:"input", headerFilter:true, headerSortTristate:true, sorter: compareLabels},
             {title:"funder", field:"funder", editor:"input", headerFilter:true, headerSortTristate:true},
             {title:"authorisation number", field:"authorisationNumber", titleDownload:"authorisationNumber", editor:"input", headerFilter:true, headerSortTristate:true},
             {title:"license", titleDownload:"license", field:"license.id", headerSort:false,
@@ -105,9 +105,7 @@ async function buildResearchProjectTable() {
                 headerFilterFunc: function(headerValue, rowValue){
                     return headerValue.every(val => rowValue.includes(val));
                 },
-                sorter:"array", sorterParams:{
-                    valueMap:"label"
-                },
+                sorter: formattedSorter(value => formatSites(sites, value)),
                 formatter: textFormatter(cell => formatSites(sites, cell.getValue())),
                 accessorDownload: value => formatSites(sites, value),
             }
@@ -174,7 +172,7 @@ async function buildResearchProjectTable() {
         // GET sites
         try {
             const response = await axios.get("api/sites");
-            sites = response.data;
+            sites = sortSites(response.data);
         } catch (error) {
             console.error("Error loading sites:", error)
         }

@@ -12,7 +12,7 @@ async function buildAuthorTable() {
     let authors = [];
     try {
         const response = await axios.get("api/authors");
-        authors = response.data;
+        authors = sortPeople(response.data);
     } catch (error) {
         console.error("Error loading authors:", error);
     }
@@ -26,11 +26,12 @@ async function buildAuthorTable() {
                 rowRange:"active" //only toggle the values of the active filtered rows
             }, hozAlign:"center", headerSort:false},
             {title:"id", field:"id", headerFilter:true, headerSort:false},
-            {title:"first name", titleDownload:"firstName", field:"firstName", editor:"input", headerFilter:true, headerSortTristate:true},
-            {title:"middle name", titleDownload:"middleName", field:"middleName", editor:"input", headerFilter:true, headerSortTristate:true},
-            {title:"*last name", titleDownload:"lastName", field:"lastName", validator: ["required"], editor:"input", headerFilter:true, headerSortTristate:true},
+            {title:"first name", titleDownload:"firstName", field:"firstName", editor:"input", headerFilter:true, headerSortTristate:true, sorter: compareLabels},
+            {title:"middle name", titleDownload:"middleName", field:"middleName", editor:"input", headerFilter:true, headerSortTristate:true, sorter: compareLabels},
+            {title:"*last name", titleDownload:"lastName", field:"lastName", validator: ["required"], editor:"input", headerFilter:true, headerSortTristate:true, sorter: compareLabels},
         ],
         initialSort: [
+            {column: "firstName", dir: "asc"}, // last entry has the highest priority
             {column: "lastName", dir: "asc"}
         ]
     }); // ----------------------------------------------------------------------

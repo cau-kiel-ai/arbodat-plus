@@ -2,7 +2,7 @@ let samples = [];
 
 async function getSamples() {
     const { data } = await axios.get('api/samples');
-    samples = data;
+    samples = sortSamples(data);
 }
 
 // Form and Fields ------------------------------------------------------------

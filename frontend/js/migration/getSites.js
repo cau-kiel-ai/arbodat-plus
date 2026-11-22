@@ -56,7 +56,7 @@ function populateSites(sites) {
   const tableBody = document.getElementById("siteTableBody");
   tableBody.innerHTML = ""; // Reset table
 
-  sites.forEach(site => {
+  [...sites].sort(compareLabels).forEach(site => {
     const row = document.createElement("tr");
 
     // First column: Site label

@@ -2,7 +2,7 @@ let users = [];
 
 async function getUsers() {
     const { data } = await axios.get('api/users');    
-    users = data;
+    users = sortPeople(data);
 }
 
 // Form and Fields -----------------------------------------------------

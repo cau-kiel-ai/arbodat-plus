@@ -2,7 +2,7 @@ let sites = [];
 
 async function getSites() {
     const { data } = await axios.get('api/sites');    
-    sites = data;
+    sites = sortSites(data);
 }
 
 // Select2 reference research projects dropdown -----------------------------------

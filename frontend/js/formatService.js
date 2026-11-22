@@ -7,9 +7,9 @@ function formatName(item) {
   if (!firstName && !middleName && lastName) {
     return lastName;
   } else if (firstName && !middleName && lastName) {
-    return `${firstName} ${lastName}`;
+    return `${lastName}, ${firstName}`;
   } else if (firstName && middleName && lastName) {
-    return `${firstName} ${middleName.charAt(0)}. ${lastName}`;
+    return `${lastName}, ${firstName} ${middleName.charAt(0)}.`;
   } else if (firstName && !lastName) {
     return firstName;
   } else {

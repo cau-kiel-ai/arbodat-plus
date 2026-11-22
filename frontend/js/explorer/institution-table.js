@@ -12,7 +12,7 @@ async function buildInstitutionTable() {
     let institutions = [];
     try {
         const response = await axios.get("api/institutions");
-        institutions = response.data;
+        institutions = sortInstitutions(response.data);
     } catch (error) {
         console.error("Error loading institutions:", error);
     }
@@ -28,7 +28,7 @@ async function buildInstitutionTable() {
                 }, hozAlign:"center", headerSort:false
             },
             {title:"id", field:"id", headerFilter:true, headerSort:false},
-            {title:"*label", titleDownload:"label", field:"label", validator: ["required"], editor:"input", headerFilter:true, headerSortTristate:true},
+            {title:"*label", titleDownload:"label", field:"label", validator: ["required"], editor:"input", headerFilter:true, headerSortTristate:true, sorter: compareLabels},
             {title:"ror id", titleDownload:"rorId", field:"rorId", editor:"input", headerFilter:true, headerSortTristate:true},
         ],
         initialSort: [

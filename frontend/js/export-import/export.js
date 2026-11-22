@@ -36,7 +36,7 @@ $(document).ready(async function () {
     try {
         // Get research projects
         const response = await axios.get('api/research_projects');
-        const researchProjects = response.data;
+        const researchProjects = sortResearchProjects(response.data);
 
         // Reset multi-select
         $('#researchProjectDropdown')
@@ -103,7 +103,7 @@ $('#researchProjectDropdown').on('change', async function () {
             .prop('disabled', true);
         
         // Filter sites that match the selected research projects
-        const filteredItems = response.data.filter(item =>
+        const filteredItems = sortSites(response.data).filter(item =>
             item.researchProjectList.some(rp =>
                 selectedResearchProjectIds.includes(rp.id)
             )
@@ -178,7 +178,7 @@ $('#siteDropdown').on('change', async function () {
             .prop('disabled', true);
         
         // Filter features that match the selected sites
-        const filteredItems = response.data.filter(item =>
+        const filteredItems = sortFeatures(response.data).filter(item =>
             selectedSiteIds.includes(item.site?.id)
         );
 
@@ -240,7 +240,7 @@ $('#featureDropdown').on('change', async function () {
             .prop('disabled', true)
         
         // Filter samples that match the selected features
-        const filteredItems = response.data.filter(item =>
+        const filteredItems = sortSamples(response.data).filter(item =>
             selectedFeatureIds.includes(item.feature?.id)
         );
 

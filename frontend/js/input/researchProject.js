@@ -2,7 +2,7 @@ let researchProjects = [];
 
 async function getResearchProjects() {
     const { data } = await axios.get('api/research_projects');    
-    researchProjects = data;
+    researchProjects = sortResearchProjects(data);
 }
 
 // Form and Fields -------------------------------------------------------------

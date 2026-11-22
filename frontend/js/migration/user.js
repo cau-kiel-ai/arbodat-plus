@@ -107,7 +107,7 @@ function fetchUsers() {
             dropdown.options.length = 0;
         });
 
-        data.forEach(user => {
+        sortPeople(data).forEach(user => {
 
             const userName = formatName(user);
 

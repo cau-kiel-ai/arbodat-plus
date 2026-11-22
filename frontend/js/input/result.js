@@ -340,9 +340,9 @@ $('#result_sample_dropdown').on('select2:select', async function (event) {
             .empty()
         
         // Filter AbsDatings that match the selected sample
-        const filteredItems = response.data.filter(item =>
+        const filteredItems = sortDatings(response.data.filter(item =>
         item.sample?.id == selectedSampleId
-        );
+        ));
 
         filteredItems.forEach(item => {
             const option = document.createElement('option');

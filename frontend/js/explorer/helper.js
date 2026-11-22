@@ -58,7 +58,7 @@ function formatAuth(authors, authorList) {
             return author ? formatName(author) : id; // unknown id: show the id itself
         })
         .filter(Boolean)
-        .join(", ");
+        .join("; "); // names contain ", "
 }
 
 function formatUser(users, userList) {
@@ -73,7 +73,7 @@ function formatUser(users, userList) {
             return user ? formatName(user) : id; // unknown id: show the id itself
         })
         .filter(Boolean)
-        .join(", ");
+        .join("; "); // names contain ", "
 }
 
 function formatCoordinateSystem(coordinateSystemId) {

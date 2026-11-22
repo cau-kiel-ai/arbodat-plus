@@ -84,6 +84,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
     function populateDropdown(itemList) {  
         dropdown.innerHTML = ""; // Reset dropdown
+        itemList = sortInstitutions(itemList); // Ascending
         
         itemList.forEach((item, index) => {
             const listItem = document.createElement("li");

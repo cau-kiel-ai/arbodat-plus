@@ -38,7 +38,7 @@ async function createResultTable({ selector, results, hiddenFields = [], height 
     let sites = [];
     try {
         const response = await axios.get("api/sites");
-        sites = response.data;
+        sites = sortSites(response.data);
     } catch (error) {
         console.error("Error loading sites:", error)
     }
@@ -47,7 +47,7 @@ async function createResultTable({ selector, results, hiddenFields = [], height 
     let features = [];
     try {
         const response = await axios.get("api/features");
-        features = response.data;
+        features = sortFeatures(response.data);
     } catch (error) {
         console.error("Error loading features:", error)
     }
@@ -56,7 +56,7 @@ async function createResultTable({ selector, results, hiddenFields = [], height 
     let samples = [];
     try {
         const response = await axios.get("api/samples");
-        samples = response.data;
+        samples = sortSamples(response.data);
     } catch (error) {
         console.error("Error loading samples:", error)
     }
@@ -65,7 +65,7 @@ async function createResultTable({ selector, results, hiddenFields = [], height 
     let datings = [];
     try {
         const response = await axios.get("api/absolute_datings");
-        datings = response.data;
+        datings = sortDatings(response.data);
     } catch (error) {
         console.error("Error loading absolute datings:", error)
     }
@@ -116,7 +116,7 @@ async function createResultTable({ selector, results, hiddenFields = [], height 
                 rowRange:"active" //only toggle the values of the active filtered rows
             }, hozAlign:"center", headerSort:false},
             {title:"id", field:"id", headerFilter:true, headerSort:false},
-            {title: "*sample", titleDownload:"sample", field:"sample.id", headerSortTristate:true,
+            {title: "*sample", titleDownload:"sample", field:"sample.id", headerSortTristate:true, sorter: rankSorter(samples),
                 editor:"list", editorParams: function(cell) {
                     const rowData = cell.getRow().getData();
                     const featureId = rowData?.sample.feature.id;
@@ -150,7 +150,7 @@ async function createResultTable({ selector, results, hiddenFields = [], height 
                 formatter: textFormatter(cell => formatSample(samples, cell.getValue())),
                 accessorDownload: value => formatSample(samples, value),
             },
-            {title: "*feature", titleDownload:"feature", field:"sample.feature.id", headerSortTristate:true,
+            {title: "*feature", titleDownload:"feature", field:"sample.feature.id", headerSortTristate:true, sorter: rankSorter(features),
                 editor:"list", editorParams: function(cell) {
                     const rowData = cell.getRow().getData();
                     const siteId = rowData?.sample.feature.site.id;
@@ -184,7 +184,7 @@ async function createResultTable({ selector, results, hiddenFields = [], height 
                 formatter: textFormatter(cell => formatFeature(features, cell.getValue())),
                 accessorDownload: value => formatFeature(features, value),
             },
-            {title: "*site", titleDownload:"site", field:"sample.feature.site.id", headerSortTristate:true,
+            {title: "*site", titleDownload:"site", field:"sample.feature.site.id", headerSortTristate:true, sorter: rankSorter(sites),
                 editor:"list", editorParams:{
                     values: sites.map(item => ({
                             value: item.id,
@@ -247,9 +247,9 @@ async function createResultTable({ selector, results, hiddenFields = [], height 
                 headerFilterFunc: function(headerValue, rowValue){
                     return headerValue.every(val => rowValue.includes(val));
                 },
-                sorter:"array", sorterParams:{
-                    valueMap:"label"
-                },
+                sorter: formattedSorter(ids => (ids || [])
+                    .map(id => formatDatings(datings.find(item => item.id === id) ?? {}))
+                    .join(", ")),
                 formatter: textFormatter(function(cell) {
                     const datingsIds = cell.getValue();
 

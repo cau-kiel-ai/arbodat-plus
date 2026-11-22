@@ -2,7 +2,7 @@ let institutions = [];
 
 async function getInstitutions() {
     const { data } = await axios.get('api/institutions');    
-    institutions = data;
+    institutions = sortInstitutions(data);
 }
 
 // Form and Fields -------------------------------------------------------

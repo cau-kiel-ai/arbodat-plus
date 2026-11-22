@@ -92,6 +92,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
     function populateDropdown(itemList) {  
         dropdown.innerHTML = ""; // Reset dropdown
+        itemList = sortLiteratureByTitle(itemList); // Ascending
         
         itemList.forEach((item) => {
             const listItem = document.createElement("li");

@@ -12,7 +12,7 @@ async function buildUserTable() {
     let users = [];
     try {
         const response = await axios.get("api/users");
-        users = response.data;
+        users = sortPeople(response.data);
     } catch (error) {
         console.error("Error loading users:", error);
     }
@@ -21,7 +21,7 @@ async function buildUserTable() {
     let institutions = [];
     try {
         const response = await axios.get("api/institutions");
-        institutions = response.data;
+        institutions = sortInstitutions(response.data);
     } catch (error) {
         console.error("Error loading institutions:", error)
     }
@@ -35,9 +35,9 @@ async function buildUserTable() {
                 rowRange:"active" //only toggle the values of the active filtered rows
             }, hozAlign:"center", headerSort:false},
             {title:"id", field:"id", headerFilter:true, headerSort:false},
-            {title:"first name", titleDownload:"firstName", field:"firstName", editor:"input", headerFilter:true, headerSortTristate:true},
-            {title:"middle name", titleDownload:"middleName", field:"middleName", editor:"input", headerFilter:true, headerSortTristate:true},
-            {title:"*last name", titleDownload:"lastName", field:"lastName", validator: ["required"], editor:"input", headerFilter:true, headerSortTristate:true},
+            {title:"first name", titleDownload:"firstName", field:"firstName", editor:"input", headerFilter:true, headerSortTristate:true, sorter: compareLabels},
+            {title:"middle name", titleDownload:"middleName", field:"middleName", editor:"input", headerFilter:true, headerSortTristate:true, sorter: compareLabels},
+            {title:"*last name", titleDownload:"lastName", field:"lastName", validator: ["required"], editor:"input", headerFilter:true, headerSortTristate:true, sorter: compareLabels},
             {title:"mail address", titleDownload:"mailAddress", field:"mailAddress", editor:"input", headerFilter:true, headerSortTristate:true},
             {title:"ORCID", field:"orcid", editor:"input", headerFilter:true, headerSortTristate:true},
             {title: "institution list (multiple selection)", titleDownload:"institutionList", field:"institutionList", headerSortTristate:true,
@@ -66,14 +66,13 @@ async function buildUserTable() {
                 headerFilterFunc: function(headerValue, rowValue){
                     return headerValue.every(val => rowValue.includes(val));
                 },
-                sorter:"array", sorterParams:{
-                    valueMap:"label"
-                },
+                sorter: formattedSorter(value => formatInst(institutions, value)),
                 formatter: textFormatter(cell => formatInst(institutions, cell.getValue())),
                 accessorDownload: value => formatInst(institutions, value),
             },
         ],
         initialSort: [
+            {column: "firstName", dir: "asc"}, // last entry has the highest priority
             {column: "lastName", dir: "asc"}
         ]
     });

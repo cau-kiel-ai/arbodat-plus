@@ -12,7 +12,7 @@ async function buildFeatureTable() {
     let features = [];
     try {
         const response = await axios.get("api/features");
-        features = response.data;
+        features = sortFeatures(response.data);
     } catch (error) {
         console.error("Error loading features:", error);
     }
@@ -21,7 +21,7 @@ async function buildFeatureTable() {
     let sites = [];
     try {
         const response = await axios.get("api/sites");
-        sites = response.data;
+        sites = sortSites(response.data);
     } catch (error) {
         console.error("Error loading sites:", error)
     }
@@ -57,8 +57,8 @@ async function buildFeatureTable() {
                 rowRange:"active" //only toggle the values of the active filtered rows
             }, hozAlign:"center", headerSort:false},
             {title:"id", field:"id", headerFilter:true, headerSort:false},
-            {title:"*label", titleDownload:"label", field:"label", validator: ["required"], editor:"input", headerFilter:true, headerSortTristate:true},
-            {title: "*site", titleDownload:"site", field:"site.id", headerSortTristate:true,
+            {title:"*label", titleDownload:"label", field:"label", validator: ["required"], editor:"input", headerFilter:true, headerSortTristate:true, sorter: compareLabels},
+            {title: "*site", titleDownload:"site", field:"site.id", headerSortTristate:true, sorter: rankSorter(sites),
                 editor:"list", editorParams:{
                     values: [
                         ...sites.map(item => ({

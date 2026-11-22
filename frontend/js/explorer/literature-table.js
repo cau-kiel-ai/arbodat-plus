@@ -12,7 +12,7 @@ async function buildLiteratureTable() {
     let literature = [];
     try {
         const response = await axios.get("api/literature");
-        literature = response.data;
+        literature = sortLiterature(response.data);
     } catch (error) {
         console.error("Error loading literature:", error);
     }
@@ -21,7 +21,7 @@ async function buildLiteratureTable() {
     let authors = [];
     try {
         const response = await axios.get("api/authors");
-        authors = response.data;
+        authors = sortPeople(response.data);
     } catch (error) {
         console.error("Error loading authors:", error)
     }
@@ -42,7 +42,7 @@ async function buildLiteratureTable() {
                 rowRange:"active" //only toggle the values of the active filtered rows
             }, hozAlign:"center", headerSort:false},
             {title:"id", field:"id", headerFilter:true, headerSort:false},
-            {title:"*title", titleDownload:"title", field:"title", validator: ["required"], editor:"input", headerFilter:true, headerSortTristate:true},
+            {title:"*title", titleDownload:"title", field:"title", validator: ["required"], editor:"input", headerFilter:true, headerSortTristate:true, sorter: compareLabels},
             {title:"publication year", titleDownload:"publicationYear", field:"publicationYear", headerSortTristate:true,
                 editor:"list", editorParams:{
                     values: years,
@@ -87,9 +87,7 @@ async function buildLiteratureTable() {
                 headerFilterFunc: function(headerValue, rowValue){
                     return headerValue.every(val => rowValue.includes(val));
                 },
-                sorter:"array", sorterParams:{
-                    valueMap:"label"
-                },
+                sorter: formattedSorter(value => formatAuth(authors, value)),
                 formatter: textFormatter(cell => formatAuth(authors, cell.getValue())),
                 accessorDownload: value => formatAuth(authors, value),
             },

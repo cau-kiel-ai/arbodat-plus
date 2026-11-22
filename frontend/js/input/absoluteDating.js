@@ -2,7 +2,7 @@ let absoluteDatings = [];
 
 async function getAbsoluteDatings() {
     const { data } = await axios.get('api/absolute_datings');
-    absoluteDatings = data;
+    absoluteDatings = sortDatings(data);
 }
 
 // Form and Fields ------------------------------------------------------------
