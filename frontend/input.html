@@ -2282,75 +2282,80 @@
                     </div>
                   </div>
 
-                  <!-- fraction fieldset -->
-                  <fieldset 
-                    id="result_fraction_fieldset"
-                    style="
-                      border: 0.5px solid #ccc;
-                      border-top: none;
-                      border-radius: 0 0 4px 4px;
-                      margin-top: 4px;
-                      margin-bottom: 6px;
-                      margin-left: auto;
-                      margin-right: 1.5px;
-                      padding-top: 0px;
-                      padding-bottom: 17px;
-                    "
-                  >
-                    <!-- fraction analyzed -->
-                    <div class="row">
-                      <div class="col-25"> 
-                        <label for="result_fractionAnalyzed">fraction analyzed:</label>
-                      </div>
-                      <div class="col-75">
-                        <input type="text" id="result_fractionAnalyzed" disabled style="margin-top: 10px; width: 145px;">
-                      </div>
-                    </div>
-
-                    <!-- org or min -->
-                    <div class="row">
-                      <div class="col-25"> 
-                        <label for="">organic / minerals:</label>
-                      </div>
-                      <div class="col-75" style="margin-top: 18px;">
-                        <div class="form-check form-check-inline">
-                          <label class="form-check-label" for="result_org">ORG</label>
-                          <input class="form-check-input" type="radio" name="orgOrMin" id="result_org" value="org" disabled>
+                  <!-- fraction fieldset: in the grid like the fields above, so it is as wide as the .col-75 -->
+                  <div class="row">
+                    <div class="col-25"></div>
+                    <div class="col-75">
+                      <fieldset 
+                        id="result_fraction_fieldset"
+                        style="
+                          border: 0.5px solid #ccc;
+                          border-top: none;
+                          border-radius: 0 0 4px 4px;
+                          margin-top: 4px;
+                          margin-bottom: 6px;
+                          margin-left: 0;
+                          margin-right: 0;
+                          padding-top: 0px;
+                          padding-bottom: 17px;
+                        "
+                      >
+                        <!-- fraction analyzed -->
+                        <div class="row">
+                          <div class="col-25"> 
+                            <label for="result_fractionAnalyzed">fraction analyzed:</label>
+                          </div>
+                          <div class="col-75">
+                            <input type="text" id="result_fractionAnalyzed" disabled style="margin-top: 10px; width: 145px;">
+                          </div>
                         </div>
-                        <div class="form-check form-check-inline">
-                          <label class="form-check-label" for="result_min">MIN</label>
-                          <input class="form-check-input" type="radio" name="orgOrMin" id="result_min" value="min" disabled>
+
+                        <!-- org or min -->
+                        <div class="row">
+                          <div class="col-25"> 
+                            <label for="">organic / minerals:</label>
+                          </div>
+                          <div class="col-75" style="margin-top: 18px;">
+                            <div class="form-check form-check-inline">
+                              <label class="form-check-label" for="result_org">ORG</label>
+                              <input class="form-check-input" type="radio" name="orgOrMin" id="result_org" value="org" disabled>
+                            </div>
+                            <div class="form-check form-check-inline">
+                              <label class="form-check-label" for="result_min">MIN</label>
+                              <input class="form-check-input" type="radio" name="orgOrMin" id="result_min" value="min" disabled>
+                            </div>
+                          </div>
                         </div>
-                      </div>
-                    </div>
 
-                    <!-- sieve size -->
-                    <div class="row">
-                      <div class="col-25"> 
-                        <label for="result_sieveSize">sieve size [mm]:</label>
-                      </div>
-                      <div class="col-75">
-                        <input type="number" id="result_sieveSize" disabled style="width: 145px;">
-                      </div>
-                    </div>
+                        <!-- sieve size -->
+                        <div class="row">
+                          <div class="col-25"> 
+                            <label for="result_sieveSize">sieve size [mm]:</label>
+                          </div>
+                          <div class="col-75">
+                            <input type="number" id="result_sieveSize" disabled style="width: 145px;">
+                          </div>
+                        </div>
 
-                    <!-- multiplier -->
-                    <div class="row">
-                      <div class="col-25"> 
-                        <label
-                          for="result_multiplier"
-                          data-tooltip="The multiplicator is needed for the extrapolation
-                          to the whole sampleand depends on the sieved fraction."
-                        >
-                          multiplier:
-                        </label>
-                      </div>
-                      <div class="col-75">
-                        <input type="number" step="0.01" id="result_multiplier" style="width: 145px;">
-                      </div>
-                    </div>
+                        <!-- multiplier -->
+                        <div class="row">
+                          <div class="col-25"> 
+                            <label
+                              for="result_multiplier"
+                              data-tooltip="The multiplicator is needed for the extrapolation
+                              to the whole sampleand depends on the sieved fraction."
+                            >
+                              multiplier:
+                            </label>
+                          </div>
+                          <div class="col-75">
+                            <input type="number" step="0.01" id="result_multiplier" style="width: 145px;">
+                          </div>
+                        </div>
 
-                  </fieldset>
+                      </fieldset>
+                    </div>
+                  </div>
 
                   <!-- entry date -->
                   <div class="row">

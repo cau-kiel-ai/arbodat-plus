@@ -300,9 +300,8 @@ input[type=radio] {
 
 /* ------------ result specific --------------- */
 
-.accordion #result_fraction_fieldset { 
-    width: 74%;
-    margin-left: 25%; 
+.accordion #result_fraction_fieldset { // sits in the .col-75 of its own row (input.html)
+    width: 100%;
     // border: 1px #ccc solid;
     //background-color:  #f4fcfc;
     border-radius: 5px;
