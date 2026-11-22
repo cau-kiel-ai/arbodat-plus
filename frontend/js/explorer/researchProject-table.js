@@ -82,11 +82,14 @@ async function buildResearchProjectTable() {
             },
             {title:"export file name", field:"exportFileName", titleDownload:"exportFileName", editor:"input", headerFilter:true, headerSortTristate:true},
             {title:"site list (multiple selection)", titleDownload:"siteList", field: "siteList", headerSortTristate:true,
+                // Many sites: the column stays narrow (the text is cut, the tooltip shows all), the pills wrap
+                maxWidth: MULTI_SELECT_MAX_WIDTH,
+                tooltip: (e, cell) => cell.getElement().classList.contains("tabulator-editing") ? "" : escapeHtml(formatSites(sites, cell.getValue())),
                 mutator: function(value) {
                     // Map site objects only to site id
                     return Array.isArray(value) ? value.map(site => site.id? site.id : site) : [];
                 },
-                editor:"list", editorParams:{
+                editor: multiSelectEditor, editorParams:{
                     values: sites.map(item => ({                        
                         value: item.id,
                         label: item.label + " ("+ item.researchProjectList.map(rp => rp.projectName) + ")"
@@ -95,7 +98,7 @@ async function buildResearchProjectTable() {
                     multiselect:true,
                     emptyValue:[]
                 },
-                headerFilter:"list", headerFilterParams: {
+                headerFilter: multiSelectFilter, headerFilterParams: {
                     values: sites.map(item => ({
                         value: item.id,
                         label: item.label + " ("+ item.researchProjectList.map(rp => rp.projectName) + ")"

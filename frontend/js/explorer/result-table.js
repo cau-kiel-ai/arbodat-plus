@@ -221,7 +221,7 @@ async function createResultTable({ selector, results, hiddenFields = [], height 
                     // Map objects only to id
                     return Array.isArray(value) ? value.map(item => item.id? item.id : item) : [];
                 },
-                editor:"list", editorParams: function(cell) {
+                editor: multiSelectEditor, editorParams: function(cell) {
                     const rowData = cell.getRow().getData();
                     const sampleId = rowData?.sample?.id;
 
@@ -237,7 +237,7 @@ async function createResultTable({ selector, results, hiddenFields = [], height 
                         emptyValue:[]
                     };
                 },
-                headerFilter:"list", headerFilterParams: {
+                headerFilter: multiSelectFilter, headerFilterParams: {
                     values: datings.map(item => ({
                             value: item.id,
                             label: formatDatings(item)

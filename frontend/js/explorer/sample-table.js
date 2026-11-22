@@ -248,7 +248,7 @@ async function buildSampleTable() {
                     // Map objects only to id
                     return Array.isArray(value) ? value.map(item => item.id? item.id : item) : [];
                 },
-                editor:"list", editorParams:{
+                editor: multiSelectEditor, editorParams:{
                     values: [
                         ...users.map(item => ({
                             value: item.id,
@@ -259,7 +259,7 @@ async function buildSampleTable() {
                     multiselect:true,
                     emptyValue:[]
                 },
-                headerFilter:"list", headerFilterParams: {
+                headerFilter: multiSelectFilter, headerFilterParams: {
                     values: users.map(item => ({
                             value: item.id,
                             label: formatName(item)
@@ -298,21 +298,23 @@ async function buildSampleTable() {
                     // Map objects only to id
                     return Array.isArray(value) ? value.map(item => item.id? item.id : item) : [];
                 },
-                headerFilter:true,
+                // Pills with the fractions (e.g. 'ORG 1 yes'), see js/multiSelectEditor.js; the cell opens the popup.
+                // A row is shown if it has all chosen fractions (as the other list filters).
+                headerFilter: multiSelectFilter, headerFilterParams: {
+                    values: () => [...new Set(fractions.map(formatFraction))].sort((a, b) => a.localeCompare(b, undefined, { numeric: true })),
+                },
                 sorter:"array", sorterParams:{
                     valueMap:"label"
                 },
                 headerFilterFunc: function(headerValue, rowValue) {
-                    if (!headerValue) return true;
+                    if (!headerValue || headerValue.length === 0) return true;
                     if (!Array.isArray(rowValue)) return false;
 
-                    const header = headerValue.toString().toLowerCase();
-
-                    return rowValue.some(id => {
-                        const frac = fractions.find(f => f.id === id);
-                        const label = formatFraction(frac).toLowerCase();
-                        return label.includes(header) || id.toString().includes(header);
+                    const labels = rowValue.map(id => {
+                        const fraction = fractions.find(f => f.id === id);
+                        return fraction ? formatFraction(fraction) : null;
                     });
+                    return headerValue.every(label => labels.includes(label));
                 },
                 formatter: textFormatter(cell => formatFrac(cell.getValue())),
                 accessorDownload: value => formatFrac(value),

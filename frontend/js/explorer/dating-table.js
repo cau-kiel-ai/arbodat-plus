@@ -285,7 +285,7 @@ async function buildDatingTable() {
                     // Map objects only to id
                     return Array.isArray(value) ? value.map(item => item.id? item.id : item) : [];
                 },
-                editor:"list", editorParams:{
+                editor: multiSelectEditor, editorParams:{
                     values: [
                         ...literature.map(item => ({
                             value: item.id,
@@ -296,7 +296,7 @@ async function buildDatingTable() {
                     multiselect:true,
                     emptyValue:[]
                 },
-                headerFilter:"list", headerFilterParams: {
+                headerFilter: multiSelectFilter, headerFilterParams: {
                     values: literature.map(item => ({
                             value: item.id,
                             label: formatLiterature(item)

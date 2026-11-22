@@ -173,13 +173,13 @@ async function buildFeatureTable() {
                 accessorDownload: value => formatFeatureType(value),
             },
             {title: "excavationYears", field:"excavationYears", headerSortTristate:true,
-                editor:"list", editorParams:{
+                editor: multiSelectEditor, editorParams:{
                     values: years,
                     autocomplete:false,
                     multiselect:true,
                     emptyValue:[]
                 },
-                headerFilter:"list", headerFilterParams: {
+                headerFilter: multiSelectFilter, headerFilterParams: {
                     values: years,
                     multiselect: true
                 },

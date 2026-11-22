@@ -192,11 +192,10 @@ button:hover{
 
 }
 
-
 @import '../vendor/bootstrap@5.3.8/scss/bootstrap';
 @import 'footer';
+@import 'multiSelectEditor';
 @import 'navbar';
-
 
 // Center the "select row" checkbox in the header of the row selection column
 .tabulator .tabulator-header .tabulator-col.selectionColumn {

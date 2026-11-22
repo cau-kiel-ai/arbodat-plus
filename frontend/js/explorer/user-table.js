@@ -45,7 +45,7 @@ async function buildUserTable() {
                     // Map site type objects only to site type id
                     return Array.isArray(value) ? value.map(item => item.id? item.id : item) : [];
                 },
-                editor:"list", editorParams:{
+                editor: multiSelectEditor, editorParams:{
                     values: [
                         ...institutions.map(item => ({
                             value: item.id,
@@ -56,7 +56,7 @@ async function buildUserTable() {
                     multiselect:true,
                     emptyValue:[]
                 },
-                headerFilter:"list", headerFilterParams: {
+                headerFilter: multiSelectFilter, headerFilterParams: {
                     values: institutions.map(item => ({
                             value: item.id,
                             label: item.label + (item.rorId ? ` (${item.rorId})` : "")

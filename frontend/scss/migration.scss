@@ -299,72 +299,6 @@ input[type=radio] {
     font-size: 0.8em;
 }
 
-// Users editor of the team table (select2 in the cell, see js/migration/user.js):
-// looks like the cell itself, fills its height, the pills in one line and vertically centered
-// (the column grows with them).
-// Scoped to the table cell: more specific than select2's own rules in every state (focused or not),
-// which are loaded after this file and would otherwise win (e.g. their pill margins without focus).
-.tabulator .tabulator-cell .select2-container--default.users-editor {
-    display: inline-flex;
-    align-items: center;
-    height: 100%;
-    vertical-align: middle;
-
-    .selection {
-        display: flex;
-        align-items: center;
-        width: 100%;
-        height: 100%;
-    }
-
-    .select2-selection--multiple {
-        display: flex;
-        flex-wrap: nowrap;
-        align-items: center;
-        width: 100%;
-        min-height: 0;
-        padding: 0;
-        border: none;
-        border-radius: 0;
-        background: transparent;
-        outline: none;
-    }
-
-    .select2-selection__rendered {
-        display: inline-flex;
-        flex-wrap: nowrap;
-        align-items: center;
-        white-space: nowrap;
-        margin: 0;
-        padding: 0;
-    }
-
-    // The same gap before the first pill as between the pills (and before the search field)
-    .select2-selection__choice {
-        flex-shrink: 0;
-        margin: 0 0 0 4px;
-    }
-
-    .select2-search--inline {
-        display: inline-flex;
-        align-items: center;
-        margin-left: 4px;
-
-        // select2's textarea: one line high (it has two by default, its text then sits above the middle
-        // and the pills move when typing starts or ends)
-        .select2-search__field {
-            height: 1.5em;
-            min-height: 0;
-            margin: 0;
-            padding: 0;
-            line-height: 1.5em;
-            overflow: hidden;
-            resize: none;
-            vertical-align: middle;
-        }
-    }
-}
-
 // Empty dante dropdown cell
 .migration-result-placeholder {
     color: #6c757d;
@@ -464,8 +398,8 @@ button:hover{
 
 }
 
-
 @import '../vendor/bootstrap@5.3.8/scss/bootstrap';
 @import 'stickyAccordion';
+@import 'multiSelectEditor';
 @import 'footer';
 @import 'navbar';

@@ -119,6 +119,10 @@ async function buildSiteTable() {
 
     siteTypeDownloadLabels = new Map(siteTypes.map(siteType =>
         [siteType.id, siteType.label]));
+    // Site types: grouped DANTE list (headings can't be chosen), the backend copy without DANTE
+    const siteTypeParams = danteEditorParams("siteType", { multiselect: true,
+        fallback: siteTypes.map(siteType => ({ value: siteType.id, label: siteTypeDownloadLabels.get(siteType.id) })) });
+
     naturalUnitDownloadLabels = new Map(naturalUnits.map(naturalUnit =>
         [naturalUnit.id, naturalUnit.label]));
 
@@ -147,37 +151,9 @@ async function buildSiteTable() {
                     return Array.isArray(value) ? value.join(", ") : (value ?? "");
                 }),
                 accessorDownload: value => (value || []).join("; "),
-                // Free-text values are entered as a ';'-separated string
-                editor: function(cell, onRendered, success, cancel){
-                    const input = document.createElement("input");
-                    input.type = "text";
-                    input.style.width = "100%";
-                    input.style.boxSizing = "border-box";
-                    input.placeholder = "separate with ;";
-                    input.value = (cell.getValue() || []).join("; ");
-
-                    onRendered(() => {
-                        input.focus();
-                        input.style.height = "100%";
-                    });
-
-                    function commit(){
-                        const values = input.value
-                            .split(";")
-                            .map(value => value.trim())
-                            .filter((value, index, all) => value !== "" && all.indexOf(value) === index);
-                        success(values);
-                    }
-
-                    input.addEventListener("blur", commit);
-                    input.addEventListener("keydown", e => {
-                        if (e.key === "Enter") commit();
-                        else if (e.key === "Escape") cancel();
-                    });
-
-                    return input;
-                },
-                headerFilter: "list", headerFilterParams: {
+                // Existing numbers from the search list, or new ones typed in (Enter or ';'), see js/multiSelectEditor.js
+                editor: multiSelectEditor, editorParams: cell => ({ values: distinctColumnValues(cell.getColumn()), tags: true }),
+                headerFilter: multiSelectFilter, headerFilterParams: {
                     valuesLookup: true, // all existing activity numbers
                     multiselect: true,
                     sort: "asc",
@@ -194,7 +170,7 @@ async function buildSiteTable() {
                     // Map objects only to ids
                     return Array.isArray(value) ? value.map(item => item.id? item.id : item) : [];
                 },
-                editor:"list", editorParams:{
+                editor: multiSelectEditor, editorParams:{
                     values: researchProjects.map(item => ({                    
                         value: item.id,
                         label: item.projectName
@@ -203,7 +179,7 @@ async function buildSiteTable() {
                     multiselect:true,
                     emptyValue:[]
                 },
-                headerFilter:"list", headerFilterParams: {
+                headerFilter: multiSelectFilter, headerFilterParams: {
                     values: researchProjects.map(item => ({
                         value: item.id,
                         label: item.projectName
@@ -224,7 +200,7 @@ async function buildSiteTable() {
                     // Map objects only to id
                     return Array.isArray(value) ? value.map(item => item.id? item.id : item) : [];
                 },
-                editor:"list", editorParams:{
+                editor: multiSelectEditor, editorParams:{
                     values: [
                         ...literature.map(item => ({
                             value: item.id,
@@ -235,7 +211,7 @@ async function buildSiteTable() {
                     multiselect:true,
                     emptyValue:[]
                 },
-                headerFilter:"list", headerFilterParams: {
+                headerFilter: multiSelectFilter, headerFilterParams: {
                     values: literature.map(item => ({
                             value: item.id,
                             label: formatLiterature(item)
@@ -274,17 +250,9 @@ async function buildSiteTable() {
                     // Map site type objects only to site type id
                     return Array.isArray(value) ? value.map(siteType => siteType.id? siteType.id : siteType) : [];
                 },
-                editor:"list", editorParams: danteEditorParams("siteType", { multiselect: true,
-                    fallback: siteTypes.map(siteType => ({ value: siteType.id, label: siteTypeDownloadLabels.get(siteType.id) })) }),
-                headerFilter:"list", headerFilterParams: {
-                    values: [
-                        ...siteTypes.map(siteType => ({
-                            value: siteType.id,
-                            label: siteType.label
-                        }))
-                    ],
-                    multiselect: true
-                },
+                editor: multiSelectEditor, editorParams: siteTypeParams,
+                // The same list (with the headings of the hierarchy) for the filter
+                headerFilter: multiSelectFilter, headerFilterParams: siteTypeParams,
                 headerFilterFunc: function(headerValue, rowValue){
                     return headerValue.every(val => rowValue.includes(val));
                 },
@@ -404,7 +372,7 @@ async function buildSiteTable() {
                     // Map objects only to id
                     return Array.isArray(value) ? value.map(item => item.id? item.id : item) : [];
                 },
-                editor:"list", editorParams:{
+                editor: multiSelectEditor, editorParams:{
                     values: [
                         ...institutions.map(item => ({
                             value: item.id,
@@ -415,7 +383,7 @@ async function buildSiteTable() {
                     multiselect:true,
                     emptyValue:[]
                 },
-                headerFilter:"list", headerFilterParams: {
+                headerFilter: multiSelectFilter, headerFilterParams: {
                     values: institutions.map(item => ({
                             value: item.id,
                             label: item.label + (item.rorId ? ` (${item.rorId})` : "")
@@ -436,7 +404,7 @@ async function buildSiteTable() {
                     // Map objects only to id
                     return Array.isArray(value) ? value.map(item => item.id? item.id : item) : [];
                 },
-                editor:"list", editorParams:{
+                editor: multiSelectEditor, editorParams:{
                     values: [
                         ...users.map(item => ({
                             value: item.id,
@@ -447,7 +415,7 @@ async function buildSiteTable() {
                     multiselect:true,
                     emptyValue:[]
                 },
-                headerFilter:"list", headerFilterParams: {
+                headerFilter: multiSelectFilter, headerFilterParams: {
                     values: users.map(item => ({
                             value: item.id,
                             label: formatName(item)
@@ -468,7 +436,7 @@ async function buildSiteTable() {
                     // Map objects only to id
                     return Array.isArray(value) ? value.map(item => item.id? item.id : item) : [];
                 },
-                editor:"list", editorParams:{
+                editor: multiSelectEditor, editorParams:{
                     values: [
                         ...users.map(item => ({
                             value: item.id,
@@ -479,7 +447,7 @@ async function buildSiteTable() {
                     multiselect:true,
                     emptyValue:[]
                 },
-                headerFilter:"list", headerFilterParams: {
+                headerFilter: multiSelectFilter, headerFilterParams: {
                     values: users.map(item => ({
                             value: item.id,
                             label: formatName(item)
@@ -500,7 +468,7 @@ async function buildSiteTable() {
                     // Map objects only to id
                     return Array.isArray(value) ? value.map(item => item.id? item.id : item) : [];
                 },
-                editor:"list", editorParams:{
+                editor: multiSelectEditor, editorParams:{
                     values: [
                         ...users.map(item => ({
                             value: item.id,
@@ -511,7 +479,7 @@ async function buildSiteTable() {
                     multiselect:true,
                     emptyValue:[]
                 },
-                headerFilter:"list", headerFilterParams: {
+                headerFilter: multiSelectFilter, headerFilterParams: {
                     values: users.map(item => ({
                             value: item.id,
                             label: formatName(item)

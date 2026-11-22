@@ -66,7 +66,7 @@ async function buildLiteratureTable() {
                     // Map objects only to id
                     return Array.isArray(value) ? value.map(item => item.id? item.id : item) : [];
                 },
-                editor:"list", editorParams:{
+                editor: multiSelectEditor, editorParams:{
                     values: [
                         ...authors.map(item => ({
                             value: item.id,
@@ -77,7 +77,7 @@ async function buildLiteratureTable() {
                     multiselect:true,
                     emptyValue:[]
                 },
-                headerFilter:"list", headerFilterParams: {
+                headerFilter: multiSelectFilter, headerFilterParams: {
                     values: authors.map(item => ({
                             value: item.id,
                             label: formatName(item)
@@ -138,6 +138,8 @@ async function buildLiteratureTable() {
                 : item);
 
             const { authorList, ...literatureWithoutAuthorList } = literature;
+            // Only the ids of the sites (the backend only reads those; the nested sites couldn't always be read)
+            literatureWithoutAuthorList.siteList = (literature.siteList || []).map(site => ({ id: site?.id ?? site }));
 
             // Create FormData object
             const formData = new FormData();
