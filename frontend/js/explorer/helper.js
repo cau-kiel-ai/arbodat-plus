@@ -85,6 +85,39 @@ function formatCoordinateSystem(coordinateSystemId) {
         || coordinateSystemId;
 }
 
+// DANTE values of the JSON download, written as the export (export-import page) writes them: the backend's record
+// with all labels and the extra fields, e.g. { id, label, labelDe, labelFr, structuralConcept } (see ExchangeSchema).
+// Loaded when a table is built, so the download itself stays synchronous.
+const DANTE_DOWNLOAD_PATHS = {
+    license: "license",
+    taxonomy: "taxonomy", siteType: "site_type", naturalUnit: "natural_unit",
+    coordinateSystem: "coordinate_system",
+    featureType: "feature_type", preservationCondition: "preservation_condition",
+    sampleType: "sample_type", sampleInvestigated: "sample_investigated", chronozone: "chronozone",
+    material: "material", datingMethod: "dating_method", c14Laboratory: "c14_laboratory",
+    taxCode: "tax_code", classificationConfer: "classification_confer", restType: "rest_type",
+    stateOfPreservation: "state_of_preservation",
+};
+const danteDownloadRecords = new Map(); // attribute -> Map(id -> record)
+
+async function loadDanteDownloadRecords(attributes) {
+    await Promise.all(attributes.map(async attribute => {
+        try {
+            const response = await axios.get(`api/dante_attributes/${DANTE_DOWNLOAD_PATHS[attribute]}`);
+            danteDownloadRecords.set(attribute, new Map(response.data.map(record => [record.id, record])));
+        } catch (error) {
+            console.error(`Error loading ${attribute} for the JSON download:`, error);
+        }
+    }));
+}
+
+// The record of `id` for the JSON download; only the id if it could not be loaded
+function danteDownloadRecord(attribute, id) {
+    if (!id) return null;
+    const record = danteDownloadRecords.get(attribute)?.get(id);
+    return record ? { ...record } : { id };
+}
+
 // Set a value in `obj` by a Tabulator field path, e.g. "taxCode.id" -> obj.taxCode.id
 function setNestedValue(obj, path, value) {
     const keys = path.split(".");

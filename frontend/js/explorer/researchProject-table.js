@@ -49,6 +49,7 @@ async function buildResearchProjectTable() {
 
     // Dropdowns of the DANTE columns (same entries and order as on the input page, see danteListEditor.js)
     await loadDanteListOptions(["license"]);
+    await loadDanteDownloadRecords(["license"]);
 
     // Create Table -------------------------------------------------------------
     researchProjectTable = newTabulator("#table", {
@@ -238,17 +239,12 @@ document.getElementById("download-json").addEventListener("click", function(){
         const rawData = researchProjectTable.getData("active");
         
         const transformed = rawData.map(row => {
-            const licenseId = row.license?.id ?? null;
-            const license   = cachedLicenses.find(l => l.uri === licenseId);
-            
             return {
                 id: row.id,
                 projectName: row.projectName,
                 funder: row.funder,
                 authorisationNumber: row.authorisationNumber,
-                license: licenseId
-                    ? { id: licenseId, label: license?.prefLabel.en ?? "" }
-                    : null,
+                license: danteDownloadRecord("license", row.license?.id),
                 siteList: (row.siteList || []).map(siteId => {
                     const siteValues = researchProjectTable.getColumn("siteList").getDefinition().editorParams.values;
                     const site = siteValues.find(s => s.value === siteId);

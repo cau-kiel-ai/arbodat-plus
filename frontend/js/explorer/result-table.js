@@ -4,9 +4,6 @@
 
 let resultTable;
 
-// Labels of the JSON download ("label (group)"), filled in createResultTable
-let restTypeDownloadLabels = new Map();
-
 // GET results (paged), optionally filtered e.g. by { sampleId } ---------------------
 async function loadResults(params = {}) {
     const results = [];
@@ -88,9 +85,6 @@ async function createResultTable({ selector, results, hiddenFields = [], height 
     } catch (error) {
         console.error("Error loading rest types:", error)
     }
-
-    restTypeDownloadLabels = new Map(restTypes.map(restType =>
-        [restType.id, restType.label]));
 
     // Dropdowns of the DANTE columns (same entries and order as on the input page, see danteListEditor.js)
     await loadDanteListOptions(["classificationConfer", "restType", "stateOfPreservation"]);
@@ -456,7 +450,7 @@ async function createResultTable({ selector, results, hiddenFields = [], height 
             },
             {title:"*rType", titleDownload:"restType", field:"restType.id", headerSortTristate:true,
                 editor:"list", editorParams: danteEditorParams("restType", {
-                    fallback: restTypes.map(restType => ({ value: restType.id, label: restTypeDownloadLabels.get(restType.id) })) }),
+                    fallback: restTypes.map(restType => ({ value: restType.id, label: restType.label })) }),
                 headerFilter:true, headerFilterParams: {
                     values: restTypes.map(item => ({
                             value: item.id,
@@ -668,6 +662,8 @@ async function buildResultTable() {
     tableContainer.style.display = 'none';
 
     const results = await loadResults();
+    // Only the explorer has the JSON download
+    await loadDanteDownloadRecords(["taxCode", "classificationConfer", "restType", "stateOfPreservation"]);
     resultTable = await createResultTable({ selector: "#table", results });
     attachResultDeleteHandler(resultTable, document.getElementById("deleteRows-button"));
 
@@ -704,17 +700,6 @@ function downloadResultsJson(table) {
             const siteId     = row.sample?.feature?.site?.id;
             const siteValues = table.getColumn("sample.feature.site.id").getDefinition().editorParams.values;
             const site       = siteValues.find(s => s.value === siteId);
-            // Tax code
-            const taxCodeId     = row.taxCode?.id;
-            // Classification confer
-            const classificationConferId = row.classificationConfer?.id;
-            const classificationConfer   = cachedClassificationConfers.find(cf => cf.uri === classificationConferId);
-            // Rest type
-            const restTypeId     = row.restType.id;
-            // State of preservation
-            const stateOfPreservationId = row.stateOfPreservation.id;
-            const stateOfPreservation   = cachedStateOfPreservation.find(sop => sop.uri === stateOfPreservationId);
-            
             return {
                 id:        row.id,
                 sample:    sampleId && {
@@ -737,22 +722,13 @@ function downloadResultsJson(table) {
                     return accessorDownload(row.absoluteDatingList);
                 })(),
                 entryDate: row.entryDate,
-                taxCode: taxCodeId && {
-                    id:   taxCodeId,
-                    name: taxCodeLabel(taxCodeId)
-                },
+                taxCode: danteDownloadRecord("taxCode", row.taxCode?.id),
                 orgOrMin: row.orgOrMin,
                 sieveSize: row.sieveSize,
                 fractionAnalyzed: row.fractionAnalyzed,
-                classificationConfer: classificationConferId
-                    ? { id: classificationConferId, label: classificationConfer?.prefLabel.en ?? "" }
-                    : null,
-                restType: restTypeId
-                    ? { id: restTypeId, name: restTypeDownloadLabels.get(restTypeId) ?? "" }
-                    : null,
-                stateOfPreservation: stateOfPreservationId
-                    ? { id: stateOfPreservationId, label: stateOfPreservation?.prefLabel.en ?? "" }
-                    : null,
+                classificationConfer: danteDownloadRecord("classificationConfer", row.classificationConfer?.id),
+                restType: danteDownloadRecord("restType", row.restType?.id),
+                stateOfPreservation: danteDownloadRecord("stateOfPreservation", row.stateOfPreservation?.id),
                 restCount: row.restCount,
                 restFragment: row.restFragment,
                 restWeight: row.restWeight,

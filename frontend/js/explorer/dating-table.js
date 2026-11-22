@@ -169,6 +169,7 @@ async function buildDatingTable() {
 
     // Dropdowns of the DANTE columns (same entries and order as on the input page, see danteListEditor.js)
     await loadDanteListOptions(["material", "datingMethod", "c14Laboratory"]);
+    await loadDanteDownloadRecords(["material", "datingMethod", "c14Laboratory"]);
 
     // Create Table -------------------------------------------------------------
     datingTable = newTabulator("#table", {
@@ -614,15 +615,6 @@ document.getElementById("download-json").addEventListener("click", function(){
             const siteId     = row.sample?.feature?.site?.id;
             const siteValues = datingTable.getColumn("sample.feature.site.id").getDefinition().editorParams.values;
             const site       = siteValues.find(s => s.value === siteId);
-            // Material
-            const materialId = row.material?.id ?? null;
-            const material   = cachedMaterials.find(m => m.uri === materialId);
-            // Dating Method
-            const datingMethodId = row.datingMethod?.id ?? null;
-            const formatDatingMethod = datingTable
-                .getColumn("datingMethod.id")
-                .getDefinition()
-                .formatter.raw; // plain text, the formatter itself escapes HTML
             
             return {
                 id:        row.id,
@@ -644,15 +636,14 @@ document.getElementById("download-json").addEventListener("click", function(){
                     const literature = literatureValues.find(l => l.value === literatureId);
                     return { id: literatureId, name: literature?.label };
                 }),
-                material: materialId
-                    ? { id: materialId, label: material?.prefLabel?.en ?? "" }
-                    : null,
+                material: danteDownloadRecord("material", row.material?.id),
                 remarks: row.remarks, 
-                datingMethod: datingMethodId
-                    ? { id: datingMethodId, name: formatDatingMethod({ getValue: () => datingMethodId }) }
-                    : null,
+                datingMethod: danteDownloadRecord("datingMethod", row.datingMethod?.id),
                 dendrochronologicalDating: row.dendrochronologicalDating,
-                c14Dating: row.c14Dating,
+                c14Dating: row.c14Dating && {
+                    ...row.c14Dating,
+                    c14Laboratory: danteDownloadRecord("c14Laboratory", row.c14Dating.c14Laboratory?.id),
+                },
                 otherDating: row.otherDating,
             };
         });

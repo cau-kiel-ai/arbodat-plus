@@ -99,6 +99,7 @@ async function buildSampleTable() {
 
     // Dropdowns of the DANTE columns (same entries and order as on the input page, see danteListEditor.js)
     await loadDanteListOptions(["coordinateSystem", "sampleType", "chronozone", "seedsAndFruits", "woodSubfossile", "charcoalInvestigated"]);
+    await loadDanteDownloadRecords(["coordinateSystem", "sampleType", "sampleInvestigated", "chronozone"]);
 
     // Create Table -------------------------------------------------------------
     sampleTable = newTabulator("#table", {
@@ -751,7 +752,6 @@ document.getElementById("download-json").addEventListener("click", function(){
             const site       = siteValues.find(s => s.value === siteId);
             // Coordinate system
             const coordinateSystemId = row.coordinate?.coordinateSystem?.id ?? null;
-            const coordinateSystem = cachedCoordinateSystems.find(cs => cs.uri === coordinateSystemId);
             const hasCoordinateValues =
                 coordinateSystemId ||
                 row.coordinate?.longitude != null ||
@@ -765,21 +765,6 @@ document.getElementById("download-json").addEventListener("click", function(){
                 .getColumn("fractionAnalyzedList")
                 .getDefinition()
                 .formatter.raw; // plain text, the formatter itself escapes HTML
-            // Sample type
-            const sampleTypeId = row.sampleType?.id ?? null;
-            const sampleType = cachedSampleTypes.find(st => st.uri === sampleTypeId) || null;
-            // Seeds and fruits
-            const seedsAndFruitsId = row.seedsAndFruits?.id ?? null;
-            const seedsAndFruits   = cachedSampleInvestigated.find(saf => saf.uri === seedsAndFruitsId);
-            // Wood subfossile
-            const woodSubfossileId = row.woodSubfossile?.id ?? null;
-            const woodSubfossile   = cachedSampleInvestigated.find(ws => ws.uri === woodSubfossileId);
-            // Charcoal investigated
-            const charcoalInvestigatedId = row.charcoalInvestigated?.id ?? null;
-            const charcoalInvestigated   = cachedSampleInvestigated.find(ci => ci.uri === charcoalInvestigatedId);
-            // Chronozone
-            const chronozoneId = row.chronozone?.id ?? null;
-            const chronozone   = cachedChronozones.find(c => c.uri === chronozoneId);
             
             return {
                 id:    row.id,
@@ -801,10 +786,7 @@ document.getElementById("download-json").addEventListener("click", function(){
                 coordinate: hasCoordinateValues
                     ? {
                         ...(coordinateSystemId && {
-                            coordinateSystem: {
-                                id: coordinateSystemId,
-                                label: [coordinateSystem?.prefLabel.en, coordinateSystem?.notation].filter(Boolean).join(" - ")
-                            }
+                            coordinateSystem: danteDownloadRecord("coordinateSystem", coordinateSystemId)
                         }),
                         longitude:      row.coordinate.longitude,
                         latitude:       row.coordinate.latitude,
@@ -823,27 +805,17 @@ document.getElementById("download-json").addEventListener("click", function(){
                 fractionAnalyzedList: (row.fractionAnalyzedList || []).map(fractionId => {
                     return { id: fractionId, name: formatFrac({ getValue: () => [fractionId] }) };
                 }),
-                sampleType: sampleTypeId
-                    ? { id: sampleTypeId, label: sampleType?.prefLabel?.en ?? "" }
-                    : null,
+                sampleType: danteDownloadRecord("sampleType", row.sampleType?.id),
                 storageFind: row.sampleStorage,
                 microRemain: row.microRemain,
-                seedsAndFruits: seedsAndFruitsId
-                    ? { id: seedsAndFruitsId, label: seedsAndFruits?.prefLabel?.en ?? "" }
-                    : null,
-                woodSubfossile: woodSubfossileId
-                    ? { id: woodSubfossileId, label: woodSubfossile?.prefLabel?.en ?? "" }
-                    : null,
-                charcoalInvestigated: charcoalInvestigatedId
-                    ? { id: charcoalInvestigatedId, label: charcoalInvestigated?.prefLabel?.en ?? "" }
-                    : null,
+                seedsAndFruits: danteDownloadRecord("sampleInvestigated", row.seedsAndFruits?.id),
+                woodSubfossile: danteDownloadRecord("sampleInvestigated", row.woodSubfossile?.id),
+                charcoalInvestigated: danteDownloadRecord("sampleInvestigated", row.charcoalInvestigated?.id),
                 totalWeight:         row.totalWeight,
                 weightUndetermined:  row.weightUndetermined,
                 sampleVolume:        row.sampleVolume,
                 volumeDetermination: row.volumeDetermination,
-                chronozone: chronozoneId
-                    ? { id: chronozoneId, label: chronozone?.prefLabel?.en ?? "" }
-                    : null,
+                chronozone: danteDownloadRecord("chronozone", row.chronozone?.id),
                 archaeologicalDating: row.archaeologicalDating,
                 culturalGroup: row.culturalGroup,
                 absoluteDatingFrom: row.absoluteDatingFrom,

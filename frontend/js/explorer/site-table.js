@@ -1,9 +1,5 @@
 let siteTable;
 
-// Labels of the JSON download ("label (group)"), filled in buildSiteTable
-let siteTypeDownloadLabels    = new Map();
-let naturalUnitDownloadLabels = new Map();
-
 async function buildSiteTable() {
     const container = document.getElementById("table");
     const spinner = document.getElementById('tableSpinner');
@@ -116,11 +112,7 @@ async function buildSiteTable() {
 
     // Dropdowns of the DANTE columns (same entries and order as on the input page, see danteListEditor.js)
     await loadDanteListOptions(["taxonomy", "siteType", "naturalUnit", "coordinateSystem"]);
-
-    siteTypeDownloadLabels = new Map(siteTypes.map(siteType =>
-        [siteType.id, siteType.label]));
-    naturalUnitDownloadLabels = new Map(naturalUnits.map(naturalUnit =>
-        [naturalUnit.id, naturalUnit.label]));
+    await loadDanteDownloadRecords(["taxonomy", "siteType", "naturalUnit", "coordinateSystem"]);
 
     function formatTaxonomy(taxonomyId){
         if (!taxonomyId) return "";
@@ -271,7 +263,7 @@ async function buildSiteTable() {
                     return Array.isArray(value) ? value.map(siteType => siteType.id? siteType.id : siteType) : [];
                 },
                 editor:"list", editorParams: danteEditorParams("siteType", { multiselect: true,
-                    fallback: siteTypes.map(siteType => ({ value: siteType.id, label: siteTypeDownloadLabels.get(siteType.id) })) }),
+                    fallback: siteTypes.map(siteType => ({ value: siteType.id, label: siteType.label })) }),
                 headerFilter:"list", headerFilterParams: {
                     values: [
                         ...siteTypes.map(siteType => ({
@@ -335,7 +327,7 @@ async function buildSiteTable() {
             },
             {title:"natural unit", titleDownload:"naturalUnit", field:"naturalUnit.id", headerSortTristate:true,
                 editor:"list", editorParams: danteEditorParams("naturalUnit", { none: true,
-                    fallback: naturalUnits.map(naturalUnit => ({ value: naturalUnit.id, label: naturalUnitDownloadLabels.get(naturalUnit.id) })) }),
+                    fallback: naturalUnits.map(naturalUnit => ({ value: naturalUnit.id, label: naturalUnit.label })) }),
                 headerFilter:true, headerFilterParams: {
                     values: naturalUnits.map(naturalUnit => ({
                         value: naturalUnit.id,
@@ -729,14 +721,8 @@ document.getElementById("download-json").addEventListener("click", function(){
         const rawData = siteTable.getData("active");
         
         const transformed = rawData.map(row => {
-            // Taxonomy
-            const taxonomyId = row.taxonomy?.id ?? null;
-            const taxonomy   = cachedTaxonomies.find(taxonomy => taxonomy.uri === taxonomyId);
-            // Natural unit
-            const naturalUnitId     = row.naturalUnit?.id ?? null;
             // Coordinate system
             const coordinateSystemId = row.coordinate?.coordinateSystem?.id ?? null;
-            const coordinateSystem = cachedCoordinateSystems.find(cs => cs.uri === coordinateSystemId);
             const hasCoordinateValues =
                 coordinateSystemId ||
                 row.coordinate?.longitude != null ||
@@ -762,16 +748,10 @@ document.getElementById("download-json").addEventListener("click", function(){
                     const literature = literatureValues.find(l => l.value === literatureId);
                     return { id: literatureId, name: literature?.label };
                 }),
-                taxonomy: taxonomyId
-                    ? { id: taxonomyId, label: taxonomy?.prefLabel?.en ?? "" }
-                    : null,
-                siteTypes: (row.siteTypeList || []).map(siteTypeId => {
-                    return { id: siteTypeId, name: siteTypeDownloadLabels.get(siteTypeId) };
-                }),
+                taxonomy: danteDownloadRecord("taxonomy", row.taxonomy?.id),
+                siteTypes: (row.siteTypeList || []).map(siteTypeId => danteDownloadRecord("siteType", siteTypeId)),
                 siteTypeUncertain: row.siteTypeUncertain,
-                naturalUnit: naturalUnitId
-                    ? { id: naturalUnitId, name: naturalUnitDownloadLabels.get(naturalUnitId) }
-                    : null,
+                naturalUnit: danteDownloadRecord("naturalUnit", row.naturalUnit?.id),
                 undisturbed: row.undisturbed,
                 institutionList: (row.institutionList || []).map(institutionId => {
                     const institutionValues = siteTable.getColumn("institutionList").getDefinition().editorParams.values;
@@ -797,10 +777,7 @@ document.getElementById("download-json").addEventListener("click", function(){
                 coordinate: hasCoordinateValues
                     ? {
                         ...(coordinateSystemId && {
-                            coordinateSystem: {
-                                id: coordinateSystemId,
-                                label: [coordinateSystem?.prefLabel.en, coordinateSystem?.notation].filter(Boolean).join(" - ")
-                            }
+                            coordinateSystem: danteDownloadRecord("coordinateSystem", coordinateSystemId)
                         }),
                         longitude:      row.coordinate.longitude,
                         latitude:       row.coordinate.latitude,

@@ -47,6 +47,7 @@ async function buildFeatureTable() {
 
     // Dropdowns of the DANTE columns (same entries and order as on the input page, see danteListEditor.js)
     await loadDanteListOptions(["preservationCondition", "featureType"]);
+    await loadDanteDownloadRecords(["preservationCondition", "featureType"]);
 
     // Create Table -------------------------------------------------------------
     featureTable = newTabulator("#table", {
@@ -336,12 +337,6 @@ document.getElementById("download-json").addEventListener("click", function(){
             const siteId     = row.site.id;
             const siteValues = featureTable.getColumn("site.id").getDefinition().editorParams.values;
             const site       = siteValues.find(s => s.value === siteId);
-            // Preservation condition
-            const preservationConditionId = row.preservationCondition?.id ?? null;
-            const preservationCondition   = cachedPreservationConditions.find(pc => pc.uri === preservationConditionId);
-            // Feature type
-            const featureTypeId = row.featureType?.id ?? null;
-            const featureType = cachedFeatureTypes.find(ft => ft.uri === featureTypeId) || null;
             
             return {
                 id: row.id,
@@ -350,12 +345,8 @@ document.getElementById("download-json").addEventListener("click", function(){
                     id:   siteId,
                     name: site.label
                 },
-                preservationCondition: preservationConditionId
-                    ? { id: preservationConditionId, label: preservationCondition?.prefLabel?.en ?? "" }
-                    : null,
-                featureType: featureTypeId
-                    ? { id: featureTypeId, label: featureType?.prefLabel?.en ?? "" }
-                    : null,
+                preservationCondition: danteDownloadRecord("preservationCondition", row.preservationCondition?.id),
+                featureType: danteDownloadRecord("featureType", row.featureType?.id),
                 excavationYears: row.excavationYears,
                 buildingContext: row.buildingContext,
                 buildingContextDescription: row.buildingContextDescription,
