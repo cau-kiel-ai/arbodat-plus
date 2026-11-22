@@ -80,7 +80,6 @@ async function buildResearchProjectTable() {
                 formatter: textFormatter(cell => formatLicense(cell.getValue())),
                 accessorDownload: value => formatLicense(value),
             },
-            {title:"export file name", field:"exportFileName", titleDownload:"exportFileName", editor:"input", headerFilter:true, headerSortTristate:true},
             {title:"site list (multiple selection)", titleDownload:"siteList", field: "siteList", headerSortTristate:true,
                 mutator: function(value) {
                     // Map site objects only to site id
@@ -250,7 +249,6 @@ document.getElementById("download-json").addEventListener("click", function(){
                 license: licenseId
                     ? { id: licenseId, label: license?.prefLabel.en ?? "" }
                     : null,
-                exportFileName: row.exportFileName,
                 siteList: (row.siteList || []).map(siteId => {
                     const siteValues = researchProjectTable.getColumn("siteList").getDefinition().editorParams.values;
                     const site = siteValues.find(s => s.value === siteId);

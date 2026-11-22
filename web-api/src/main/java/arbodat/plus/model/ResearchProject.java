@@ -27,9 +27,6 @@ public class ResearchProject implements Serializable {
     @Column (name = "authorisation_number")
     private String authorisationNumber;
 
-    @Column(name = "export_file_name")
-    private String exportFileName;
-
     // central on Dante
     @ManyToOne(cascade = CascadeType.MERGE)
     @JoinColumn(name = "license")

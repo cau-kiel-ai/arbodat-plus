@@ -136,7 +136,6 @@ public final class Fixtures {
         rpA.setProjectName("Project A");
         rpA.setFunder("DFG");
         rpA.setAuthorisationNumber("AZ-1");
-        rpA.setExportFileName("project-a");
         rpA.setLicense(license);
         em.persist(rpA);
         ResearchProject rpB = new ResearchProject();

@@ -68,7 +68,6 @@ public class ResearchProjectController {
         researchProject.setProjectName(transferredResearchProject.getProjectName());
         researchProject.setFunder(transferredResearchProject.getFunder());
         researchProject.setAuthorisationNumber(transferredResearchProject.getAuthorisationNumber());
-        researchProject.setExportFileName(transferredResearchProject.getExportFileName());
 
         // Handle license
         if (transferredResearchProject.getLicense() != null && transferredResearchProject.getLicense().getId() != null) {

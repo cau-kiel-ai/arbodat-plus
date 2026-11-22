@@ -12,7 +12,6 @@ const projectNameInput         = document.getElementById("projectName");
 const funderNameInput          = document.getElementById("funder");
 const authorisationNumberInput = document.getElementById("authorisationNumber");
 const licenseDropdown          = document.getElementById("licenseDropdown");
-const exportFileNameInput      = document.getElementById("exportFileName");
 
 // Populate license dropdown ------------------------------
 document.addEventListener("DOMContentLoaded", async () => {
@@ -33,8 +32,7 @@ function create_update_researchProject() {
             projectName:         projectNameInput.value.trim(),
             funder:              funderNameInput.value.trim(),
             authorisationNumber: authorisationNumberInput.value.trim(),
-            license:             licenseId ? { id: licenseId, label: licenseLabel } : null,
-            exportFileName:      exportFileNameInput.value.trim()
+            license:             licenseId ? { id: licenseId, label: licenseLabel } : null
         };
 
         const researchProjectId = document.getElementById("researchProjectId")?.value ?? null;

@@ -10,7 +10,6 @@ document.addEventListener("DOMContentLoaded", () => {
     const funderInput = document.getElementById("funder");
     const authorisationNumberInput = document.getElementById("authorisationNumber");
     const licenseInput = document.getElementById("licenseDropdown");
-    const exportFileNameInput = document.getElementById("exportFileName");
     // -----------------------------------------------------------------------------
 
     let activeIndex = -1;
@@ -87,8 +86,6 @@ document.addEventListener("DOMContentLoaded", () => {
           authorisationNumberInput.readOnly = false;
           $('#licenseDropdown').val(null).trigger('change');
           licenseInput.disabled = false;
-          exportFileNameInput.value = "";
-          exportFileNameInput.readOnly = false;
           // ----------------------------------------
         }
     });
@@ -120,8 +117,6 @@ document.addEventListener("DOMContentLoaded", () => {
         authorisationNumberInput.readOnly = true;
         $('#licenseDropdown').val(item.license?.id ?? '').trigger('change');
         licenseInput.disabled = true;
-        exportFileNameInput.value = item.exportFileName;
-        exportFileNameInput.readOnly = true;
         // ----------------------------------------------------------
     }
 
@@ -136,8 +131,6 @@ document.addEventListener("DOMContentLoaded", () => {
         authorisationNumberInput.readOnly = false;
         $('#licenseDropdown').val(null).trigger('change');
         licenseInput.disabled = false;
-        exportFileNameInput.value = "";
-        exportFileNameInput.readOnly = false;
         // ----------------------------------------------------------
 
         inputField.focus();

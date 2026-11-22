@@ -414,16 +414,6 @@
                       </div>
                     </div>
 
-                    <div class="row">
-                      <div class="col-25">
-                        <label for="exportFileName">export file name:</label>
-                      </div>
-                      <div class="col-75">
-                        <input type="text" id="exportFileName" autocomplete="off">
-                      </div>
-                  </div>
-
-
                   <!-- Button to add research project-->
                   <div style="margin-top: 20px;" class="text-center">
                     <button type="button" class="btn btn-primary" id="addResearchProjectButton">Add Research Project</button>
@@ -450,8 +440,6 @@
                   const licenseId = licenseDropdown ? licenseDropdown.value : null;
                   const licenseLabel = licenseDropdown ? licenseDropdown.options[licenseDropdown.selectedIndex].getAttribute("data-label") : null;
 
-                  let exportFileName = document.getElementById("exportFileName").value;
-
                   // Check if projectName is provided (required)
                   if (!projectName) {
                       toast.info("Project name is required.");
@@ -469,7 +457,6 @@
                   // Set attributes to null if empty
                   funder = funder || null;
                   authorisationNumber = authorisationNumber || null;
-                  exportFileName = exportFileName || null;
 
                   // Create a JSON object to store the data
                   const projectData = {
@@ -477,8 +464,7 @@
                       projectName: projectName,
                       funder: funder,
                       authorisationNumber: authorisationNumber,
-                      license: licenseId ? { id: licenseId, label: licenseLabel } : null,
-                      exportFileName: exportFileName
+                      license: licenseId ? { id: licenseId, label: licenseLabel } : null
                   };
 
                   // Save object into the researchProjects array
@@ -527,7 +513,6 @@
                   document.getElementById("authorisationNumber").readOnly = false;
                   document.getElementById("licenseDropdown").disabled = false;
                   $('#licenseDropdown').val(null).trigger('change');
-                  document.getElementById("exportFileName").readOnly = false;
                 });
 
                 function deleteProject(deleteIcon) {

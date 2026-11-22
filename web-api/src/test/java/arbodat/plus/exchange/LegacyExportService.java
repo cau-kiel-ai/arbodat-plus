@@ -149,7 +149,6 @@ class LegacyExportService {
         } else {
             gen.writeNullField("license");
         }
-        gen.writeStringField("exportFileName", rp.getExportFileName());
 
         // Sites -------------------------------------------------------------------
         gen.writeArrayFieldStart("sites");

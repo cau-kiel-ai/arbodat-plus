@@ -83,7 +83,6 @@ document.addEventListener("DOMContentLoaded", () => {
             authorisationNumberInput.value = "";
             $('#licenseDropdown').val(null).trigger('change');
             applyDefaults("project");
-            exportFileNameInput.value      = "";
             // -----------------------------------------------
         }
     });
@@ -114,7 +113,6 @@ document.addEventListener("DOMContentLoaded", () => {
         funderNameInput.value          = item.funder;
         authorisationNumberInput.value = item.authorisationNumber;
         $('#licenseDropdown').val(item.license?.id ?? '').trigger('change');
-        exportFileNameInput.value      = item.exportFileName;
         // -----------------------------------------------------------------
     }
 

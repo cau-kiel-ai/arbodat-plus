@@ -166,7 +166,6 @@ public final class ExchangeSchema {
             str("funder", ResearchProject::getFunder, ResearchProject::setFunder),
             str("authorisationNumber", ResearchProject::getAuthorisationNumber, ResearchProject::setAuthorisationNumber),
             new LookupRef<>("license", LICENSE, ResearchProject::getLicense, ResearchProject::setLicense),
-            str("exportFileName", ResearchProject::getExportFileName, ResearchProject::setExportFileName),
             new Children<>("sites", SITE, true)));
 
     private static final EntitySpec<Site> SITE_SPEC = new EntitySpec<>(SITE, Site.class, Site::getId, List.of(
