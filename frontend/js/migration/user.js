@@ -71,11 +71,8 @@ function createUserTable(rows) {
             filterTextColumn("Sample", "sampleLabel"),
             filterListColumn("userRole", "userRole"),
             filterListColumn("userLabel", "userLabel"),
-            {title: "Users", field: "users", headerSort: false, minWidth: 220, maxWidth: 400,
-                // A click on a user (de)selects it; several users are possible
-                editor: "list", editorParams: {
-                    valuesLookup: () => userOptions, multiselect: true, emptyValue: [], placeholderEmpty: "no users",
-                },
+            {title: "Users", field: "users", headerSort: false, minWidth: 220,
+                editor: usersEditor,
                 formatter: cell => {
                     const names = userNames(cell.getValue() ?? []);
                     return names ? escapeHtml(names) : `<span class="migration-result-placeholder">select</span>`;
@@ -105,6 +102,102 @@ function createUserTable(rows) {
         copyFields: { users: () => true },
     });
     return table;
+}
+
+// Editor of the 'Users' column: several users with a search field (select2).
+// Tabulator's list editor can't search when several values can be chosen.
+// - chosen users are not in the list any more (removed with the x of their pill)
+// - after a user is chosen the search text is cleared
+// - the column grows with the pills, so all chosen users stay visible
+// Closing the list (click outside, Esc) takes the selection; an unchanged selection is no edit.
+const defaultMatcher = $.fn.select2.defaults.defaults.matcher;
+
+function usersEditor(cell, onRendered, success, cancel) {
+    const before = cell.getValue() ?? [];
+    const select = document.createElement("select");
+    select.multiple = true;
+    userOptions.forEach(option => select.appendChild(new Option(option.label, option.value, false, before.includes(option.value))));
+
+    onRendered(() => {
+        const $select = $(select).select2({
+            placeholder: "search",
+            closeOnSelect: false,           // several users one after another
+            width: "100%",
+            dropdownParent: $(document.body),
+            // Chosen users are not offered (and can't be highlighted / deselected by Enter)
+            matcher: (params, data) => data.element?.selected ? null : defaultMatcher(params, data),
+        });
+        const select2 = $select.data("select2");
+        select2.$container.addClass("users-editor");           // looks like the table cell (see migration.scss)
+
+        // The dropdown is placed directly under the table cell and as wide as it (select2 would align it
+        // to its own, smaller field). select2 positions it on open, scroll and resize: corrected after it.
+        const dropdown = select2.dropdown;
+        const placeUnderCell = () => {
+            const rect = cell.getElement().getBoundingClientRect();
+            const $parent = dropdown.$dropdownParent;
+            const parentOffset = $parent.css("position") !== "static" ? $parent.offset() : { top: 0, left: 0 };
+            const above = dropdown.$dropdown.hasClass("select2-dropdown--above");
+            const top = above ? rect.top + window.scrollY - dropdown.$dropdown.outerHeight(false) : rect.bottom + window.scrollY;
+            // 1px to the left: the dividing line on the left belongs to the cell before
+            dropdown.$dropdownContainer.css({ top: top - parentOffset.top, left: rect.left - 1 + window.scrollX - parentOffset.left });
+            dropdown.$dropdown.css({ width: rect.width + 1 });
+        };
+        for (const name of ["_positionDropdown", "_resizeDropdown"]) {
+            const original = dropdown[name]?.bind(dropdown);
+            if (original) dropdown[name] = (...args) => { original(...args); placeUnderCell(); };
+        }
+
+        // Wider column for all pills
+        const column = cell.getColumn();
+        const fit = () => {
+            if (!$select.data("select2")) return; // editor already closed
+            const selection = select2.$container.find(".select2-selection")[0];
+            const needed = selection.scrollWidth + 12; // + cell padding
+            if (needed > column.getWidth()) column.setWidth(needed);
+            placeUnderCell();
+        };
+
+        // After a user is chosen (or removed with x): clear the search text and list the users again.
+        // The query is triggered directly: select2 ignores an input event right after Enter, and Enter on a
+        // stale, already chosen entry would close the list.
+        const refresh = () => setTimeout(() => {
+            select2.$container.find(".select2-search__field").val("");
+            select2.trigger("query", { term: "" });
+        });
+        $select.on("select2:select select2:unselect", refresh);
+
+        // The list stays open when a user is removed with the x of its pill, and on a click into the cell
+        // (select2 would close it: a click on its field toggles the list)
+        let keepOpen = false;
+        const keepOpenNow = () => {
+            keepOpen = true;
+            setTimeout(() => keepOpen = false);
+        };
+        $select.on("select2:unselect", keepOpenNow);
+        // Capture phase: before select2's own handler on its field (it toggles on click).
+        // Removed again on close: the cell element stays as long as its row.
+        const cellElement = cell.getElement();
+        cellElement.addEventListener("mousedown", keepOpenNow, true);
+        cellElement.addEventListener("click", keepOpenNow, true);
+        $select.on("select2:closing", event => {
+            if (keepOpen) event.preventDefault();
+        });
+        $select.on("change", () => setTimeout(fit));
+        $select.one("select2:close", () => {
+            cellElement.removeEventListener("mousedown", keepOpenNow, true);
+            cellElement.removeEventListener("click", keepOpenNow, true);
+            const values = $select.val() ?? [];
+            $select.select2("destroy");
+            const unchanged = values.length === before.length && values.every(value => before.includes(value));
+            unchanged ? cancel() : success(values);
+        });
+
+        fit();
+        $select.select2("open");
+        fit();
+    });
+    return select;
 }
 
 // Tabulator can't measure itself in a collapsed accordion -> redraw when it is opened
