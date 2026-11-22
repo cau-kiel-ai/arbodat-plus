@@ -15,62 +15,10 @@ const mailAddressInput = document.getElementById("mail");
 const orcidInput       = document.getElementById("orcid");
 
 // Select2 instituitions dropdown --------------------------------------
-$('#userInstitutions').select2({
-    placeholder: "",
-    allowClear: true,
-    width: "100%",
-    ...($('#userModal').length && {
-        dropdownParent: $('#userModal')
-    }),
-});
-
-// remove arrow
-$('#userInstitutions')
-    .next('.select2-container')
-    .find('.select2-selection__arrow')
-    .remove();
-
-let userInstitutions_isReopening = false;
-$('#userInstitutions').on('select2:opening', async function (e) {
-    if (userInstitutions_isReopening) {
-        userInstitutions_isReopening = false;
-        return;
-    }
-
-    e.preventDefault(); // Prevent opening
-
-    // Disable dropdown and show "Loading..."
-    $('#userInstitutions')
-        .empty()
-        .append(new Option('Loading...', 'loading', true, true))
-        .trigger('change')
-        .prop('disabled', true); // Disable
-
-    try {
-        await getInstitutions();
-    } finally {
-        // Enable and reset dropdown
-        $('#userInstitutions')
-            .prop('disabled', false) // Enable
-            .empty()
-            .append(new Option('', '', false, false));
-
-        // Update data
-        institutions.forEach(item => {
-            $('#userInstitutions').append(
-                new Option(formatInstitution(item), item.id)
-            );
-        });
-
-        // Refresh UI
-        $('#userInstitutions').trigger('change.select2');
-
-        // Reopen dropdown
-        userInstitutions_isReopening = true;
-        setTimeout(() => {
-            $('#userInstitutions').select2('open');
-        }, 0);
-    }
+initLazyMultiSelect('#userInstitutions', {
+    load:   async () => { await getInstitutions(); return institutions; },
+    format: formatInstitution,
+    dropdownParent: $('#userModal'), // For migration
 }); // -----------------------------------------------------------------
 
 function create_update_user() {
@@ -91,7 +39,7 @@ function create_update_user() {
         // (Ids of existing 'institutions' OR new institution objects without id)
         formData.append(
             "institutionList",
-            new Blob([JSON.stringify(window.institutionList)], { type: "application/json" })
+            new Blob([JSON.stringify(selectedRefs('#userInstitutions'))], { type: "application/json" })
         );
 
         const userId = document.getElementById("userId")?.value || null;
@@ -145,8 +93,7 @@ function create_update_user() {
 
                 // Reset form -------------------------------------------------
                 userForm.reset();
-                window.institutionList.length = 0;
-                document.getElementById("institutionContainer").innerHTML = '';
+                clearMultiSelect('#userInstitutions');
                 // ------------------------------------------------------------
 
                 // Update 'Select existing Users' selection in migration

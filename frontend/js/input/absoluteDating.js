@@ -246,59 +246,9 @@ $('#absDating_sample_dropdown').on('select2:opening', async function (e) {
 });
 
 // Select2 refernce literature dropdown ---------------------------------------
-$('#datingLiterature').select2({
-    placeholder: "",
-    allowClear: true,
-    width: "100%",
-});
-
-// remove arrow
-$('#datingLiterature')
-    .next('.select2-container')
-    .find('.select2-selection__arrow')
-    .remove();
-
-let datingLiterature_isReopening = false;
-$('#datingLiterature').on('select2:opening', async function (e) {
-    if (datingLiterature_isReopening) {
-        datingLiterature_isReopening = false;
-        return;
-    }
-
-    e.preventDefault(); // Prevent opening
-
-    // Disable dropdown and show "Loading..."
-    $('#datingLiterature')
-        .empty()
-        .append(new Option('Loading...', 'loading', true, true))
-        .trigger('change')
-        .prop('disabled', true); // Disable
-
-    try {
-        await getLiterature();
-    } finally {
-        // Enable and reset dropdown
-        $('#datingLiterature')
-            .prop('disabled', false) // Enable
-            .empty()
-            .append(new Option('', '', false, false));
-
-        // Update data
-        literature.forEach(item => {
-            $('#datingLiterature').append(
-                new Option(formatLiterature(item), item.id)
-            );
-        });
-
-        // Refresh UI
-        $('#datingLiterature').trigger('change.select2');
-
-        // Reopen dropdown
-        datingLiterature_isReopening = true;
-        setTimeout(() => {
-            $('#datingLiterature').select2('open');
-        }, 0);
-    }
+initLazyMultiSelect('#datingLiterature', {
+    load:   async () => { await getLiterature(); return literature; },
+    format: formatLiterature,
 });
 
 // Populate DANTE dropdowns ---------------------------------------------------
@@ -485,7 +435,7 @@ function create_update_absoulteDating() {
         const payload = {            
             // References ----------------------------------------
             sample: { id: absoluteDating_sample_dropdown.value },
-            literatureList: absoluteDatingLiteratureList,
+            literatureList: selectedRefs('#datingLiterature'),
             
             // Absolute dating -----------------------------------
             subSample: subSampleInput.value,
@@ -625,8 +575,7 @@ function resetAbsoluteDatingForm() {
     // Reset (radio) C14 laboratory filter to the remembered mode
     restoreCodeNameFilterMode('c14_lab');
 
-    absoluteDatingLiteratureList = [];
-    document.getElementById("absDating_literature_container").innerHTML = "";
+    clearMultiSelect('#datingLiterature');
 
     $('#material').val(null).trigger('change');
     $('#dating_method').val(null).trigger('change');

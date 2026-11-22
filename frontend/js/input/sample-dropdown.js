@@ -7,8 +7,6 @@ document.addEventListener("DOMContentLoaded", () => {
     const id = document.getElementById("sample_id");
     const inputField = document.getElementById("sample_label");
     const submit_update_button = document.getElementById("sample_submit_update_button");
-
-    const bot_det_by_container = document.getElementById("botanicalDeterminationByContainer");
     // ---------------------------------------------------------------------------------------
 
     let activeIndex = -1;
@@ -105,10 +103,7 @@ document.addEventListener("DOMContentLoaded", () => {
             longitude_wgs84_input.value = '';
             latitude_wgs84_input.value  = '';
             // Measurement details
-            // Reset list and container -----------
-            sampleBotanicalDeterminationByList = []
-            bot_det_by_container.innerHTML = "";
-            // ------------------------------------
+            clearMultiSelect('#botanicalDeterminationsBy');
             year_of_bot_det_input.value = '';
 
             // Reset fractions --------------------------------------
@@ -178,21 +173,7 @@ document.addEventListener("DOMContentLoaded", () => {
         longitude_wgs84_input.value = item.coordinate?.longitudeWgs84 ?? "";
         latitude_wgs84_input.value  = item.coordinate?.latitudeWgs84  ?? "";
         // Measurement details
-        // Reset user list and container ----------------
-        sampleBotanicalDeterminationByList = []
-        bot_det_by_container.innerHTML = "";
-        // Add users to list and container
-        item.botanicalDeterminationBy.forEach(item => {
-            const itemText = formatName(item);            
-            const userData = { id: item.id };
-            const index = sampleBotanicalDeterminationByList.push(userData) - 1;
-            addUserItemBox(
-                itemText,
-                index,
-                "sampleBotanicalDeterminationByList",
-                "botanicalDeterminationByContainer"
-            );
-        }); // ------------------------------------------
+        setMultiSelect('#botanicalDeterminationsBy', item.botanicalDeterminationBy, formatName);
         year_of_bot_det_input.value = item.botanicalDeterminationYear;
 
         // Reset and populate fractions ----------------------------
@@ -244,10 +225,7 @@ document.addEventListener("DOMContentLoaded", () => {
         longitude_wgs84_input.value = '';
         latitude_wgs84_input.value  = '';
         // Measurement details
-        // Reset list and container -----------
-        sampleBotanicalDeterminationByList = []
-        bot_det_by_container.innerHTML = "";
-        // ------------------------------------
+        clearMultiSelect('#botanicalDeterminationsBy');
         year_of_bot_det_input.value = '';
         
         // Reset fractions --------------------------------------

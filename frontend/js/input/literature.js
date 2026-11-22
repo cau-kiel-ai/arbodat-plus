@@ -16,63 +16,10 @@ const longCitationInput    = document.getElementById("literatureLongCitation");
 const abstractTextarea     = document.getElementById("literatureAbstract");
 
 // Select2 authors dropdown ------------------------------------------------------
-$('#literatureAuthors').select2({
-    placeholder: "",
-    allowClear: true,
-    width: "100%",
-    // For migration -----------------------
-    ...($('#literaturModal').length && {
-        dropdownParent: $('#literaturModal')
-    }), // ---------------------------------
-});
-
-// remove arrow
-$('#literatureAuthors')
-    .next('.select2-container')
-    .find('.select2-selection__arrow')
-    .remove();
-
-let literatureAuthors_isReopening = false;
-$('#literatureAuthors').on('select2:opening', async function (e) {
-    if (literatureAuthors_isReopening) {
-        literatureAuthors_isReopening = false;
-        return;
-    }
-
-    e.preventDefault(); // Prevent opening
-
-    // Disable dropdown and show "Loading..."
-    $('#literatureAuthors')
-        .empty()
-        .append(new Option('Loading...', 'loading', true, true))
-        .trigger('change')
-        .prop('disabled', true); // Disable
-
-    try {
-        await getAuthors();
-    } finally {
-        // Enable and reset dropdown
-        $('#literatureAuthors')
-            .prop('disabled', false) // Enable
-            .empty()
-            .append(new Option('', '', false, false));
-
-        // Update data
-        authors.forEach(item => {
-            $('#literatureAuthors').append(
-                new Option(formatName(item), item.id)
-            );
-        });
-
-        // Refresh UI
-        $('#literatureAuthors').trigger('change.select2');
-
-        // Reopen dropdown
-        literatureAuthors_isReopening = true;
-        setTimeout(() => {
-            $('#literatureAuthors').select2('open');
-        }, 0);
-    }
+initLazyMultiSelect('#literatureAuthors', {
+    load:   async () => { await getAuthors(); return authors; },
+    format: formatName,
+    dropdownParent: $('#literaturModal'), // For migration
 }); // ---------------------------------------------------------------------------
 
 function create_update_literature() {
@@ -114,7 +61,7 @@ function create_update_literature() {
         payload.append(
             "authorList",
             new Blob(
-                [JSON.stringify(literatureAuthorList)],
+                [JSON.stringify(selectedRefs('#literatureAuthors'))],
                 { type: "application/json" }
             )
         ); // -----------------------------------------
@@ -146,8 +93,7 @@ function create_update_literature() {
                 
                 // Reset form
                 literatureForm.reset();
-                literatureAuthorList = [];
-                document.getElementById("literatureAuthorContainer").innerHTML = "";
+                clearMultiSelect('#literatureAuthors');
 
                 // For migration: check literature row
                 if (siteId) {

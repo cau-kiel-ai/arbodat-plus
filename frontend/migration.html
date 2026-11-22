@@ -172,6 +172,10 @@
         font-weight: 200;
         line-height: 24px;
       }
+      /* keep chips clear of the clear-all × */
+      .select2-container .select2-selection--multiple.select2-selection--clearable {
+        padding-right: 36px;
+      }
       /* Table filters (tableFilter.js): Select2 in an extra header row above the filtered columns.
          .table-filter-select gives other Select2 dropdowns (e.g. results taxonomy) the same look */
       .table-filter-bar {
@@ -715,35 +719,14 @@
                         </div>
                         
                         <!-- authors -->
-                        <div
-                          class="row"
-                          style="
-                            border: 0.5px solid #ccc;
-                            border-left: none;
-                            border-radius: 0 4px 4px 0;
-                            margin-top: 12px;
-                            padding-bottom: 6px;
-                            padding-top: 6px;
-                            margin-right: auto;
-                          "
-                        >
+                        <div class="row">
                           <div class="col-25">
-                            <label for="literatureAuthors" data-tooltip="Add authors from the list.">authors:</label>
+                            <label for="literatureAuthors" data-tooltip="Select authors from the list.">authors:</label>
                           </div>
 
-                          <div class="col-75" style="padding-left: 14px; display:flex; gap:10px; align-items:center;">                      
-                            <select id="literatureAuthors"></select>
-                            <!-- Button to add author -->
-                            <button type="button"
-                                    class="btn btn-primary"
-                                    id="addAuthorButton">
-                              Add
-                            </button>
+                          <div class="col-75">
+                            <select id="literatureAuthors" multiple style="width: 100%;"></select>
                           </div>
-
-                          <!-- Container to display added Authors -->
-                          <div class="col-25"></div>
-                          <div class="col-75" id="literatureAuthorContainer" style="padding-left: 14px; margin-top: 0px;"></div>
                         </div>
 
                         <!-- DOI -->
@@ -1282,35 +1265,14 @@
                           </div>
                         </div>
 
-                        <div
-                          class="row"
-                          style="
-                            border: 0.5px solid #ccc;
-                            border-left: none;
-                            border-radius: 0 4px 4px 0;
-                            margin-top: 12px;
-                            padding-bottom: 6px;
-                            padding-top: 6px;
-                            margin-right: auto;
-                          "
-                        >
+                        <div class="row">
                           <div class="col-25">
-                            <label for="userInstitutions" data-tooltip="Add institutions from the list.">institutions:</label>
+                            <label for="userInstitutions" data-tooltip="Select institutions from the list.">institutions:</label>
                           </div>
 
-                          <div class="col-75" style="padding-left: 14px; display:flex; gap:10px; align-items:center;">
-                            <select id="userInstitutions"></select>
-                            <!-- Button to add institution -->
-                            <button type="button"
-                                    class="btn btn-primary"
-                                    id="addInstitutionButton">
-                              Add
-                            </button>
+                          <div class="col-75">
+                            <select id="userInstitutions" multiple style="width: 100%;"></select>
                           </div>
-
-                          <!-- Container to display added institutions -->
-                          <div class="col-25"></div>
-                          <div class="col-75" id="institutionContainer" style="padding-left: 14px; margin-top: 0px;"></div>
                         </div>
 
                         <button
@@ -1471,6 +1433,7 @@
     
     <!-- general -->
     <script src="js/formatService.js"></script>
+    <script src="js/input/multi-select.js"></script>
     <script src="js/transformCoordinatesToWGS84.js"></script>
     <script src="js/loadingSpinner.js"></script>
     <script src="js/escapeHtml.js"></script>
@@ -1499,12 +1462,10 @@
     <!-- input -->
     <script src="js/input/institution.js"></script>
     <script src="js/input/institution-dropdown.js"></script>
-    <script src="js/input/institution-boxes.js"></script>
     <script src="js/input/user.js"></script>
     <script src="js/input/user-dropdown.js"></script>
     <script src="js/input/author.js"></script>
     <script src="js/input/author-dropdown.js"></script>
-    <script src="js/input/author-boxes.js"></script>
     <script src="js/input/literature.js"></script>
     <script src="js/input/literature-dropdown.js"></script>
     <!------------------------------------------------------------------------>

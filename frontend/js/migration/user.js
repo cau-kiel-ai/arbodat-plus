@@ -152,9 +152,7 @@ function openUserWindow (userLabel) {
 
     // Reset userForm
     document.getElementById('userForm').reset();
-    $('#userInstitutions').val(null).trigger('change');
-    window.institutionList = [];
-    document.getElementById("institutionContainer").innerHTML = "";
+    clearMultiSelect('#userInstitutions');
     document.getElementById("userId").value = '';
     document.getElementById("userSubmitButton").innerHTML = "create";
 

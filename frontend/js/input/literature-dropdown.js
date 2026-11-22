@@ -8,7 +8,6 @@ document.addEventListener("DOMContentLoaded", () => {
     const inputField = document.getElementById("literatureTitle");
     const submit_update_button = document.getElementById("literatureSubmitButton");
     
-    const authorContainer = document.getElementById("literatureAuthorContainer");
     // ----------------------------------------------------------------------------
 
     let activeIndex = -1;
@@ -82,8 +81,7 @@ document.addEventListener("DOMContentLoaded", () => {
             submit_update_button.innerHTML = "create";
             // Customise here ------------------
             publicationYearInput.value = '';
-            literatureAuthorList       = [];
-            authorContainer.innerHTML  = "";
+            clearMultiSelect('#literatureAuthors');
             doiInput.value             = '';
             shortCitationInput.value   = '';
             longCitationInput.value    = '';
@@ -117,17 +115,7 @@ document.addEventListener("DOMContentLoaded", () => {
         inputField.value = item.title;
         publicationYearInput.value = item.publicationYear;
         
-        // Reset authorList and authorContainer
-        literatureAuthorList = [];
-        authorContainer.innerHTML = "";
-
-        // Add auhtors to auhtorList and authorContainer
-        item.authorList.forEach(item => {
-            const itemText = formatName(item);
-            const data = { id: item.id };
-            const index = literatureAuthorList.push(data) - 1;
-            addAuthorItemBox(itemText, index);            
-        });
+        setMultiSelect('#literatureAuthors', item.authorList, formatName);
 
         doiInput.value = item.doi;
         shortCitationInput.value = item.shortCitation;
@@ -144,8 +132,7 @@ document.addEventListener("DOMContentLoaded", () => {
         submit_update_button.innerHTML = "create";
         // Customise here ------------------------
         publicationYearInput.value = '';
-        literatureAuthorList       = [];
-        authorContainer.innerHTML  = "";
+        clearMultiSelect('#literatureAuthors');
         doiInput.value             = '';
         shortCitationInput.value   = '';
         longCitationInput.value    = '';

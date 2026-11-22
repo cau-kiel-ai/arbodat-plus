@@ -127,6 +127,10 @@
           font-weight: 200;
           line-height: 24px;
         }
+        /* keep chips clear of the clear-all × */
+        .select2-container .select2-selection--multiple.select2-selection--clearable {
+          padding-right: 36px;
+        }
       </style>
 
   </head>
@@ -239,35 +243,14 @@
                     </div>
                   </div>
                   
-                  <div
-                    class="row"
-                    style="
-                      border: 0.5px solid #ccc;
-                      border-left: none;
-                      border-radius: 0 4px 4px 0;
-                      margin-top: 12px;
-                      padding-bottom: 6px;
-                      padding-top: 6px;
-                      margin-right: auto;
-                    "
-                  >
+                  <div class="row">
                     <div class="col-25">
-                      <label for="userInstitutions" data-tooltip="Add institutions from the list.">institutions:</label>
+                      <label for="userInstitutions" data-tooltip="Select institutions from the list.">institutions:</label>
                     </div>
 
-                    <div class="col-75" style="padding-left: 14px; display:flex; gap:10px; align-items:center;">
-                      <select id="userInstitutions"></select>
-                      <!-- Button to add institution -->
-                      <button type="button"
-                              class="btn btn-primary"
-                              id="addInstitutionButton">
-                        Add
-                      </button>
+                    <div class="col-75">
+                      <select id="userInstitutions" multiple style="width: 100%;"></select>
                     </div>
-
-                    <!-- Container to display added institutions -->
-                    <div class="col-25"></div>
-                    <div class="col-75" id="institutionContainer" style="padding-left: 14px; margin-top: 0px;"></div>
                   </div>
 
                   <button type="button" id="userSubmitButton" class="MySubmitButton" onclick="create_update_user()" style="width: unset; padding-left: 10px; padding-right: 10px;">create</button> 
@@ -363,35 +346,14 @@
                   </div>
 
                   <!-- authors -->
-                  <div
-                    class="row"
-                    style="
-                      border: 0.5px solid #ccc;
-                      border-left: none;
-                      border-radius: 0 4px 4px 0;
-                      margin-top: 12px;
-                      padding-bottom: 6px;
-                      padding-top: 6px;
-                      margin-right: auto;
-                    "
-                  >
+                  <div class="row">
                     <div class="col-25">
-                      <label for="literatureAuthors" data-tooltip="Add authors from the list.">authors:</label>
+                      <label for="literatureAuthors" data-tooltip="Select authors from the list.">authors:</label>
                     </div>
 
-                    <div class="col-75" style="padding-left: 14px; display:flex; gap:10px; align-items:center;">                      
-                      <select id="literatureAuthors"></select>
-                      <!-- Button to add author -->
-                      <button type="button"
-                              class="btn btn-primary"
-                              id="addAuthorButton">
-                        Add
-                      </button>
+                    <div class="col-75">
+                      <select id="literatureAuthors" multiple style="width: 100%;"></select>
                     </div>
-
-                    <!-- Container to display added Authors -->
-                    <div class="col-25"></div>
-                    <div class="col-75" id="literatureAuthorContainer" style="padding-left: 14px; margin-top: 0px;"></div>
                   </div>
 
                   <!-- DOI -->
@@ -550,39 +512,19 @@
                   <legend>References</legend>
 
                   <!-- reference research projects -->
-                  <div
-                    class="row"
-                    style="
-                      border: 0.5px solid #ccc;
-                      border-left: none;
-                      border-radius: 0 4px 4px 0;
-                      padding-bottom: 6px;
-                      padding-top: 6px;
-                      margin-right: auto;
-                    "
-                  >
+                  <div class="row">
                     <div class="col-25">
                       <label
                         for="siteResearchProjects"
-                        data-tooltip = "Please add: Which project is the site assigned to? Multiple choice is possible."
+                        data-tooltip = "Please select: Which project is the site assigned to? Multiple choice is possible."
                       >
                         reference research projects:&nbsp;*
                       </label>
                     </div>
 
-                    <div class="col-75" style="padding-left: 14px; display:flex; gap:10px; align-items:center;">
-                      <select name="siteResearchProjects" id="siteResearchProjects"></select>
-                      <!-- Button to add project --> 
-                      <button type="button"
-                              class="btn btn-primary"
-                              id="addResearchProjectButton">
-                        Add
-                      </button>
+                    <div class="col-75">
+                      <select id="siteResearchProjects" multiple style="width: 100%;"></select>
                     </div>
-
-                    <!-- Container to display added projects -->
-                    <div class="col-25"></div>
-                    <div class="col-75" id="researchProjectContainer" style="padding-left: 14px; margin-top: 0px;"></div>
                   </div>
 
                   <!-- site label -->
@@ -599,41 +541,19 @@
                   </div>
 
                   <!-- reference literature -->
-                  <div
-                    class="row"
-                    style="
-                      border: 0.5px solid #ccc;
-                      border-left: none;
-                      border-radius: 0 4px 4px 0;
-                      margin-top: 12px;
-                      padding-bottom: 6px;
-                      padding-top: 6px;
-                      margin-right: auto;
-                    "
-                  >
+                  <div class="row">
                     <div class="col-25">
                       <label
                         for="siteLiterature"
-                        data-tooltip="Please reference relevant literature by adding them. New literature can be created in the 'LITERATURE' section."
+                        data-tooltip="Please reference relevant literature by selecting them. New literature can be created in the 'LITERATURE' section."
                       >
                         reference literature:
                       </label>
                     </div>
 
-                    <div class="col-75" style="padding-left: 14px; display:flex; gap:10px; align-items:center;">
-                      <select id="siteLiterature"></select>
-                      <!-- Button to add literature --> 
-                      <button type="button"
-                              class="btn btn-primary"
-                              id="addLiteratureButtonSite"
-                      >
-                        Add
-                      </button>
+                    <div class="col-75">
+                      <select id="siteLiterature" multiple style="width: 100%;"></select>
                     </div>
-
-                    <!-- Container to display added literature -->
-                    <div class="col-25"></div>
-                    <div class="col-75" id="siteLiteratureContainer" style="padding-left: 14px; margin-top: 0px;"></div>
                   </div>
 
                 </fieldset>
@@ -851,150 +771,67 @@
                             <fieldset>
 
                               <!-- institutions -->
-                              <div
-                                class="row"
-                                style="
-                                  border: 0.5px solid #ccc;
-                                  border-left: none;
-                                  border-radius: 0 4px 4px 0;
-                                  padding-bottom: 6px;
-                                  padding-top: 6px;
-                                  margin-right: auto;
-                                "
-                              >
+                              <div class="row">
                                 <div class="col-25">
                                   <label
                                     for="siteInstitutions"
-                                    data-tooltip="Add institutions from the list. New institutions can be created in the 'INSTITUTION AND TEAM' section."
+                                    data-tooltip="Select institutions from the list. New institutions can be created in the 'INSTITUTION AND TEAM' section."
                                   >
                                     institutions:
                                   </label>
                                 </div>
 
-                                <div class="col-75" style="display:flex; gap:10px; align-items:center;">
-                                  <select id="siteInstitutions"></select>
-                                  <!-- Button to add institution --> 
-                                  <button type="button"
-                                          class="btn btn-primary"
-                                          id="addInstitutionButtonSite">
-                                    Add
-                                  </button>
+                                <div class="col-75">
+                                  <select id="siteInstitutions" multiple style="width: 100%;"></select>
                                 </div>
-
-                                <!-- Container to display added institutions -->
-                                <div class="col-25"></div>
-                                <div class="col-75" id="siteInstitutionContainer" style="padding-left: 12px; margin-top: 0px;"></div>
                               </div>
 
                               <!-- heads of excavation -->
-                              <div
-                                class="row"
-                                style="
-                                  border: 0.5px solid #ccc;
-                                  border-left: none;
-                                  border-radius: 0 4px 4px 0;
-                                  padding-bottom: 6px;
-                                  padding-top: 6px;
-                                  margin-top: 12px;
-                                  margin-right: auto;
-                                "
-                              >
+                              <div class="row">
                                 <div class="col-25"> 
                                   <label
                                     for="siteDirectors"
-                                    data-tooltip="Add heads of excavation from the list. New users can be created in the 'INSTITUTION AND TEAM' section."
+                                    data-tooltip="Select heads of excavation from the list. New users can be created in the 'INSTITUTION AND TEAM' section."
                                   >
                                     heads of excavation:
                                   </label>
                                 </div>
 
-                                <div class="col-75" style="display:flex; gap:10px; align-items:center;">
-                                  <select id="siteDirectors"></select>
-                                  <!-- Button to add head of excavation --> 
-                                  <button type="button"
-                                          class="btn btn-primary"
-                                          id="addSiteDirectorButton">
-                                    Add
-                                  </button>
+                                <div class="col-75">
+                                  <select id="siteDirectors" multiple style="width: 100%;"></select>
                                 </div>
-
-                                <!-- Container to display added heads of excavation -->
-                                <div class="col-25"></div>
-                                <div class="col-75" id="siteDirectorContainer" style="padding-left: 12px; margin-top: 0px;"></div>
                               </div>
 
                               <!-- archaeologists -->
-                              <div
-                                class="row"
-                                style="
-                                  border: 0.5px solid #ccc;
-                                  border-left: none;
-                                  border-radius: 0 4px 4px 0;
-                                  padding-bottom: 6px;
-                                  padding-top: 6px;
-                                  margin-top: 12px;
-                                  margin-right: auto;
-                                "
-                              >
+                              <div class="row">
                                 <div class="col-25"> 
                                   <label
                                     for="archeologists"
-                                    data-tooltip="Add archeologists from the list. New users can be created in the 'INSTITUTION AND TEAM' section."
+                                    data-tooltip="Select archeologists from the list. New users can be created in the 'INSTITUTION AND TEAM' section."
                                   >
                                     archaeologists:
                                   </label>
                                 </div>
 
-                                <div class="col-75" style="display:flex; gap:10px; align-items:center;">
-                                  <select id="archeologists"></select>
-                                  <!-- Button to add archeologists --> 
-                                  <button type="button"
-                                          class="btn btn-primary"
-                                          id="addArcheologistButton">
-                                    Add
-                                  </button>
+                                <div class="col-75">
+                                  <select id="archeologists" multiple style="width: 100%;"></select>
                                 </div>
-
-                                <!-- Container to display added archeologists -->
-                                <div class="col-25"></div>
-                                <div class="col-75" id="ArcheologistContainer" style="padding-left: 12px; margin-top: 0px;"></div>
                               </div>
 
                               <!-- botanists -->
-                              <div
-                                class="row"
-                                style="
-                                  border: 0.5px solid #ccc;
-                                  border-left: none;
-                                  border-radius: 0 4px 4px 0;
-                                  padding-bottom: 6px;
-                                  padding-top: 6px;
-                                  margin-top: 12px;
-                                  margin-right: auto;
-                                "
-                              >
+                              <div class="row">
                                 <div class="col-25"> 
                                   <label
                                     for="botanists"
-                                    data-tooltip="Add botanists from the list. New users can be created in the 'INSTITUTION AND TEAM' section."
+                                    data-tooltip="Select botanists from the list. New users can be created in the 'INSTITUTION AND TEAM' section."
                                   >
                                     botanists:
                                   </label>
                                 </div>
 
-                                <div class="col-75" style="display:flex; gap:10px; align-items:center;">
-                                  <select id="botanists"></select>
-                                  <!-- Button to add botanists --> 
-                                  <button type="button"
-                                          class="btn btn-primary"
-                                          id="addBotanistButton">
-                                    Add
-                                  </button>
+                                <div class="col-75">
+                                  <select id="botanists" multiple style="width: 100%;"></select>
                                 </div>
-
-                                <!-- Container to display added botanists -->
-                                <div class="col-25"></div>
-                                <div class="col-75" id="BotanistContainer" style="padding-left: 12px; margin-top: 0px;"></div>
                               </div>
 
                             </fieldset>
@@ -1615,17 +1452,7 @@
                             <fieldset>
 
                               <!-- botanical determination by -->
-                              <div
-                                class="row"
-                                style="
-                                  border: 0.5px solid #ccc;
-                                  border-left: none;
-                                  border-radius: 0 4px 4px 0;
-                                  padding-bottom: 6px;
-                                  padding-top: 6px;
-                                  margin-right: auto;
-                                "
-                              >
+                              <div class="row">
                                 <div class="col-25">
                                   <label
                                     for="botanicalDeterminationsBy"
@@ -1635,19 +1462,9 @@
                                   </label>
                                 </div>
 
-                                <div class="col-75" style="display:flex; gap:10px; align-items:center;">
-                                  <select id="botanicalDeterminationsBy"></select>
-                                  <!-- Button to add botanist --> 
-                                  <button type="button"
-                                          class="btn btn-primary"
-                                          id="addBotanicalDeterminationByButton">
-                                    Add
-                                  </button>
+                                <div class="col-75">
+                                  <select id="botanicalDeterminationsBy" multiple style="width: 100%;"></select>
                                 </div>
-
-                                <!-- Container to display added botanists -->
-                                <div class="col-25"></div>
-                                <div class="col-75" id="botanicalDeterminationByContainer" style="padding-left: 12px; margin-top: 0px;"></div>
                               </div>
 
                               <!-- year of botanical determination -->
@@ -2043,41 +1860,19 @@
                   </div>
 
                   <!-- reference literature -->
-                  <div
-                    class="row"
-                    style="
-                      border: 0.5px solid #ccc;
-                      border-left: none;
-                      border-radius: 0 4px 4px 0;
-                      margin-top: 12px;
-                      padding-bottom: 6px;
-                      padding-top: 6px;
-                      margin-right: auto;
-                    "
-                  >
+                  <div class="row">
                     <div class="col-25">
                       <label
                         for="datingLiterature"
-                        data-tooltip="Please reference relevant literature by adding them. New literature can be created in the 'LITERATURE' section."
+                        data-tooltip="Please reference relevant literature by selecting them. New literature can be created in the 'LITERATURE' section."
                       >
                         reference literature:
                       </label>
                     </div>
 
-                    <div class="col-75" style="padding-left: 14px; display:flex; gap:10px; align-items:center;">
-                      <select id="datingLiterature"></select>
-                      <!-- Button to add literature --> 
-                      <button type="button"
-                              class="btn btn-primary"
-                              id="addLiteratureButtonAbsoluteDating"
-                      >
-                        Add
-                      </button>
+                    <div class="col-75">
+                      <select id="datingLiterature" multiple style="width: 100%;"></select>
                     </div>
-
-                    <!-- Container to display added literature -->
-                    <div class="col-25"></div>
-                    <div class="col-75" id="absDating_literature_container" style="padding-left: 14px; margin-top: 0px;"></div>
                   </div>
 
                 </fieldset>
@@ -2842,6 +2637,7 @@
     <script src="js/confirm.js"></script>
     <script src="js/defaultValues.js"></script>
     <script src="js/formatService.js"></script>
+    <script src="js/input/multi-select.js"></script>
     <script src="js/input/codeNameFilter.js"></script>
     <script src="js/leafletMap.js"></script>
     <script src="js/reverseGeocoding.js"></script>
@@ -2853,23 +2649,18 @@
     <!-- research project -->
     <script src="js/input/researchProject.js"></script>
     <script src="js/input/researchProject-dropdown.js"></script>
-    <script src="js/input/researchProject-boxes.js"></script>
 
     <!-- user and institution -->
     <script src="js/input/institution.js"></script>
     <script src="js/input/institution-dropdown.js"></script>
-    <script src="js/input/institution-boxes.js"></script>
     <script src="js/input/user.js"></script>
     <script src="js/input/user-dropdown.js"></script>
-    <script src="js/input/user-boxes.js"></script>
 
     <!-- literature -->
     <script src="js/input/author.js"></script>
     <script src="js/input/author-dropdown.js"></script>
-    <script src="js/input/author-boxes.js"></script>
     <script src="js/input/literature.js"></script>
     <script src="js/input/literature-dropdown.js"></script>
-    <script src="js/input/literature-boxes.js"></script>
 
     <!-- site -->
     <script src="js/input/site.js"></script>

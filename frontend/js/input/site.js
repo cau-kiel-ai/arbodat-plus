@@ -6,115 +6,15 @@ async function getSites() {
 }
 
 // Select2 reference research projects dropdown -----------------------------------
-$('#siteResearchProjects').select2({
-    placeholder: "",
-    allowClear: true,
-    width: "100%",
-});
-
-// remove arrow
-$('#siteResearchProjects')
-    .next('.select2-container')
-    .find('.select2-selection__arrow')
-    .remove();
-
-let siteResearchProjects_isReopening = false;
-$('#siteResearchProjects').on('select2:opening', async function (e) {
-    if (siteResearchProjects_isReopening) {
-        siteResearchProjects_isReopening = false;
-        return;
-    }
-
-    e.preventDefault(); // Prevent opening
-
-    // Disable dropdown and show "Loading..."
-    $('#siteResearchProjects')
-        .empty()
-        .append(new Option('Loading...', 'loading', true, true))
-        .trigger('change')
-        .prop('disabled', true); // Disable
-
-    try {
-        await getResearchProjects();
-    } finally {
-        // Enable and reset dropdown
-        $('#siteResearchProjects')
-            .prop('disabled', false) // Enable
-            .empty()
-            .append(new Option('', '', false, false));
-
-        // Update data
-        researchProjects.forEach(item => {
-            $('#siteResearchProjects').append(
-                new Option(item.projectName, item.id)
-            );
-        });
-
-        // Refresh UI
-        $('#siteResearchProjects').trigger('change.select2');
-
-        // Reopen dropdown
-        siteResearchProjects_isReopening = true;
-        setTimeout(() => {
-            $('#siteResearchProjects').select2('open');
-        }, 0);
-    }
+initLazyMultiSelect('#siteResearchProjects', {
+    load:   async () => { await getResearchProjects(); return researchProjects; },
+    format: item => item.projectName,
 });
 
 // Select2 refernce literature dropdown -------------------------------------------
-$('#siteLiterature').select2({
-    placeholder: "",
-    allowClear: true,
-    width: "100%",
-});
-
-// remove arrow
-$('#siteLiterature')
-    .next('.select2-container')
-    .find('.select2-selection__arrow')
-    .remove();
-
-let siteLiterature_isReopening = false;
-$('#siteLiterature').on('select2:opening', async function (e) {
-    if (siteLiterature_isReopening) {
-        siteLiterature_isReopening = false;
-        return;
-    }
-
-    e.preventDefault(); // Prevent opening
-
-    // Disable dropdown and show "Loading..."
-    $('#siteLiterature')
-        .empty()
-        .append(new Option('Loading...', 'loading', true, true))
-        .trigger('change')
-        .prop('disabled', true); // Disable
-
-    try {
-        await getLiterature();
-    } finally {
-        // Enable and reset dropdown
-        $('#siteLiterature')
-            .prop('disabled', false) // Enable
-            .empty()
-            .append(new Option('', '', false, false));
-
-        // Update data
-        literature.forEach(item => {
-            $('#siteLiterature').append(
-                new Option(formatLiterature(item), item.id)
-            );
-        });
-
-        // Refresh UI
-        $('#siteLiterature').trigger('change.select2');
-
-        // Reopen dropdown
-        siteLiterature_isReopening = true;
-        setTimeout(() => {
-            $('#siteLiterature').select2('open');
-        }, 0);
-    }
+initLazyMultiSelect('#siteLiterature', {
+    load:   async () => { await getLiterature(); return literature; },
+    format: formatLiterature,
 });
 
 // Populate DANTE dropdowns -------------------------------------------------------
@@ -136,227 +36,27 @@ document.addEventListener("DOMContentLoaded", async () => {
 });
 
 // Select2 instituitions dropdown -------------------------------------------------
-$('#siteInstitutions').select2({
-    placeholder: "",
-    allowClear: true,
-    width: "100%",
-});
-
-// remove arrow
-$('#siteInstitutions')
-    .next('.select2-container')
-    .find('.select2-selection__arrow')
-    .remove();
-
-let siteInstitutions_isReopening = false;
-$('#siteInstitutions').on('select2:opening', async function (e) {
-    if (siteInstitutions_isReopening) {
-        siteInstitutions_isReopening = false;
-        return;
-    }
-
-    e.preventDefault(); // Prevent opening
-
-    // Disable dropdown and show "Loading..."
-    $('#siteInstitutions')
-        .empty()
-        .append(new Option('Loading...', 'loading', true, true))
-        .trigger('change')
-        .prop('disabled', true); // Disable
-
-    try {
-        await getInstitutions();
-    } finally {
-        // Enable and reset dropdown
-        $('#siteInstitutions')
-            .prop('disabled', false) // Enable
-            .empty()
-            .append(new Option('', '', false, false));
-
-        // Update data
-        institutions.forEach(item => {
-            $('#siteInstitutions').append(
-                new Option(formatInstitution(item), item.id)
-            );
-        });
-
-        // Refresh UI
-        $('#siteInstitutions').trigger('change.select2');
-
-        // Reopen dropdown
-        siteInstitutions_isReopening = true;
-        setTimeout(() => {
-            $('#siteInstitutions').select2('open');
-        }, 0);
-    }
+initLazyMultiSelect('#siteInstitutions', {
+    load:   async () => { await getInstitutions(); return institutions; },
+    format: formatInstitution,
 });
 
 // Select2 site directors dropdown ------------------------------------------------
-$('#siteDirectors').select2({
-    placeholder: "",
-    allowClear: true,
-    width: "100%",
-});
-
-// remove arrow
-$('#siteDirectors')
-    .next('.select2-container')
-    .find('.select2-selection__arrow')
-    .remove();
-
-let siteDirectors_isReopening = false;
-$('#siteDirectors').on('select2:opening', async function (e) {
-    if (siteDirectors_isReopening) {
-        siteDirectors_isReopening = false;
-        return;
-    }
-
-    e.preventDefault(); // Prevent opening
-
-    // Disable dropdown and show "Loading..."
-    $('#siteDirectors')
-        .empty()
-        .append(new Option('Loading...', 'loading', true, true))
-        .trigger('change')
-        .prop('disabled', true); // Disable
-
-    try {
-        await getUsers();
-    } finally {
-        // Enable and reset dropdown
-        $('#siteDirectors')
-            .prop('disabled', false) // Enable
-            .empty()
-            .append(new Option('', '', false, false));
-
-        // Update data
-        users.forEach(item => {
-            $('#siteDirectors').append(
-                new Option(formatName(item), item.id)
-            );
-        });
-
-        // Refresh UI
-        $('#siteDirectors').trigger('change.select2');
-
-        // Reopen dropdown
-        siteDirectors_isReopening = true;
-        setTimeout(() => {
-            $('#siteDirectors').select2('open');
-        }, 0);
-    }
+initLazyMultiSelect('#siteDirectors', {
+    load:   async () => { await getUsers(); return users; },
+    format: formatName,
 });
 
 // Select2 archeologists dropdown -------------------------------------------------
-$('#archeologists').select2({
-    placeholder: "",
-    allowClear: true,
-    width: "100%",
-});
-
-// remove arrow
-$('#archeologists')
-    .next('.select2-container')
-    .find('.select2-selection__arrow')
-    .remove();
-
-let archeologists_isReopening = false;
-$('#archeologists').on('select2:opening', async function (e) {
-    if (archeologists_isReopening) {
-        archeologists_isReopening = false;
-        return;
-    }
-
-    e.preventDefault(); // Prevent opening
-
-    // Disable dropdown and show "Loading..."
-    $('#archeologists')
-        .empty()
-        .append(new Option('Loading...', 'loading', true, true))
-        .trigger('change')
-        .prop('disabled', true); // Disable
-
-    try {
-        await getUsers();
-    } finally {
-        // Enable and reset dropdown
-        $('#archeologists')
-            .prop('disabled', false) // Enable
-            .empty()
-            .append(new Option('', '', false, false));
-
-        // Update data
-        users.forEach(item => {
-            $('#archeologists').append(
-                new Option(formatName(item), item.id)
-            );
-        });
-
-        // Refresh UI
-        $('#archeologists').trigger('change.select2');
-
-        // Reopen dropdown
-        archeologists_isReopening = true;
-        setTimeout(() => {
-            $('#archeologists').select2('open');
-        }, 0);
-    }
+initLazyMultiSelect('#archeologists', {
+    load:   async () => { await getUsers(); return users; },
+    format: formatName,
 });
 
 // Select2 botanists dropdown -----------------------------------------------------
-$('#botanists').select2({
-    placeholder: "",
-    allowClear: true,
-    width: "100%",
-});
-
-// remove arrow
-$('#botanists')
-    .next('.select2-container')
-    .find('.select2-selection__arrow')
-    .remove();
-
-let botanists_isReopening = false;
-$('#botanists').on('select2:opening', async function (e) {
-    if (botanists_isReopening) {
-        botanists_isReopening = false;
-        return;
-    }
-
-    e.preventDefault(); // Prevent opening
-
-    // Disable dropdown and show "Loading..."
-    $('#botanists')
-        .empty()
-        .append(new Option('Loading...', 'loading', true, true))
-        .trigger('change')
-        .prop('disabled', true); // Disable
-
-    try {
-        await getUsers();
-    } finally {
-        // Enable and reset dropdown
-        $('#botanists')
-            .prop('disabled', false) // Enable
-            .empty()
-            .append(new Option('', '', false, false));
-
-        // Update data
-        users.forEach(item => {
-            $('#botanists').append(
-                new Option(formatName(item), item.id)
-            );
-        });
-
-        // Refresh UI
-        $('#botanists').trigger('change.select2');
-
-        // Reopen dropdown
-        botanists_isReopening = true;
-        setTimeout(() => {
-            $('#botanists').select2('open');
-        }, 0);
-    }
+initLazyMultiSelect('#botanists', {
+    load:   async () => { await getUsers(); return users; },
+    format: formatName,
 });
 
 // Populate coordinate system dropdown --------------------------------------------
@@ -498,7 +198,7 @@ function create_update_site() {
     // "At least one research project" is not a native constraint of the select: set (or clear) the message
     // before the form is checked, otherwise the message of the last failed submit makes the next one fail too.
     document.getElementById("siteResearchProjects").setCustomValidity(
-        window.siteResearchProjectList.length > 0 ? "" : "You must add at least one research project");
+        $('#siteResearchProjects').val().length > 0 ? "" : "You must select at least one research project");
 
     if ( siteForm.checkValidity() ) {
     
@@ -543,8 +243,8 @@ function create_update_site() {
         
         // Create payload
         var payload = {
-            researchProjectList: siteResearchProjectList,
-            literatureList: siteLiteratureList,
+            researchProjectList: selectedRefs('#siteResearchProjects'),
+            literatureList: selectedRefs('#siteLiterature'),
             activityNumbers: ($('#activityNumbers').val() || []).map(value => value.trim()).filter(Boolean),
             label: site_label.value.trim(),
             labelAbbreviation: site_label_abbrev.value.trim(),
@@ -555,9 +255,9 @@ function create_update_site() {
             naturalUnit: naturalUnitId ? { id: naturalUnitId, label: naturalUnitLabel } : null,
             undisturbed: condition_undisturbed_site.checked,
             remarksSite: remarks.value.trim(),
-            siteDirectors: siteDirectorList,
-            botanists: siteBotanistList,
-            archaeologists: siteArcheologistList,
+            siteDirectors: selectedRefs('#siteDirectors'),
+            botanists: selectedRefs('#botanists'),
+            archaeologists: selectedRefs('#archeologists'),
             address: {
                 country: country,
                 county: county,
@@ -585,7 +285,7 @@ function create_update_site() {
 
             // Add site id to payload
             payload.id = siteId;
-            payload.institutionList = window.siteInstitutionList;
+            payload.institutionList = selectedRefs('#siteInstitutions');
 
             confirmUpdate("site").then(confirmed => {
                 if (!confirmed) return;
@@ -606,7 +306,7 @@ function create_update_site() {
             // Create FormData object
             const formData = new FormData();
             // Add institutionList and site payload
-            formData.append("institutionList", new Blob([JSON.stringify(siteInstitutionList)], { type: "application/json" }));
+            formData.append("institutionList", new Blob([JSON.stringify(selectedRefs('#siteInstitutions'))], { type: "application/json" }));
             formData.append("transferredSite", new Blob([JSON.stringify(payload)], { type: "application/json" }));
 
             axios.post('api/sites', formData, {
@@ -622,16 +322,11 @@ function create_update_site() {
                 siteForm.reset();
                 $('#activityNumbers').empty().val(null).trigger('change');
                 applyDefaults("site");
-                siteLiteratureList.length = [];
-                document.getElementById("siteLiteratureContainer").innerHTML = '';
-                siteInstitutionList.length = [];
-                document.getElementById("siteInstitutionContainer").innerHTML = '';
-                siteDirectorList.length = [];
-                document.getElementById("siteDirectorContainer").innerHTML = '';
-                siteArcheologistList.length = [];
-                document.getElementById("ArcheologistContainer").innerHTML = '';
-                siteBotanistList.length = [];
-                document.getElementById("BotanistContainer").innerHTML = '';
+                clearMultiSelect('#siteLiterature');
+                clearMultiSelect('#siteInstitutions');
+                clearMultiSelect('#siteDirectors');
+                clearMultiSelect('#archeologists');
+                clearMultiSelect('#botanists');
                 // ----------------------------------------------------------------
             })
             .catch(error => {

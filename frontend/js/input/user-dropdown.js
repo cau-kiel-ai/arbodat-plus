@@ -7,8 +7,6 @@ document.addEventListener("DOMContentLoaded", () => {
     const id = document.getElementById("userId");
     const inputField = document.getElementById("last_name");
     const submit_update_button = document.getElementById("userSubmitButton");
-
-    const institutionContainer = document.getElementById("institutionContainer");
     // --------------------------------------------------------------------------
     
     let activeIndex = -1;
@@ -83,9 +81,7 @@ document.addEventListener("DOMContentLoaded", () => {
             middleNameInput.value  = "";
             mailAddressInput.value = "";
             orcidInput.value       = "";
-            // Reset list and container
-            window.institutionList = []
-            institutionContainer.innerHTML = "";
+            clearMultiSelect('#userInstitutions');
             // ---------------------------------
         }
     });
@@ -117,17 +113,7 @@ document.addEventListener("DOMContentLoaded", () => {
         mailAddressInput.value = item.mailAddress;
         orcidInput.value       = item.orcid;
         
-        // Reset institutionList and institutionContainer
-        window.institutionList = [];
-        institutionContainer.innerHTML = '';
-        
-        // Add institutions to institutionList and institutionContainer
-        item.institutionList.forEach(item => {
-            const itemText = formatInstitution(item);
-            const data = { id: item.id };
-            const index = institutionList.push(data) - 1;
-            addInstitutionItemBox(itemText, index, "institutionList", "institutionContainer");         
-        });
+        setMultiSelect('#userInstitutions', item.institutionList, formatInstitution);
         // ------------------------------------------------------------
     }
 
@@ -138,9 +124,7 @@ document.addEventListener("DOMContentLoaded", () => {
         submit_update_button.innerHTML = "create";
         // Customise here ------------------
         userForm.reset();
-        // Reset list and container
-        window.institutionList = []
-        institutionContainer.innerHTML = "";
+        clearMultiSelect('#userInstitutions');
         // ---------------------------------
         inputField.focus();
     });

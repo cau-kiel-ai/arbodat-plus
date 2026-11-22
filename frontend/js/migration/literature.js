@@ -37,9 +37,7 @@ function openLiteraturWindow (rowId, siteId, authors, publicationYear) {
 
     // Reset literatureForm
     document.getElementById('literatureForm').reset();
-    $('#literatureAuthors').val(null).trigger('change');
-    literatureAuthorList = [];
-    document.getElementById("literatureAuthorContainer").innerHTML = "";
+    clearMultiSelect('#literatureAuthors');
     document.getElementById("literatureId").value = '';
     document.getElementById("literatureSubmitButton").innerHTML = "create";
 

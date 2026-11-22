@@ -8,7 +8,6 @@ document.addEventListener("DOMContentLoaded", () => {
     const inputField = document.getElementById("subsample");
     const submit_update_button = document.getElementById("absDating_submit_update_button");
 
-    const literature_container = document.getElementById("absDating_literature_container");
     // ------------------------------------------------------------------------------------
 
     let activeIndex = -1;
@@ -125,17 +124,7 @@ document.addEventListener("DOMContentLoaded", () => {
         // Customise here -------------------------------------------
         inputField.value = item.subSample;
         
-        // Reset literature list and container
-        absoluteDatingLiteratureList = []
-        literature_container.innerHTML = "";
-
-        // Add literature to list and container
-        item.literatureList.forEach(item => {
-            const itemText = formatLiterature(item);            
-            const literatureData = { id: item.id };
-            const index = absoluteDatingLiteratureList.push(literatureData) - 1;
-            addLiteratureItemBox(itemText, index, "absoluteDatingLiteratureList", "absDating_literature_container");
-        });
+        setMultiSelect('#datingLiterature', item.literatureList, formatLiterature);
         
         $('#material').val(item.material?.id ?? '').trigger('change');
         remarksTextarea.value = item.remarks;

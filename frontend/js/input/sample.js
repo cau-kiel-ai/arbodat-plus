@@ -288,59 +288,9 @@ document.addEventListener('DOMContentLoaded', async function () {
 });
 
 // Select2 botDetBy dropdown --------------------------------------------------
-$('#botanicalDeterminationsBy').select2({
-    placeholder: "",
-    allowClear: true,
-    width: "100%",
-});
-
-// remove arrow
-$('#botanicalDeterminationsBy')
-    .next('.select2-container')
-    .find('.select2-selection__arrow')
-    .remove();
-
-let botanicalDeterminationsBy_isReopening = false;
-$('#botanicalDeterminationsBy').on('select2:opening', async function (e) {
-    if (botanicalDeterminationsBy_isReopening) {
-        botanicalDeterminationsBy_isReopening = false;
-        return;
-    }
-
-    e.preventDefault(); // Prevent opening
-
-    // Disable dropdown and show "Loading..."
-    $('#botanicalDeterminationsBy')
-        .empty()
-        .append(new Option('Loading...', 'loading', true, true))
-        .trigger('change')
-        .prop('disabled', true); // Disable
-
-    try {
-        await getUsers();
-    } finally {
-        // Enable and reset dropdown
-        $('#botanicalDeterminationsBy')
-            .prop('disabled', false) // Enable
-            .empty()
-            .append(new Option('', '', false, false));
-
-        // Update data
-        users.forEach(item => {
-            $('#botanicalDeterminationsBy').append(
-                new Option(formatName(item), item.id)
-            );
-        });
-
-        // Refresh UI
-        $('#botanicalDeterminationsBy').trigger('change.select2');
-
-        // Reopen dropdown
-        botanicalDeterminationsBy_isReopening = true;
-        setTimeout(() => {
-            $('#botanicalDeterminationsBy').select2('open');
-        }, 0);
-    }
+initLazyMultiSelect('#botanicalDeterminationsBy', {
+    load:   async () => { await getUsers(); return users; },
+    format: formatName,
 });
 
 // Populate DANTE dropdowns ---------------------------------------------------
@@ -381,7 +331,7 @@ function create_update_sample() {
             depthFrom: depth_from_input.value,
             depthTo: depth_to_input.value,
             // Measurement details -------------------------------
-            botanicalDeterminationBy: sampleBotanicalDeterminationByList,
+            botanicalDeterminationBy: selectedRefs('#botanicalDeterminationsBy'),
             botanicalDeterminationYear: year_of_bot_det_input.value,
             sampleStorage: sample_storage_checkbox.checked,
             microRemain: micro_remain_checkbox.checked,
@@ -511,6 +461,5 @@ function resetSampleForm() {
     $('#chronozone').val(null).trigger('change');
     applyDefaults("sample");
 
-    sampleBotanicalDeterminationByList = [];
-    document.getElementById("botanicalDeterminationByContainer").innerHTML = "";
+    clearMultiSelect('#botanicalDeterminationsBy');
 }
