@@ -401,5 +401,17 @@ button:hover{
 @import '../vendor/bootstrap@5.3.8/scss/bootstrap';
 @import 'stickyAccordion';
 @import 'multiSelectEditor';
+
+// Number cells of the tables (e.g. coordinates): typed only, without the spin buttons
+.tabulator input[type=number] {
+    appearance: textfield;
+    -moz-appearance: textfield;
+
+    &::-webkit-outer-spin-button,
+    &::-webkit-inner-spin-button {
+        -webkit-appearance: none;
+        margin: 0;
+    }
+}
 @import 'footer';
 @import 'navbar';

@@ -148,15 +148,6 @@ function addLabelToJSON(itemId, attribute, button) {
     }, rows);
 }
 
-function addLabelToJSONWithItem(button, attribute) {
-    // attributes: 'coordinateSystemSite', 'coordinateSystemSample' (results: addResultsToJSON, C14 laboratories: addC14LabCodesToJSON)
-    const row = button.closest("tr");
-
-    if (attribute == "coordinateSystemSite" || attribute == "coordinateSystemSample") {
-        addCoordinatesToJSON(row, attribute);
-    }
-}
-
 // Results -------------------------------------------------------------------
 // (rows are Tabulator rows of the result tables, see result.js)
 
@@ -277,44 +268,7 @@ function addResultsToJSON(row) {
     addGroupToJSON({ ...clicked.data, items: payloads }, rows, skippedReasons, removeResultRows);
 }
 
-// Coordinates ---------------------------------------------------------------
-
-function readCoordinateRow(row, attribute) {
-    // Get latitude, longitude, altitude, remarks from input
-    const longitude = parseFloat(row.cells[2].querySelector("input").value);
-    const latitude  = parseFloat(row.cells[3].querySelector("input").value);
-    const altitude  = parseFloat(row.cells[4].querySelector("input").value);
-
-    // WGS84 and remarks are shifted by one cell in the sample table
-    const offset = attribute == "coordinateSystemSite" ? 0 : 1;
-    const longitudeWgs84 = parseFloat(row.cells[7 + offset].querySelector("input").value);
-    const latitudeWgs84  = parseFloat(row.cells[8 + offset].querySelector("input").value);
-    const remarks        = row.cells[9 + offset].querySelector("textarea").value;
-
-    return {
-        [attribute == "coordinateSystemSite" ? "siteId" : "sampleId"]: row.dataset.itemId,
-        latitude:       latitude,
-        longitude:      longitude,
-        altitude:       altitude,
-        longitudeWgs84: longitudeWgs84,
-        latitudeWgs84:  latitudeWgs84,
-        remarks:        remarks,
-    };
-}
-
-// Adds the clicked coordinate and all coordinates of the same table with the same coordinate system
-function addCoordinatesToJSON(row, attribute) {
-    const label = row.dataset.coordinateSystem;
-
-    const rows = Array.from(row.closest("tbody").rows)
-        .filter(otherRow => otherRow === row || otherRow.dataset.coordinateSystem === label);
-
-    addGroupToJSON({
-        itemType: attribute === "coordinateSystemSite" ? "coordinateSite" : "coordinateSample",
-        nonMatching_coordinateSystem: label,
-        items: rows.map(otherRow => readCoordinateRow(otherRow, attribute))
-    }, rows);
-}
+// (coordinates: addCoordinatesToJSON in coordinates.js)
 
 // C14 laboratories ----------------------------------------------------------
 // (rows are Tabulator rows of the C14 table, see labsAndNumbers.js)
@@ -359,7 +313,13 @@ function addC14LabCodesToJSON(row) {
     }, rows, skippedReasons, rows => deleteTableRows(c14LabTable, rows.map(row => row.getData().id)));
 }
 
-// Common parts of the migration Tabulators (team, results, fractions analyzed, labs and numbers) ----
+// Common parts of the migration Tabulators (team, results, fractions analyzed, labs and numbers, coordinates) ----
+
+// Cell text, or a grey hint (e.g. "select", "enter") while the cell is empty
+const placeholderFormatter = (text, format = value => value) => cell =>
+    cell.getValue() || cell.getValue() === 0
+        ? escapeHtml(format(cell.getValue()))
+        : `<span class="migration-result-placeholder">${text}</span>`;
 
 // Checkbox column; the checkbox in the header (de)selects only the filtered rows
 function selectionColumn() {
@@ -414,7 +374,8 @@ function setupMigrationTable(table, { counter, copyFields = {} }) {
 // Tabulator can't measure itself in a collapsed accordion: redraw the migration tables once they are visible.
 // Tables which are still being built measure themselves (the accordions are open then).
 function redrawMigrationTables() {
-    const tables = [userTable, fractionTable, c14LabTable, labTable, ...[...resultTables.values()].map(site => site.table)];
+    const tables = [userTable, fractionTable, c14LabTable, labTable, siteCoordinateTable, sampleCoordinateTable,
+                    ...[...resultTables.values()].map(site => site.table)];
     tables.forEach(table => {
         if (table?.initialized) table.redraw(true);
     });

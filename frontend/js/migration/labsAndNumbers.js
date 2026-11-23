@@ -55,9 +55,6 @@ async function populateLabsAndNumbers(labAndNumberList) {
     labTable    = createLabTable(otherRows);
 }
 
-const placeholderFormatter = (text, format = value => value) => cell =>
-    cell.getValue() ? escapeHtml(format(cell.getValue())) : `<span class="migration-result-placeholder">${text}</span>`;
-
 const datingColumns = () => [
     selectionColumn(),
     filterTextColumn("Site", "siteLabel"),

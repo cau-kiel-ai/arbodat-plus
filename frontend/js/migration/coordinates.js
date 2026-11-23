@@ -1,441 +1,295 @@
-function populateCoordinates(coordinateList) {
-    const siteTableBody = document.getElementById("siteCoordinateTableBody");
-    const sampleTableBody = document.getElementById("sampleCoordinateTableBody");
-    
-    // Create lines
-    coordinateList.forEach(async item => {
-        const type = item.type;
+// Coordinates accordion: two Tabulators (sites, samples; only the visible rows are rendered), the rows are plain objects.
+// The coordinate system of ArboDat is shown; the DANTE coordinate system is chosen (copied to the other selected rows),
+// lon / lat WGS84 are computed from it (not for coordinate systems without EPSG code, e.g. 'local').
 
-        const row = document.createElement("tr");
-        row.dataset.itemType = type;
-        row.dataset.itemId = item.id;
-        row.dataset.coordinateSystem = item.coordinateSystem;
+let siteCoordinateTable = null;
+let sampleCoordinateTable = null;
+let coordinateRowCounter = 0;
 
-        if (type == "site") {
+// Coordinates per bulk request (requests are sent one after another)
+const COORDINATE_CHUNK_SIZE = 500;
 
-            let dropdown = `<select id="coordinateSystemDropdown_${type}_${item.id}"
-                                    onchange="updateCheckedDropdowns(this.value, 'siteCoordinateTableBody', 'coordinateSystemDropdown_')">
-                                    <option value=""></option>
-                            </select>`;
+function toCoordinateRow(item) {
+    const isSample = item.type === "sample";
+    return {
+        id:                      `coordinate_${++coordinateRowCounter}`,
+        type:                    item.type, // site or sample
+        entityId:                item.id,
+        siteLabel:               isSample ? item.siteLabel : item.label,
+        featureLabel:            isSample ? item.featureLabel : "",
+        sampleLabel:             isSample ? item.label : "",
+        longitude:               item.longitude,
+        latitude:                item.latitude,
+        altitude:                item.altitude,
+        zcoordinate:             item.zcoordinate, // shown only, the new database uses the altitude
+        arbodatCoordinateSystem: item.coordinateSystem ?? "",
+        coordinateSystem:        null, // uri (DANTE)
+        longitudeWgs84:          null,
+        latitudeWgs84:           null,
+        remarks:                 item.remarks ?? "",
+        error:                   "",   // reason, if the last 'Create' failed
+    };
+}
 
-            // Add columns
-            row.innerHTML = `
-                <td><input type="checkbox"></td>
-                <td>${escapeHtml(item.label)}</td>
-                <td>
-                    <input type="text" 
-                           id="longitudeInput_${type}_${item.id}" 
-                           value="${escapeHtml(item.longitude)}"
-                           style="font-size: 10px; padding-top: 16px; padding-bottom: 16px; ">
-                </td>
-                <td>
-                    <input type="text" 
-                           id="latitudeInput_${type}_${item.id}" 
-                           value="${escapeHtml(item.latitude)}"
-                           style="font-size: 10px; padding-top: 16px; padding-bottom: 16px;">
-                </td>
-                <td>
-                    <input type="text" 
-                           id="altitudeInput_${type}_${item.id}" 
-                           value="${escapeHtml(item.altitude)}"
-                           style="font-size: 10px; padding-top: 16px; padding-bottom: 16px;">
-                </td>
-                <td>
-                    ${escapeHtml(item.coordinateSystem)}
-                    <br>
-                        <button type="button"
-                                data-item='${encodeRowItem(item)}'
-                                onclick="addLabelToJSONWithItem(this, 'coordinateSystemSite')">
-                                Add&#8239to&#8239JSON
-                        </button>
-                </td>
-                <td>${dropdown}</td>
-                <td>
-                    <input type="text" 
-                           id="longitudeWGS84Input_${type}_${item.id}" 
-                           value=""
-                           style="font-size: 10px; padding-top: 16px; padding-bottom: 16px;">
-                </td>
-                <td>
-                    <input type="text" 
-                           id="latitudeWGS84Input_${type}_${item.id}" 
-                           value=""
-                           style="font-size: 10px; padding-top: 16px; padding-bottom: 16px;">
-                </td>
-                <td style="width: 200px">
-                    <textarea id="remarksInput_${type}_${item.id}" 
-                              style="font-size: 10px; width: 100%; height: 65px;">
-                    </textarea>        
-                </td>
-                <td>
-                    <button type = "button"
-                            onclick="createCoordinate('${type}', '${item.id}', this.closest('tr'))">
-                            Create
-                    </button>
-                </td>
-            `;            
+async function populateCoordinates(coordinateList) {
+    await loadDanteListOptions(["coordinateSystem"]);
 
-            siteTableBody.appendChild(row);
+    const rows = coordinateList.map(toCoordinateRow);
+    const siteRows   = rows.filter(row => row.type === "site");
+    const sampleRows = rows.filter(row => row.type === "sample");
 
-            // Set value of remarks textarea
-            document.getElementById(`remarksInput_${type}_${item.id}`).value = item.remarks;
+    // Sites migrated later: add the rows to the tables
+    if (siteCoordinateTable) {
+        siteCoordinateTable.addData(siteRows);
+        sampleCoordinateTable.addData(sampleRows);
+        return;
+    }
+    siteCoordinateTable   = createCoordinateTable("site", siteRows);
+    sampleCoordinateTable = createCoordinateTable("sample", sampleRows);
+}
 
-            // Handle coordinate input            
-            // --------------------- customise here ---------------------
-            const coordinate_system_dropdown = document.getElementById(`coordinateSystemDropdown_${type}_${item.id}`);
-            const longitude_input = document.getElementById(`longitudeInput_${type}_${item.id}`);
-            const latitude_input  = document.getElementById(`latitudeInput_${type}_${item.id}`);
-            
-            let inputTimer;
-            const lon_wgs84 = document.getElementById(`longitudeWGS84Input_${type}_${item.id}`);
-            const lat_wgs84 = document.getElementById(`latitudeWGS84Input_${type}_${item.id}`);
-            // ----------------------------------------------------------
+// WGS84 -----------------------------------------------------------------------------------------
 
-            await fetchDanteAttribute("coordinateSystem");
-            populateDanteDropdown ("coordinateSystem", coordinate_system_dropdown);
+// EPSG code of a DANTE coordinate system (none e.g. for 'local')
+function coordinateSystemEpsg(uri) {
+    const notation = cachedCoordinateSystems.find(system => system.uri === uri)?.notation;
+    return Array.isArray(notation) ? notation[0] : notation;
+}
 
-            $(`#coordinateSystemDropdown_${type}_${item.id}`).on('change', handleCoordinateInput);
-            longitude_input.addEventListener("input", () => {
-                handleCoordinateInput();
-            });
-            latitude_input.addEventListener("input", () => {
-                handleCoordinateInput();
-            });
-            
-            async function handleCoordinateInput() {
-                if (inputTimer) {
-                    clearTimeout(inputTimer);
-                }
-                inputTimer = setTimeout(async () => {
-            
-                    // Parse input
-                    const longitude = parseFloat(longitude_input.value);
-                    const latitude = parseFloat(latitude_input.value);
-                    const coordinateSystem = coordinate_system_dropdown.options[coordinate_system_dropdown.selectedIndex];
-                    let sourceEPSG = coordinateSystem?.getAttribute('data-crsNotation');
-                
-                    if (longitude && latitude && sourceEPSG && sourceEPSG !== "undefined") {
-                        try {
-                            // transform coordinates to WGS84
-                            const { transformedLatitude, transformedLongitude } =
-                            await transformCoordinatesToWGS84(longitude, latitude, sourceEPSG);
-            
-                            if (!isNaN(transformedLatitude) && !isNaN(transformedLongitude) && transformedLatitude != null) { // Update wgs84 fields
-                                lat_wgs84.value = transformedLatitude;
-                                lon_wgs84.value = transformedLongitude;
-                            }
-                        } catch { // Clear wgs84 fields
-                            console.log("failed to transform coordinates to WGS84");
-                        }
-                    }  
-                }, 1000);  // ms
-            }
+// lon / lat WGS84 of a row, or null if they can't be computed (the fields then keep their values)
+async function computeWgs84(data) {
+    const longitude = parseFloat(data.longitude);
+    const latitude  = parseFloat(data.latitude);
+    const epsg = coordinateSystemEpsg(data.coordinateSystem);
+    if (!longitude || !latitude || !epsg) return null;
 
-        } else if (type == "sample") {
+    try {
+        const { transformedLongitude, transformedLatitude } = await transformCoordinatesToWGS84(longitude, latitude, epsg);
+        if (transformedLongitude == null || transformedLatitude == null
+                || isNaN(transformedLongitude) || isNaN(transformedLatitude)) return null;
+        return { longitudeWgs84: Number(transformedLongitude), latitudeWgs84: Number(transformedLatitude) };
+    } catch {
+        console.log("failed to transform coordinates to WGS84");
+        return null;
+    }
+}
 
-            let dropdown = `<select id="coordinateSystemDropdown_${type}_${item.id}"
-                                    onchange="updateCheckedDropdowns(this.value, 'sampleCoordinateTableBody', 'coordinateSystemDropdown_')">
-                                    <option value=""></option>
-                            </select>`;
+// The coordinate system chosen in a selected row goes to all selected rows; lon / lat WGS84 of the rows are computed
+async function applyCoordinateSystem(table, row, uri) {
+    const rows = row.isSelected() ? table.getSelectedData() : [row.getData()];
+    const updates = await Promise.all(rows.map(async data => ({
+        id: data.id,
+        coordinateSystem: uri,
+        ...await computeWgs84({ ...data, coordinateSystem: uri }),
+    })));
+    await updateTableRows(table, updates);
+}
 
-            // Add columns
-            row.innerHTML = `
-                <td><input type="checkbox"></td>
-                <td>${escapeHtml(item.siteLabel)}
-                    <br>
-                    ${escapeHtml(item.featureLabel)}
-                    <br>
-                    ${escapeHtml(item.label)}
-                </td>                
-                <td>
-                    <input type="text" 
-                           id="longitudeInput_${type}_${item.id}" 
-                           value="${escapeHtml(item.longitude)}"
-                           style="font-size: 10px; padding-top: 16px; padding-bottom: 16px; ">
-                </td>
-                <td>
-                    <input type="text" 
-                           id="latitudeInput_${type}_${item.id}" 
-                           value="${escapeHtml(item.latitude)}"
-                           style="font-size: 10px; padding-top: 16px; padding-bottom: 16px; ">
-                </td>
-                <td>
-                    <input type="text" 
-                           id="altitudeInput_${type}_${item.id}" 
-                           value="${escapeHtml(item.altitude)}"
-                           style="font-size: 10px; padding-top: 16px; padding-bottom: 16px; ">
-                </td>
-                <td style="padding-top: 20px;">${escapeHtml(item.zcoordinate)}</td>
-                <td>
-                    ${escapeHtml(item.coordinateSystem)}
-                    <br>
-                    <button type="button"
-                                data-item='${encodeRowItem(item)}'
-                                onclick="addLabelToJSONWithItem(this, 'coordinateSystemSample')">
-                                Add&#8239to&#8239JSON
-                    </button>
-                </td>
-                <td>${dropdown}</td>
-                <td>
-                    <input type="text" 
-                           id="longitudeWGS84Input_${type}_${item.id}" 
-                           value=""
-                           style="font-size: 10px; padding-top: 16px; padding-bottom: 16px; ">
-                </td>
-                <td>
-                    <input type="text" 
-                           id="latitudeWGS84Input_${type}_${item.id}" 
-                           value=""
-                           style="font-size: 10px; padding-top: 16px; padding-bottom: 16px; ">
-                </td>
-                <td style="width: 200px">
-                    <textarea id="remarksInput_${type}_${item.id}" 
-                              style="font-size: 10px; width: 100%; height: 65px;">
-                    </textarea>        
-                </td>
-                <td>
-                    <button type = "button"
-                            onclick="createCoordinate('${type}', '${item.id}', this.closest('tr'))">
-                            Create
-                    </button>
-                </td>
-            `;
+// Table -------------------------------------------------------------------------------------------
 
-            sampleTableBody.appendChild(row);
+function createCoordinateTable(type, rows) {
+    const isSample = type === "sample";
+    const systemLabels = danteListOptions.get("coordinateSystem").labels;
+    const table = () => isSample ? sampleCoordinateTable : siteCoordinateTable;
 
-            // Set value of remarks textarea
-            document.getElementById(`remarksInput_${type}_${item.id}`).value = item.remarks;
+    const numberColumn = (title, field) => ({
+        title, field, headerSort: false, minWidth: 100,
+        editor: "number", formatter: placeholderFormatter("enter"),
+    });
 
-            // Handle coordinate input
-            // --------------------- customise here ---------------------
-            const coordinate_system_dropdown = document.getElementById(`coordinateSystemDropdown_${type}_${item.id}`);
-            const longitude_input = document.getElementById(`longitudeInput_${type}_${item.id}`);
-            const latitude_input  = document.getElementById(`latitudeInput_${type}_${item.id}`);
-            
-            let inputTimer;
-            const lon_wgs84 = document.getElementById(`longitudeWGS84Input_${type}_${item.id}`);
-            const lat_wgs84 = document.getElementById(`latitudeWGS84Input_${type}_${item.id}`);
-            // ----------------------------------------------------------
-
-            await fetchDanteAttribute("coordinateSystem");
-            populateDanteDropdown ("coordinateSystem", coordinate_system_dropdown);
-
-            $(`#coordinateSystemDropdown_${type}_${item.id}`).on('change', handleCoordinateInput);
-            longitude_input.addEventListener("input", () => {
-                handleCoordinateInput();
-            });
-            latitude_input.addEventListener("input", () => {
-                handleCoordinateInput();
-            });
-            
-            async function handleCoordinateInput() {
-                if (inputTimer) {
-                    clearTimeout(inputTimer);
-                }
-                inputTimer = setTimeout(async () => {
-            
-                    // Parse input
-                    const longitude = parseFloat(longitude_input.value);
-                    const latitude = parseFloat(latitude_input.value);
-                    const coordinateSystem = coordinate_system_dropdown.options[coordinate_system_dropdown.selectedIndex];
-                    let sourceEPSG = coordinateSystem?.getAttribute('data-crsNotation');
-                
-                    if (longitude && latitude && sourceEPSG != null) {
-                        try {
-                            // transform coordinates to WGS84
-                            const { transformedLatitude, transformedLongitude } =
-                            await transformCoordinatesToWGS84(longitude, latitude, sourceEPSG);
-            
-                            if (!isNaN(transformedLatitude) && !isNaN(transformedLongitude) && transformedLatitude != null) { // Update wgs84 fields
-                                lat_wgs84.value = transformedLatitude;
-                                lon_wgs84.value = transformedLongitude;
-                            }
-                        } catch { // Clear wgs84 fields
-                            console.log("failed to transform coordinates to WGS84");
-                        }
-                    }  
-                }, 1000);  // ms
-            }
+    const instance = newTabulator(document.getElementById(isSample ? "sampleCoordinateTable" : "siteCoordinateTable"), {
+        data: rows,
+        index: "id",
+        maxHeight: "70vh",
+        layout: "fitDataFill", // columns as wide as their content (no stretched last column)
+        placeholder: isSample ? "no sample coordinates" : "no site coordinates",
+        columns: [
+            selectionColumn(),
+            filterTextColumn("Site", "siteLabel"),
+            ...(isSample ? [filterTextColumn("Feature", "featureLabel"), filterTextColumn("Sample", "sampleLabel")] : []),
+            numberColumn(isSample ? "lon/x" : "lon", "longitude"),
+            numberColumn(isSample ? "lat/y" : "lat", "latitude"),
+            ...(isSample ? [{title: "z", field: "zcoordinate", headerSort: false, formatter: "plaintext"}] : []),
+            numberColumn("alt", "altitude"),
+            filterListColumn("coordinateSystem", "arbodatCoordinateSystem"),
+            {title: "dante coordinateSystem", field: "coordinateSystem", headerSort: false, minWidth: 220, maxWidth: 320,
+                tooltip: (e, cell) => cell.getElement().classList.contains("tabulator-editing") ? "" : escapeHtml(systemLabels.get(cell.getValue()) ?? ""),
+                editor: singleSelectEditor, editorParams: danteEditorParams("coordinateSystem"),
+                formatter: placeholderFormatter("select", uri => systemLabels.get(uri) ?? uri)},
+            numberColumn("lon WGS84", "longitudeWgs84"),
+            numberColumn("lat WGS84", "latitudeWgs84"),
+            {title: "remarks", field: "remarks", headerSort: false, minWidth: 140,
+                editor: "input", formatter: placeholderFormatter("enter")},
+            {title: "Create", headerSort: false, hozAlign: "center", width: 80, // as wide as the button
+                formatter: cell => {
+                    const error = cell.getRow().getData().error;
+                    return `<button type="button">Create</button>
+                            ${error ? `<div class="text-danger small text-wrap">${escapeHtml(error)}</div>` : ""}`;
+                },
+                cellClick: (e, cell) => {
+                    if (e.target.closest("button")) createCoordinates(table(), cell.getRow());
+                },
+            },
+            {title: "Add to JSON", headerSort: false, hozAlign: "center", width: 110, // as wide as the button
+                formatter: () => `<button type="button">Add&#8239;to&#8239;JSON</button>`,
+                cellClick: (e, cell) => {
+                    if (e.target.closest("button")) addCoordinatesToJSON(table(), cell.getRow());
+                },
+            },
+        ],
+    });
+    // The coordinate system is copied to the selected rows by applyCoordinateSystem (with their WGS84 values)
+    setupMigrationTable(instance, {
+        counter: document.getElementById(isSample ? "sampleCoordinateCounter" : "siteCoordinateCounter"),
+    });
+    instance.on("cellEdited", async cell => {
+        const field = cell.getField();
+        if (field === "coordinateSystem") {
+            await applyCoordinateSystem(instance, cell.getRow(), cell.getValue());
+        } else if (field === "longitude" || field === "latitude") {
+            const wgs84 = await computeWgs84(cell.getRow().getData());
+            if (wgs84) await updateTableRows(instance, [{ id: cell.getRow().getData().id, ...wgs84 }]);
         }
-        // Select2 coordinate system dropdown ---------------------
-        $(`#coordinateSystemDropdown_${type}_${item.id}`).select2({
-            placeholder: 'select',
-        });
-        // remove arrow
-        $(`#coordinateSystemDropdown_${type}_${item.id}`)
-            .next('.select2-container')
-            .find('.select2-selection__arrow')
-            .remove();
-        // --------------------------------------------------------
     });
+    return instance;
 }
 
-$(document).on('select2:open', 'select[id^="coordinateSystemDropdown_"]', function (e) {
-    applySelect2Styles($(e.target));
+// Tabulator can't measure itself in a collapsed accordion -> redraw when it is opened
+document.addEventListener("shown.bs.collapse", event => {
+    if (event.target.id === "panelsStayOpen-collapseSix" && siteCoordinateTable) {
+        siteCoordinateTable.redraw();
+        sampleCoordinateTable.redraw();
+    }
 });
 
-$(document).on('change', 'select[id^="coordinateSystemDropdown_"]', function (e) {
-    applySelect2Styles($(e.target));
-});
+// Create ----------------------------------------------------------------------------------------
 
-function applySelect2Styles($select) {
-    const $container = $select.next('.select2-container');
+const numberOrNull = value => {
+    const number = parseFloat(value);
+    return isNaN(number) ? null : number;
+};
 
-    $container.css({
-        width: '100%'
-    });
-    $container.find('.select2-selection__rendered').css({
-        fontSize: '10px'
-    });
-    $container.find('.select2-selection--single').css({
-        height: '43px'
-    });
+// Checks a coordinate row. Returns { item } or { reason, message } if it can not be created yet.
+function buildCoordinateItem(data) {
+    const longitude = numberOrNull(data.longitude);
+    if (!longitude) {
+        return { reason: "no longitude", message: "No longitude entered." };
+    }
+    const latitude = numberOrNull(data.latitude);
+    if (!latitude) {
+        return { reason: "no latitude", message: "No latitude entered." };
+    }
+    if (!data.coordinateSystem) {
+        return { reason: "no coordinate system", message: "No coordinateSystem selected." };
+    }
+    const system = cachedCoordinateSystems.find(item => item.uri === data.coordinateSystem);
 
-    const $dropdown = $('.select2-container--open .select2-dropdown');
-    $dropdown.css({
-        minWidth: '300px'
-    });
+    return { item: {
+        clientId: data.id,
+        type: data.type,
+        id: data.entityId,
+        coordinate: {
+            longitude,
+            latitude,
+            altitude:          numberOrNull(data.altitude),
+            longitudeWgs84:    numberOrNull(data.longitudeWgs84),
+            latitudeWgs84:     numberOrNull(data.latitudeWgs84),
+            remarksCoordinate: data.remarks,
+            // label and EPSG code only for a coordinate system which is not stored yet (an existing one is only referenced)
+            coordinateSystem: {
+                id:    data.coordinateSystem,
+                label: system?.prefLabel?.en ?? null,
+                epsg:  coordinateSystemEpsg(data.coordinateSystem) ?? null,
+            },
+        },
+    } };
 }
 
-async function createCoordinate(itemType, itemId, row, triggerNext = true) {
+// 'Create' button: creates the coordinate of the clicked row and of all other selected rows of the table
+async function createCoordinates(table, row) {
+    const data = row.getData();
 
-    // Get longitudeInput
-    const longitudeInput = document.getElementById(`longitudeInput_${itemType}_${itemId}`);
-    const longitude = longitudeInput ? parseFloat(longitudeInput.value) : null;
+    const clicked = buildCoordinateItem(data);
+    if (!clicked.item) {
+        toast.info(clicked.message);
+        return;
+    }
 
-    if (longitude && longitude != 'null') {
-
-        // Get latitudeInput
-        const latitudeInput = document.getElementById(`latitudeInput_${itemType}_${itemId}`);
-        const latitude = latitudeInput ? parseFloat(latitudeInput.value) : null;
-
-        if (latitude && latitude != 'null') {
-
-            // Get coordinateSystemDropdown
-            const coordinateSystemDropdown = document.getElementById(`coordinateSystemDropdown_${itemType}_${itemId}`);
-            const coordinateSystemId = coordinateSystemDropdown ? coordinateSystemDropdown.value : null;
-            const coordinateSystemLabel = coordinateSystemDropdown ?
-                coordinateSystemDropdown.options[coordinateSystemDropdown.selectedIndex].text
-                : null;
-
-            if (coordinateSystemId && coordinateSystemLabel) {
-
-                // Get altitudeInput
-                const altitudeInput = document.getElementById(`altitudeInput_${itemType}_${itemId}`);
-                const altitude = altitudeInput ? altitudeInput.value : null;
-
-                // Get longitudeWGS84Input
-                const longitudeWGS84Input = document.getElementById(`longitudeWGS84Input_${itemType}_${itemId}`);
-                const longitudeWGS84 = longitudeWGS84Input ? longitudeWGS84Input.value : null;
-
-                // Get latitudeWGS84Input
-                const latitudeWGS84Input = document.getElementById(`latitudeWGS84Input_${itemType}_${itemId}`);
-                const latitudeWGS84 = latitudeWGS84Input ? latitudeWGS84Input.value : null;
-
-                // Get remarksInput
-                const remarksInput = document.getElementById(`remarksInput_${itemType}_${itemId}`);
-                const remarksCoordinate = remarksInput ? remarksInput.value : null;
-
-                // Create payload
-                const payload = {
-                    longitude: longitude,
-                    longitudeWgs84: longitudeWGS84,
-                    latitude: latitude,
-                    latitudeWgs84: latitudeWGS84,
-                    altitude: altitude,
-                    remarksCoordinate: remarksCoordinate,
-                    coordinateSystem: {
-                        id: coordinateSystemId,
-                        label: coordinateSystemLabel
-                    }
-                }
-
-                try {
-                    const response = await fetch(
-                        `api/coordinates/${itemType}/${itemId}`,
-                        {
-                            method: 'POST',
-                            headers: {
-                                'Content-Type': 'application/json'
-                            },
-                            body: JSON.stringify(payload)
-                        }
-                    );
-                    if (!response.ok) {
-                        throw new Error(`HTTP Error! Status: ${response.status}`);
-                    }
-                    const data = await response.text();
-                    console.log(data);
-
-                    row.remove();
-                    if (triggerNext) {
-                        const tableBodyId = itemType === 'site' ? 'siteCoordinateTableBody' : 'sampleCoordinateTableBody';
-                        createCheckedCoordinates(tableBodyId);
-                    }
-                    return true;
-
-                } catch (error) {
-                    console.error('Error:', error);
-                    toast.error("Failed to update Coordinate.");
-                }
-    
-            } else {
-                if (triggerNext) {
-                    toast.info(`No coordinateSystem selected.`);
-                }
-                return false;
-            }
+    const items = [clicked.item];
+    const skippedReasons = [];
+    table.getSelectedData().forEach(other => {
+        if (other.id === data.id) return;
+        const entry = buildCoordinateItem(other);
+        if (entry.item) {
+            items.push(entry.item);
         } else {
-            if (triggerNext) {
-                toast.info(`No latitude entered.`);
-            }
-            return false;
-        }    
-    } else {
-        if (triggerNext) {
-            toast.info(`No longitude entered.`);
+            skippedReasons.push(entry.reason);
         }
-        return false;
-    }
-}
-
-async function createCheckedCoordinates(tableBodyId) {
-    const tableBody = document.getElementById(tableBodyId);
-    if (tableBody) {
-        const checkboxes = Array.from(tableBody.querySelectorAll('input[type="checkbox"]:checked'));
-        const concurrencyLimit = 100;
-        showLoading();
-        try {
-            for (let i = 0; i < checkboxes.length; i += concurrencyLimit) {
-                const batch = checkboxes.slice(i, i + concurrencyLimit);
-
-                const promises = batch.map(async checkbox => {
-                    if (checkbox.disabled) return true;
-
-                    const row = checkbox.closest('tr');
-                    const itemType = row.dataset.itemType;
-                    const itemId = row.dataset.itemId;
-
-                    return createCoordinate(itemType, itemId, row, false);                    
-                });
-
-                await Promise.allSettled(promises);
-            };
-        } finally {
-            hideLoading();
-        }
-    }
-}
-
-// Filter the site and sample coordinates by coordinateSystem (see tableFilter.js)
-["siteCoordinateTableBody", "sampleCoordinateTableBody"].forEach(tableBodyId => {
-    createTableFilter({
-        tbody: tableBodyId,
-        counterColumns: [1, 3],
-        fields: [{
-            key: "coordinateSystem",
-            label: "coordinateSystem",
-            getValue: row => row.dataset.coordinateSystem ?? ""
-        }]
     });
-});
+
+    const created = [];
+    const errors = [];
+    showLoading();
+    try {
+        for (let i = 0; i < items.length; i += COORDINATE_CHUNK_SIZE) {
+            const chunk = items.slice(i, i + COORDINATE_CHUNK_SIZE);
+            try {
+                const response = await axios.post("api/coordinates/bulk", chunk);
+                response.data.forEach(status => {
+                    if (status.status === "created") created.push(status.clientId);
+                    else errors.push({ id: status.clientId, error: status.message || "failed" });
+                });
+            } catch (error) {
+                console.error("Error during bulk creation of coordinates: ", error);
+                const message = getErrorMessage(error);
+                chunk.forEach(item => errors.push({ id: item.clientId, error: message }));
+            }
+        }
+
+        if (created.length > 0) await deleteTableRows(table, created);
+        if (errors.length > 0)  await updateTableRows(table, errors);
+    } finally {
+        hideLoading();
+    }
+
+    // Summary --------------------------------------------------
+    if (items.length > 1 || skippedReasons.length > 0) {
+        let message = `${created.length} ${created.length === 1 ? "coordinate" : "coordinates"} created.`;
+        if (skippedReasons.length > 0) {
+            message += ` ${skippedReasons.length} selected skipped (${[...new Set(skippedReasons)].join(", ")}).`;
+        }
+        if (errors.length > 0) {
+            message += ` ${errors.length} failed (see the rows).`;
+        }
+        (errors.length > 0 ? toast.error : toast.success)(message);
+    } else if (errors.length > 0) {
+        toast.error("Failed to create coordinate: " + errors[0].error);
+    }
+}
+
+// Add to JSON -----------------------------------------------------------------------------------
+
+// Adds the clicked coordinate and all coordinates of the same table with the same coordinate system of ArboDat
+// (for a coordinate system which is not in DANTE)
+function addCoordinatesToJSON(table, row) {
+    const data = row.getData();
+    const label = data.arbodatCoordinateSystem;
+    const rows = table.getRows().filter(other => other === row || other.getData().arbodatCoordinateSystem === label);
+
+    addGroupToJSON({
+        itemType: data.type === "site" ? "coordinateSite" : "coordinateSample",
+        nonMatching_coordinateSystem: label,
+        items: rows.map(other => {
+            const values = other.getData();
+            return {
+                [values.type === "site" ? "siteId" : "sampleId"]: values.entityId,
+                latitude:       numberOrNull(values.latitude),
+                longitude:      numberOrNull(values.longitude),
+                altitude:       numberOrNull(values.altitude),
+                longitudeWgs84: numberOrNull(values.longitudeWgs84),
+                latitudeWgs84:  numberOrNull(values.latitudeWgs84),
+                remarks:        values.remarks,
+            };
+        }),
+    }, rows, [], rows => deleteTableRows(table, rows.map(row => row.getData().id)));
+}

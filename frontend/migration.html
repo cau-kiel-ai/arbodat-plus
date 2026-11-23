@@ -1075,59 +1075,23 @@
                 - If ‘local’ is selected as coordinate system, this can be described in the ‘remarks’ text field.<br>
                 - To select coordinate systems or create coordinates in several rows simultaneously select multiple rows.<br>
                 - To select or deselect a row use the checkbox on the left. To select or deselect <u>all</u> rows use the checkbox at the top left of a table.<br>
-                - To filter rows by coordinateSystem use the dropdown in the table header.
+                - To filter rows by site, feature, sample or coordinateSystem use the fields in the table header.
               </p>
 
               <form>
-                Site coordinates
-                <table class="table table-striped">
-                  <thead>
-                      <tr>
-                        <th>
-                          <input type="checkbox" onclick="toggleAllCheckboxes(this, 'siteCoordinateTableBody')">
-                        </th>
-                        <th>Site</th>
-                        <th style="min-width: 100px;">lon</th>
-                        <th style="min-width: 100px;">lat</th>
-                        <th style="min-width: 100px;">alt</th>
-                        <th>coordinateSystem</th>
-                        <th>dante coordinateSystem</th>
-                        <th style="min-width: 100px;">lon WGS84</th>
-                        <th style="min-width: 100px;">lat WGS84</th>
-                        <th style="min-width: 105px;">remarks</th>
-                        <th>Create Coordinate</th>
-                      </tr>
-                  </thead>
-                  <tbody id="siteCoordinateTableBody">
-                      <!-- Rows will be dynamically added here by populateCoordinates function -->
-                  </tbody>
-                </table>
+                <div class="d-flex flex-wrap align-items-center gap-3 mb-2">
+                  <strong>Site coordinates</strong>
+                  <span id="siteCoordinateCounter" class="small text-muted"></span>
+                </div>
+                <!-- Tabulator, created by populateCoordinates (coordinates.js) -->
+                <div id="siteCoordinateTable" class="migration-result-table"></div>
 
-                <br>Sample coordinates
-                <table class="table table-striped">
-                  <thead>
-                      <tr>
-                        <th>
-                          <input type="checkbox" onclick="toggleAllCheckboxes(this, 'sampleCoordinateTableBody')">
-                        </th>
-                        <th>Site<br>Feature<br>Sample</th>
-                        <th style="min-width: 100px;">lon/x</th>
-                        <th style="min-width: 100px;">lat/y</th>
-                        <th style="min-width: 100px;">alt</th>
-                        <th>z</th>
-                        <th>coordinateSystem</th>
-                        <th>dante coordinateSystem</th>
-                        <th style="min-width: 100px;">lon WGS84</th>
-                        <th style="min-width: 100px;">lat WGS84</th>
-                        <th style="min-width: 105px;">remarks</th>
-                        <th>Create Coordinate</th>
-                      </tr>
-                  </thead>
-                  <tbody id="sampleCoordinateTableBody">
-                      <!-- Rows will be dynamically added here by populateCoordinates function -->
-                  </tbody>
-                </table>
-
+                <div class="d-flex flex-wrap align-items-center gap-3 mb-2 mt-4">
+                  <strong>Sample coordinates</strong>
+                  <span id="sampleCoordinateCounter" class="small text-muted"></span>
+                </div>
+                <!-- Tabulator, created by populateCoordinates (coordinates.js) -->
+                <div id="sampleCoordinateTable" class="migration-result-table"></div>
               </form>
 
             </div>
@@ -1469,6 +1433,8 @@
     <script src="js/explorer/helper.js"></script>
 
     <!-- migration specific -->
+    <!-- shared by the accordion scripts below (e.g. placeholderFormatter while they load) -->
+    <script src="js/migration/helper.js"></script>
     <script src="js/migration/tableFilter.js"></script>
     <script src="js/migration/getSites.js"></script>
     <script src="js/migration/researchProject-dropdown.js"></script>
@@ -1481,7 +1447,6 @@
     <script src="js/migration/labsAndNumbers.js"></script>
     <script src="js/migration/result.js"></script>
     <script src="js/migration/displayAndDownload-JSON.js"></script>
-    <script src="js/migration/helper.js"></script>    
     
     <!-- input -->
     <script src="js/input/institution.js"></script>
