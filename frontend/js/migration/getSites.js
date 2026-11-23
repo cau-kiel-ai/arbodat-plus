@@ -34,15 +34,9 @@ async function getSites() {
 
     populateSites(response.data); // Integrate list of sites into frontend
     // show accordion section 1
-    var accordionElement1 = document.getElementById("panelsStayOpen-collapseOne");
-    if (!accordionElement1.classList.contains("show")) {
-      accordionElement1.classList.add("show");
-    }
+    showAccordionSection("panelsStayOpen-collapseOne");
     // show accordion section 2
-    var accordionElement2 = document.getElementById("panelsStayOpen-collapseTwo");
-    if (!accordionElement2.classList.contains("show")) {
-      accordionElement2.classList.add("show");
-    }
+    showAccordionSection("panelsStayOpen-collapseTwo");
     
   } catch (error) {
       console.error("Error uploading file", error);

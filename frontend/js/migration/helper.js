@@ -457,3 +457,15 @@ function hideTableIfTbodyEmpty(tbody) {
         }
     }
 }
+
+// Open an accordion section without animation and mark its header button as expanded,
+// so it is styled like a section opened by a click
+function showAccordionSection(collapseId) {
+    const collapseElement = document.getElementById(collapseId);
+    if (!collapseElement) return;
+    collapseElement.classList.add("show");
+    document.querySelectorAll(`[data-bs-target="#${collapseId}"]`).forEach(button => {
+        button.classList.remove("collapsed");
+        button.setAttribute("aria-expanded", "true");
+    });
+}
