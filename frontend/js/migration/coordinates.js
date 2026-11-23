@@ -97,6 +97,21 @@ function createCoordinateTable(type, rows) {
         editor: "number", formatter: placeholderFormatter("enter"),
     });
 
+    // alt of a sample: empty with a z value of ArboDat -> button which takes the z value
+    // (a press on the button doesn't start editing the cell; a click beside it does)
+    let pressedUseZ = false;
+    const altitudeColumn = {
+        ...numberColumn("alt", "altitude"),
+        formatter: cell => usesZValue(cell.getRow().getData())
+            ? `<button type="button" class="use-z-value">use z value</button>`
+            : placeholderFormatter("enter")(cell),
+        editable: () => !pressedUseZ,
+        cellClick: (e, cell) => {
+            pressedUseZ = false;
+            if (e.target.closest(".use-z-value")) useZValue(table(), cell.getRow());
+        },
+    };
+
     const instance = newTabulator(document.getElementById(isSample ? "sampleCoordinateTable" : "siteCoordinateTable"), {
         data: rows,
         index: "id",
@@ -110,7 +125,7 @@ function createCoordinateTable(type, rows) {
             numberColumn(isSample ? "lon/x" : "lon", "longitude"),
             numberColumn(isSample ? "lat/y" : "lat", "latitude"),
             ...(isSample ? [{title: "z", field: "zcoordinate", headerSort: false, formatter: "plaintext"}] : []),
-            numberColumn("alt", "altitude"),
+            isSample ? altitudeColumn : numberColumn("alt", "altitude"),
             filterListColumn("coordinateSystem", "arbodatCoordinateSystem"),
             {title: "dante coordinateSystem", field: "coordinateSystem", headerSort: false, minWidth: 220, maxWidth: 320,
                 tooltip: (e, cell) => cell.getElement().classList.contains("tabulator-editing") ? "" : escapeHtml(systemLabels.get(cell.getValue()) ?? ""),
@@ -138,6 +153,10 @@ function createCoordinateTable(type, rows) {
             },
         ],
     });
+    // Before the cell gets the focus (Tabulator starts editing on focus)
+    instance.element.addEventListener("mousedown", event => {
+        pressedUseZ = !!event.target.closest(".use-z-value");
+    }, true);
     // The coordinate system is copied to the selected rows by applyCoordinateSystem (with their WGS84 values)
     setupMigrationTable(instance, {
         counter: document.getElementById(isSample ? "sampleCoordinateCounter" : "siteCoordinateCounter"),
@@ -152,6 +171,18 @@ function createCoordinateTable(type, rows) {
         }
     });
     return instance;
+}
+
+// alt is empty, but ArboDat has a z value
+function usesZValue(data) {
+    const empty = value => value === null || value === undefined || value === "";
+    return empty(data.altitude) && !empty(data.zcoordinate);
+}
+
+// 'use z value': alt = z for the clicked row and for the other selected rows with an empty alt and a z value
+function useZValue(table, row) {
+    const rows = row.isSelected() ? table.getSelectedData().filter(usesZValue) : [row.getData()];
+    return updateTableRows(table, rows.map(data => ({ id: data.id, altitude: Number(data.zcoordinate) })));
 }
 
 // Tabulator can't measure itself in a collapsed accordion -> redraw when it is opened
