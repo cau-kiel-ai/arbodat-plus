@@ -473,7 +473,7 @@ public class MigrationService {
                         //  EVNr                        -> site_number
                         //  NaturE                      -> NaturalUnit entity -> label (Dante)
                         //  TK                          -> CoordinateMigration -> remarks
-                        //  rWert, hWert, üNN           -> CoordinateMigration
+                        //  rWert, hWert, üNN           -> CoordinateMigration (rWert = easting -> longitude, hWert = northing -> latitude)
                         //  ArchAusg                    -> archaeologicalExcavator
                         //  ArchBear                    -> archaeologicalEditor
                         //  Limes                       -> CoordinateMigration -> remarks
@@ -2065,9 +2065,10 @@ public class MigrationService {
         return false;
     }
 
+    // rWert (Rechtswert) is the easting (x -> longitude), hWert (Hochwert) the northing (y -> latitude)
     private static CoordinateMigration siteCoordinateMigration(Row row, UUID siteId, String siteLabel) {
         return new CoordinateMigration("site", siteId, siteLabel,
-                nonZeroValue(row, "rWert"), nonZeroValue(row, "hWert"), null, nonZeroValue(row, "üNN"),
+                nonZeroValue(row, "hWert"), nonZeroValue(row, "rWert"), null, nonZeroValue(row, "üNN"),
                 row.getString("KoordSys"), tkAndLimes(row), null, null);
     }
 

@@ -238,6 +238,10 @@ class MigrationServiceTest extends PostgresTest {
         assertEquals("TK = 5817", response.getCoordinateList().get(0).getRemarks());
         assertNull(siteRemarks("grid"));
 
+        // rWert (Rechtswert) is the easting -> longitude, hWert (Hochwert) the northing -> latitude
+        assertEquals(3480000.0, response.getCoordinateList().get(0).getLongitude());
+        assertEquals(5550000.0, response.getCoordinateList().get(0).getLatitude());
+
         // Altitude only: coordinate is set directly, TK and Limes in the coordinate remarks
         assertEquals(Map.of("altitude", 120.5, "remarks_coordinate", "TK = 5818, Limes = true"),
                      jdbc.queryForMap("SELECT c.altitude, c.remarks_coordinate FROM site s "
