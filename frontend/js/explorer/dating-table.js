@@ -1,6 +1,7 @@
 let datingTable;
 
 async function buildDatingTable() {
+    const build = tableBuild;
     const container = document.getElementById("table");
     const spinner = document.getElementById('tableSpinner');
     const tableContainer = document.querySelector('.table-container');
@@ -170,6 +171,9 @@ async function buildDatingTable() {
     await loadDanteListOptions(["material", "datingMethod", "c14Laboratory"]);
 
     // Create Table -------------------------------------------------------------
+    // Another table was chosen while the data was loading: this one is not shown
+    if (!isCurrentBuild(build)) return;
+
     datingTable = newTabulator("#table", {
         height: "100%",
         data: absoluteDatings,

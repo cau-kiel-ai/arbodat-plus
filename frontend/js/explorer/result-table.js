@@ -32,7 +32,8 @@ async function loadResults(params = {}) {
 }
 
 // Build the table in `selector`; columns in `hiddenFields` are hidden but still exported
-async function createResultTable({ selector, results, hiddenFields = [], height = "100%" }) {
+// isCurrent: false -> the table is not wanted any more (explorer: another table was chosen while loading), null is returned
+async function createResultTable({ selector, results, hiddenFields = [], height = "100%", isCurrent = () => true }) {
 
     // GET sites --------------------------------------------------------------
     let sites = [];
@@ -106,6 +107,8 @@ async function createResultTable({ selector, results, hiddenFields = [], height 
         const stateOfPreservation = cachedStateOfPreservation.find(sop => sop.uri === stateOfPreservationId) || null;
         return stateOfPreservation?.prefLabel.en ?? stateOfPreservationId;
     }
+
+    if (!isCurrent()) return null;
 
     // Create Table -------------------------------------------------------------
     const table = newTabulator(selector, {
@@ -648,6 +651,7 @@ function attachResultDeleteHandler(table, deleteButton) {
 
 // Explorer: build the table with all results -----------------------------------------
 async function buildResultTable() {
+    const build = tableBuild;
     const container = document.getElementById("table");
     const spinner = document.getElementById('tableSpinner');
     const tableContainer = document.querySelector('.table-container');
@@ -656,7 +660,10 @@ async function buildResultTable() {
     tableContainer.style.display = 'none';
 
     const results = await loadResults();
-    resultTable = await createResultTable({ selector: "#table", results });
+    // Another table chosen while the data was loading: this one is not shown
+    const table = await createResultTable({ selector: "#table", results, isCurrent: () => isCurrentBuild(build) });
+    if (!table) return;
+    resultTable = table;
     attachResultDeleteHandler(resultTable, document.getElementById("deleteRows-button"));
 
     // Hide spinner

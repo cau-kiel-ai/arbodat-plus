@@ -5,6 +5,7 @@ let siteTypeDownloadLabels    = new Map();
 let naturalUnitDownloadLabels = new Map();
 
 async function buildSiteTable() {
+    const build = tableBuild;
     const container = document.getElementById("table");
     const spinner = document.getElementById('tableSpinner');
     const tableContainer = document.querySelector('.table-container');
@@ -133,6 +134,9 @@ async function buildSiteTable() {
     }
 
     // Create Table -------------------------------------------------------------
+    // Another table was chosen while the data was loading: this one is not shown
+    if (!isCurrentBuild(build)) return;
+
     siteTable = newTabulator("#table", {
         height: "100%",
         data: sites,

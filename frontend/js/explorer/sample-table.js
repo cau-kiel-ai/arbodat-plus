@@ -2,6 +2,7 @@ let sampleTable;
 let fractionModalEscapeHandler; // document listener of the fractions popup, replaced on each table build
 
 async function buildSampleTable() {
+    const build = tableBuild;
     const container = document.getElementById("table");
     const spinner = document.getElementById('tableSpinner');
     const tableContainer = document.querySelector('.table-container');
@@ -95,6 +96,9 @@ async function buildSampleTable() {
     await loadDanteListOptions(["coordinateSystem", "sampleType", "chronozone", "seedsAndFruits", "woodSubfossile", "charcoalInvestigated"]);
 
     // Create Table -------------------------------------------------------------
+    // Another table was chosen while the data was loading: this one is not shown
+    if (!isCurrentBuild(build)) return;
+
     sampleTable = newTabulator("#table", {
         height: "100%",
         data: samples,

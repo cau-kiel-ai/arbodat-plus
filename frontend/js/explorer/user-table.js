@@ -1,6 +1,7 @@
 let userTable;
 
 async function buildUserTable() {
+    const build = tableBuild;
     const container = document.getElementById("table");
     const spinner = document.getElementById('tableSpinner');
     const tableContainer = document.querySelector('.table-container');
@@ -27,6 +28,9 @@ async function buildUserTable() {
     }
 
     // Create Table -------------------------------------------------------------
+    // Another table was chosen while the data was loading: this one is not shown
+    if (!isCurrentBuild(build)) return;
+
     userTable = newTabulator("#table", {
         height: "100%",
         data: users,

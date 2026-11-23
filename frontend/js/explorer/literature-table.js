@@ -1,6 +1,7 @@
 let literatureTable;
 
 async function buildLiteratureTable() {
+    const build = tableBuild;
     const container = document.getElementById("table");
     const spinner = document.getElementById('tableSpinner');
     const tableContainer = document.querySelector('.table-container');
@@ -28,6 +29,9 @@ async function buildLiteratureTable() {
 
 
     // Create Table -------------------------------------------------------------
+    // Another table was chosen while the data was loading: this one is not shown
+    if (!isCurrentBuild(build)) return;
+
     literatureTable = newTabulator("#table", {
         height: "100%",
         data: literature,

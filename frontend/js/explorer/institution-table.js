@@ -1,6 +1,7 @@
 let institutionTable;
 
 async function buildInstitutionTable() {
+    const build = tableBuild;
     const container = document.getElementById("table");
     const spinner = document.getElementById('tableSpinner');
     const tableContainer = document.querySelector('.table-container');
@@ -18,6 +19,9 @@ async function buildInstitutionTable() {
     }
 
     // Create Table -------------------------------------------------------------
+    // Another table was chosen while the data was loading: this one is not shown
+    if (!isCurrentBuild(build)) return;
+
     institutionTable = newTabulator("#table", {
         height: "100%",
         data: institutions,
