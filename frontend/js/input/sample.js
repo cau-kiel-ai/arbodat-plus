@@ -415,7 +415,7 @@ function create_update_sample() {
                 })
                 .catch(error => {
                     console.error('Error during PUT request to update sample:', error);
-                    toast.error("action failed");
+                    toast.error(error.response?.status === 409 ? getErrorMessage(error) : "action failed");
                 });
             });
         } else { // Create (POST) -----------------------------------------
@@ -434,7 +434,7 @@ function create_update_sample() {
             })
             .catch(error => {
                 console.error('Error during POST request to create sample:', error);
-                toast.error("action failed");
+                toast.error(error.response?.status === 409 ? getErrorMessage(error) : "action failed");
             });
         }
 

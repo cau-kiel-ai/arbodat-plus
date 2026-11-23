@@ -3,7 +3,12 @@ package arbodat.plus.controller;
 
 import arbodat.plus.model.*;
 import arbodat.plus.repository.*;
+import arbodat.plus.service.LabelTakenException;
+import arbodat.plus.service.LabelUniqueness;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.dao.DataIntegrityViolationException;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.*;
@@ -35,6 +40,9 @@ public class ResearchProjectController {
     @Autowired
     SiteRepository siteRepository;
 
+    @Autowired
+    LabelUniqueness labelUniqueness;
+
 
     @GetMapping
     public List<ResearchProject> getAllResearchProjects() {
@@ -43,6 +51,9 @@ public class ResearchProjectController {
 
     @PostMapping
     public String create(@RequestBody ResearchProject transferredResearchProject) {
+
+        // Name must be unique (before anything is saved)
+        labelUniqueness.checkResearchProject(transferredResearchProject.getProjectName(), null);
 
         // Handle license
         if (transferredResearchProject.getLicense() != null) {
@@ -63,6 +74,9 @@ public class ResearchProjectController {
 
         ResearchProject researchProject = researchProjectRepository.findById(researchProjectId)
                 .orElseThrow(() -> new IllegalArgumentException("invalid research project id: " + researchProjectId));
+
+        // Name must be unique
+        labelUniqueness.checkResearchProject(transferredResearchProject.getProjectName(), researchProjectId);
 
         // update attributes
         researchProject.setProjectName(transferredResearchProject.getProjectName());
@@ -97,6 +111,9 @@ public class ResearchProjectController {
                 updatedSites.add(site);
             }
         }
+
+        // Site labels must be unique within the research project
+        labelUniqueness.checkSitesOfResearchProject(updatedSites);
 
         // Remove old sites
         for (Site oldSite : new HashSet<>(currentSites)) {
@@ -137,5 +154,20 @@ public class ResearchProjectController {
 
         researchProjectRepository.delete(researchProject);
         return "research project is deleted";
+    }
+
+    @ExceptionHandler(LabelTakenException.class)
+    public ResponseEntity<String> handleLabelTaken(LabelTakenException e) {
+        return ResponseEntity.status(HttpStatus.CONFLICT).body(e.getMessage());
+    }
+
+    // E.g. another request saved the same name between the check and the save
+    @ExceptionHandler(DataIntegrityViolationException.class)
+    public ResponseEntity<String> handleDataIntegrityViolation(DataIntegrityViolationException e) {
+        String cause = String.valueOf(e.getMostSpecificCause().getMessage());
+        return ResponseEntity.status(HttpStatus.CONFLICT)
+                .body(cause.contains(ResearchProject.UNIQUE_NAME)
+                        ? "The research project could not be saved: its name is already used."
+                        : "The research project could not be saved: " + cause);
     }
 }

@@ -494,7 +494,7 @@ public class MigrationService {
                             UUID siteId;
 
                             // Migrate, if site doesn't already exist OR not belongs to any transferred research project(s)
-                            List<Site> sitesWithLabel = siteRepository.findAllByLabel(siteLabel);
+                            List<Site> sitesWithLabel = siteRepository.findAllByLabelIgnoreCase(siteLabel);
                             if (sitesWithLabel.isEmpty() || sitesWithLabel.stream()
                                                             .noneMatch(site -> site.getResearchProjectList().stream()
                                                             .anyMatch(researchProjectList::contains))) {
@@ -722,9 +722,9 @@ public class MigrationService {
                             UUID featureId;
 
                             // Migrate, if feature doesn't already exist OR not belongs to the given site
-                            List<Feature> featuresWithLabel = featureRepository.findAllByLabel(featureLabel);
+                            List<Feature> featuresWithLabel = featureRepository.findAllByLabelIgnoreCase(featureLabel);
                             if (featuresWithLabel.isEmpty() || featuresWithLabel.stream()
-                                                               .noneMatch(feature -> feature.getSite().getId().equals(siteId))) {
+                                                               .noneMatch(feature -> feature.getSite() != null && feature.getSite().getId().equals(siteId))) {
 
                                 // Build the new feature completely, then insert it once
                                 Feature newFeature = new Feature();
@@ -842,7 +842,7 @@ public class MigrationService {
                             else {
                                 // Find matched feature in repository to assign samples to it
                                 Feature matchingFeature = featuresWithLabel.stream()
-                                        .filter(feature -> feature.getSite().getId().equals(siteId)).findFirst()
+                                        .filter(feature -> feature.getSite() != null && feature.getSite().getId().equals(siteId)).findFirst()
                                         .orElseThrow(() -> new IllegalArgumentException("No matching feature found, although if condition ensures this"));
 
                                 featureId = matchingFeature.getId();
@@ -991,9 +991,9 @@ public class MigrationService {
                             UUID sampleId;
 
                             // Migrate, if sample doesn't already exist OR not belongs to the given feature
-                            List<Sample> samplesWithLabel = sampleRepository.findAllByLabel(sampleLabel);
+                            List<Sample> samplesWithLabel = sampleRepository.findAllByLabelIgnoreCase(sampleLabel);
                             if (samplesWithLabel.isEmpty() || samplesWithLabel.stream()
-                                                              .noneMatch(sample -> sample.getFeature().getId().equals(featureId))) {
+                                                              .noneMatch(sample -> sample.getFeature() != null && sample.getFeature().getId().equals(featureId))) {
                                 // Build the new sample completely, then insert it once
                                 Sample newSample = new Sample();
 
@@ -1144,7 +1144,7 @@ public class MigrationService {
                             else {
                                 // Find matched sample in repository to assign absoluteDatings to it
                                 Sample matchingSample = samplesWithLabel.stream()
-                                        .filter(sample -> sample.getFeature().getId().equals(featureId)).findFirst()
+                                        .filter(sample -> sample.getFeature() != null && sample.getFeature().getId().equals(featureId)).findFirst()
                                         .orElseThrow(() -> new IllegalArgumentException("No matching sample found, although if condition ensures this"));
 
                                 sampleId = matchingSample.getId();
@@ -1600,9 +1600,9 @@ public class MigrationService {
 
 
                             // Migrate, if absolute dating doesn't already exist OR not belongs to the given sample
-                            List<AbsoluteDating> absoluteDatingWithSubSampleLabel = absoluteDatingRepository.findAllBySubSample(subSample);
+                            List<AbsoluteDating> absoluteDatingWithSubSampleLabel = absoluteDatingRepository.findAllBySubSampleIgnoreCase(subSample);
                             if (absoluteDatingWithSubSampleLabel.isEmpty() || absoluteDatingWithSubSampleLabel.stream()
-                                                                              .noneMatch(absoluteDating -> absoluteDating.getSample().getId().equals(sampleId))) {
+                                                                              .noneMatch(absoluteDating -> absoluteDating.getSample() != null && absoluteDating.getSample().getId().equals(sampleId))) {
                                 // Build the new absolute dating completely, then insert it once
                                 AbsoluteDating newAbsoluteDating = new AbsoluteDating();
 
@@ -1703,7 +1703,7 @@ public class MigrationService {
                             else {
                                 // Find matched absolute dating in repository
                                 AbsoluteDating matchingAbsoluteDating = absoluteDatingWithSubSampleLabel.stream()
-                                        .filter(dating -> dating.getSample().getId().equals(sampleId)).findFirst()
+                                        .filter(dating -> dating.getSample() != null && dating.getSample().getId().equals(sampleId)).findFirst()
                                         .orElseThrow(() -> new IllegalArgumentException("No matching absolute dating found, although if condition ensures this"));
 
                                 absoluteDatingId = matchingAbsoluteDating.getId();

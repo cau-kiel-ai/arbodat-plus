@@ -12,8 +12,12 @@ import java.util.UUID;
 
 @Data
 @Entity
-@Table(name = "feature")
+// A feature label is unique within its site (exact; ignoring case is checked by LabelUniqueness)
+@Table(name = "feature",
+        uniqueConstraints = @UniqueConstraint(name = Feature.UNIQUE_LABEL, columnNames = {"site", "feature_label"}))
 public class Feature implements Serializable {
+
+    public static final String UNIQUE_LABEL = "uk_feature_site_label";
 
     @Id
     @GeneratedValue(strategy = GenerationType.UUID)

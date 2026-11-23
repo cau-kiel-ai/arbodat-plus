@@ -164,6 +164,29 @@ class ImportServiceTest extends PostgresTest {
     }
 
     @Test
+    void labelsInOtherLetterCaseMatchTheExistingRecords() throws Exception {
+        byte[] file = otherInstall(exportAll(), json -> {
+            JsonNode project = json.get("researchProjects").get(0);
+            ((ObjectNode) project).put("projectName", project.get("projectName").asText().toUpperCase());
+            JsonNode site = json.get("researchProjects").get(0).get("sites").get(0);
+            ((ObjectNode) site).put("label", site.get("label").asText().toUpperCase());
+            JsonNode feature = site.get("features").get(0);
+            ((ObjectNode) feature).put("label", feature.get("label").asText().toUpperCase());
+            JsonNode sample = firstSample(json);
+            ((ObjectNode) sample).put("label", sample.get("label").asText().toLowerCase());
+        });
+        Map<String, Integer> before = counts();
+
+        PlanView plan = preview(file, null);
+        for (EntityType type : List.of(EntityType.RESEARCH_PROJECT, EntityType.SITE, EntityType.FEATURE, EntityType.SAMPLE,
+                                       EntityType.ABSOLUTE_DATING)) {
+            PlanView.TypeSummary s = summary(plan, type);
+            assertEquals(s.total(), s.matchByKey(), s.toString());
+        }
+        assertEquals(before, counts());
+    }
+
+    @Test
     void sameIdWinsOverADifferentLabel() throws Exception {
         byte[] file = exportAll();
         jdbc.update("UPDATE site SET site_label = 'Hedeby' WHERE id = ?", data.site1());

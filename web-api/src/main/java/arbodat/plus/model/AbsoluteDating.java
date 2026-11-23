@@ -10,8 +10,12 @@ import java.util.UUID;
 
 @Data
 @Entity
-@Table(name = "absolute_dating")
+// A sub-sample is unique within its sample (exact; ignoring case is checked by LabelUniqueness)
+@Table(name = "absolute_dating",
+        uniqueConstraints = @UniqueConstraint(name = AbsoluteDating.UNIQUE_SUB_SAMPLE, columnNames = {"sample", "sub_sample"}))
 public class AbsoluteDating implements Serializable {
+
+    public static final String UNIQUE_SUB_SAMPLE = "uk_absolute_dating_sample_sub_sample";
 
     @Id
     @GeneratedValue(strategy = GenerationType.UUID)

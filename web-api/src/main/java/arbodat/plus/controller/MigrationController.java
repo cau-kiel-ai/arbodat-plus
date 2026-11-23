@@ -2,6 +2,7 @@ package arbodat.plus.controller;
 
 import arbodat.plus.dto_migration.MigrationResponse;
 import arbodat.plus.model.ResearchProject;
+import arbodat.plus.service.LabelTakenException;
 import arbodat.plus.service.MigrationService;
 import com.healthmarketscience.jackcess.Database;
 import com.healthmarketscience.jackcess.DatabaseBuilder;
@@ -115,6 +116,12 @@ public class MigrationController {
     /**
      * Returns the reason of a failed request to the frontend, instead of an empty result.
      */
+    // E.g. a new research project with the name of an existing one
+    @ExceptionHandler(LabelTakenException.class)
+    public ResponseEntity<String> handleLabelTaken(LabelTakenException e) {
+        return ResponseEntity.status(HttpStatus.CONFLICT).body(e.getMessage());
+    }
+
     @ExceptionHandler(IllegalArgumentException.class)
     public ResponseEntity<String> handleInvalidInput(IllegalArgumentException e) {
         log.error("Migration request rejected", e);

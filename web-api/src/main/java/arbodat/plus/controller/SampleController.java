@@ -2,7 +2,12 @@ package arbodat.plus.controller;
 
 import arbodat.plus.model.*;
 import arbodat.plus.repository.*;
+import arbodat.plus.service.LabelTakenException;
+import arbodat.plus.service.LabelUniqueness;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.dao.DataIntegrityViolationException;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.HashSet;
@@ -38,6 +43,9 @@ public class SampleController {
     @Autowired
     UserRepository userRepository;
 
+    @Autowired
+    LabelUniqueness labelUniqueness;
+
     @GetMapping
     public List<Sample> getAllSamples() {
         return sampleRepository.findAll();
@@ -45,6 +53,9 @@ public class SampleController {
 
     @PostMapping
     public String create(@RequestBody Sample transferredSample) {
+
+        // Label must be unique within the feature (before anything is saved)
+        labelUniqueness.checkSample(transferredSample.getLabel(), idOf(transferredSample.getFeature()), null);
 
         // Handle fractions
         for (FractionAnalyzed fraction : transferredSample.getFractionAnalyzedList()) {
@@ -122,6 +133,9 @@ public class SampleController {
 
         Sample sample = sampleRepository.findById(sampleId)
                 .orElseThrow(() -> new IllegalArgumentException("invalid sample id: " + sampleId));
+
+        // Label must be unique within the (new) feature
+        labelUniqueness.checkSample(transferredSample.getLabel(), idOf(transferredSample.getFeature()), sampleId);
 
         // Update attributes
         sample.setLabel(transferredSample.getLabel());
@@ -370,5 +384,24 @@ public class SampleController {
         sample.setBotanicalDeterminationBy(employeeList);
         sampleRepository.save(sample);
         return "sample is updated with new botanicalDeterminationBy";
+    }
+
+    private static UUID idOf(Feature feature) {
+        return feature == null ? null : feature.getId();
+    }
+
+    @ExceptionHandler(LabelTakenException.class)
+    public ResponseEntity<String> handleLabelTaken(LabelTakenException e) {
+        return ResponseEntity.status(HttpStatus.CONFLICT).body(e.getMessage());
+    }
+
+    // E.g. another request saved the same label between the check and the save
+    @ExceptionHandler(DataIntegrityViolationException.class)
+    public ResponseEntity<String> handleDataIntegrityViolation(DataIntegrityViolationException e) {
+        String cause = String.valueOf(e.getMostSpecificCause().getMessage());
+        return ResponseEntity.status(HttpStatus.CONFLICT)
+                .body(cause.contains(Sample.UNIQUE_LABEL)
+                        ? "The sample could not be saved: its label is already used in this feature."
+                        : "The sample could not be saved: " + cause);
     }
 }

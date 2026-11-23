@@ -30,8 +30,9 @@ import static arbodat.plus.exchange.EntityType.*;
  * <ol>
  *   <li>Same id: always the same record (also when its label or parent changed).</li>
  *   <li>Otherwise a natural key, as the legacy Access migration matches: a research project by
- *       name, a site by label among the sites of its (matched) research projects, a feature by label
- *       within its site, a sample by label within its feature, an absolute dating by sub-sample, a
+ *       name (ignoring case), a site by label among the sites of its (matched) research projects, a feature by label
+ *       within its site, a sample by label within its feature, an absolute dating by sub-sample (labels
+ *       and sub-samples ignoring case, as the keys of ArboDat 2018), a
  *       result by taxon + fraction + cf + rest type + state of preservation. People, institutions,
  *       literature and labs: ORCID / ROR / DOI first, then the exact name (ignoring case and spacing).</li>
  *   <li>Several candidates, or two imported records wanting the same one: the user chooses.</li>
@@ -103,12 +104,12 @@ class ImportPlanner {
             byKeys(LABORATORY, List.of(
                     nameKey(e -> name(((Laboratory) e).getLabel()), r -> name(r.string("label")))));
             byKeys(RESEARCH_PROJECT, List.of(
-                    nameKey(e -> label(((ResearchProject) e).getProjectName()), r -> label(r.string("projectName")))));
+                    nameKey(e -> labelKey(((ResearchProject) e).getProjectName()), r -> labelKey(r.string("projectName")))));
             sites();
             underParent(FEATURE, SITE, "site",
-                    e -> idOf(((Feature) e).getSite()), e -> label(((Feature) e).getLabel()), r -> label(r.string("label")));
+                    e -> idOf(((Feature) e).getSite()), e -> labelKey(((Feature) e).getLabel()), r -> labelKey(r.string("label")));
             underParent(SAMPLE, FEATURE, "feature",
-                    e -> idOf(((Sample) e).getFeature()), e -> label(((Sample) e).getLabel()), r -> label(r.string("label")));
+                    e -> idOf(((Sample) e).getFeature()), e -> labelKey(((Sample) e).getLabel()), r -> labelKey(r.string("label")));
             underParent(FRACTION_ANALYZED, SAMPLE, "sample",
                     e -> idOf(((FractionAnalyzed) e).getSample()),
                     e -> {
@@ -117,8 +118,8 @@ class ImportPlanner {
                     },
                     r -> key(r.values.get("fractionAnalyzed"), r.values.get("orgOrMin"), r.values.get("sieveSize")));
             underParent(ABSOLUTE_DATING, SAMPLE, "sample",
-                    e -> idOf(((AbsoluteDating) e).getSample()), e -> label(((AbsoluteDating) e).getSubSample()),
-                    r -> label(r.string("subSample")));
+                    e -> idOf(((AbsoluteDating) e).getSample()), e -> labelKey(((AbsoluteDating) e).getSubSample()),
+                    r -> labelKey(r.string("subSample")));
             datings(DENDROCHRONOLOGICAL_DATING, "dendrochronologicalDating", AbsoluteDating::getDendrochronologicalDating);
             datings(C14_DATING, "c14Dating", AbsoluteDating::getC14Dating);
             datings(OTHER_DATING, "otherDating", AbsoluteDating::getOtherDating);
@@ -252,7 +253,7 @@ class ImportPlanner {
             Map<Object, Object> local = remember(SITE, load(spec, sitesOfRp.values().stream().flatMap(Set::stream).toList()));
             sitesOfRp.forEach((rp, siteIds) -> {
                 for (Object siteId : siteIds) {
-                    String k = label(((Site) local.get(siteId)).getLabel());
+                    String k = labelKey(((Site) local.get(siteId)).getLabel());
                     if (k != null) index.computeIfAbsent(rp + SEP + k, x -> new ArrayList<>()).add(siteId);
                 }
             });
@@ -260,7 +261,7 @@ class ImportPlanner {
                 List<Object> unassigned = em.createQuery("select s from Site s where s.researchProjectList is empty", Object.class).getResultList();
                 remember(SITE, unassigned);
                 for (Object s : unassigned) {
-                    String k = label(((Site) s).getLabel());
+                    String k = labelKey(((Site) s).getLabel());
                     if (k != null) index.computeIfAbsent(NONE + SEP + k, x -> new ArrayList<>()).add(((Site) s).getId());
                 }
             }
@@ -270,7 +271,7 @@ class ImportPlanner {
                     plan.resolve(record, Resolution.match(record.id, MatchedBy.ID));
                     continue;
                 }
-                String k = label(record.string("label"));
+                String k = labelKey(record.string("label"));
                 Set<Object> rps = record.setOrEmpty("researchProjects");
                 Set<Object> candidates = new LinkedHashSet<>();
                 if (rps.isEmpty()) {
@@ -776,6 +777,12 @@ class ImportPlanner {
         if (value == null) return null;
         String trimmed = value.trim();
         return trimmed.isEmpty() ? null : trimmed;
+    }
+
+    /** Labels of sites, features, samples and sub-samples compare ignoring case (as the keys of ArboDat 2018). */
+    private static String labelKey(String value) {
+        String label = label(value);
+        return label == null ? null : label.toLowerCase(Locale.ROOT);
     }
 
     /** Names compare ignoring case, accents written either way, and extra spaces. */

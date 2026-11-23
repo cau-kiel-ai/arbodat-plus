@@ -2,6 +2,11 @@ package arbodat.plus.controller;
 
 import arbodat.plus.model.*;
 import arbodat.plus.repository.*;
+import arbodat.plus.service.LabelTakenException;
+import arbodat.plus.service.LabelUniqueness;
+import org.springframework.dao.DataIntegrityViolationException;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
 
@@ -24,6 +29,9 @@ public class FeatureController {
     @Autowired
     SampleRepository sampleRepository;
 
+    @Autowired
+    LabelUniqueness labelUniqueness;
+
 //    @Autowired
 //    ArchaeologicalDatingRepository archaeologicalDatingRepository;
 //
@@ -37,6 +45,11 @@ public class FeatureController {
 
     @PostMapping
     public String create(@RequestBody Feature transferredFeature) {
+
+        // Label must be unique within the site (before anything is saved)
+        if (transferredFeature.getId() == null) {
+            labelUniqueness.checkFeature(transferredFeature.getLabel(), idOf(transferredFeature.getSite()), null);
+        }
 
         // Handle feature type
         if (transferredFeature.getFeatureType() != null) {
@@ -99,6 +112,9 @@ public class FeatureController {
 
         Feature feature = featureRepository.findById(featureId)
                 .orElseThrow(() -> new IllegalArgumentException("invalid feature id: " + featureId));
+
+        // Label must be unique within the (new) site
+        labelUniqueness.checkFeature(transferredFeature.getLabel(), idOf(transferredFeature.getSite()), featureId);
 
         // update attributes
         feature.setLabel(transferredFeature.getLabel());
@@ -187,5 +203,24 @@ public class FeatureController {
         featureRepository.save(feature);
 
         return "feature is updated with new preservationCondition";
+    }
+
+    private static UUID idOf(Site site) {
+        return site == null ? null : site.getId();
+    }
+
+    @ExceptionHandler(LabelTakenException.class)
+    public ResponseEntity<String> handleLabelTaken(LabelTakenException e) {
+        return ResponseEntity.status(HttpStatus.CONFLICT).body(e.getMessage());
+    }
+
+    // E.g. another request saved the same label between the check and the save
+    @ExceptionHandler(DataIntegrityViolationException.class)
+    public ResponseEntity<String> handleDataIntegrityViolation(DataIntegrityViolationException e) {
+        String cause = String.valueOf(e.getMostSpecificCause().getMessage());
+        return ResponseEntity.status(HttpStatus.CONFLICT)
+                .body(cause.contains(Feature.UNIQUE_LABEL)
+                        ? "The feature could not be saved: its label is already used in this site."
+                        : "The feature could not be saved: " + cause);
     }
 }

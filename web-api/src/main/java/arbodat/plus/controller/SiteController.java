@@ -2,7 +2,11 @@ package arbodat.plus.controller;
 
 import arbodat.plus.model.*;
 import arbodat.plus.repository.*;
+import arbodat.plus.service.LabelTakenException;
+import arbodat.plus.service.LabelUniqueness;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import java.io.Serializable;
 import java.util.*;
@@ -39,6 +43,9 @@ public class SiteController implements Serializable {
     @Autowired
     UserRepository userRepository;
 
+    @Autowired
+    LabelUniqueness labelUniqueness;
+
     @GetMapping
     public List<Site> getAllSites() {
         return siteRepository.findAll();
@@ -47,6 +54,9 @@ public class SiteController implements Serializable {
     @PostMapping
     public String create(@RequestPart Site transferredSite,
                          @RequestPart List<Institution> institutionList) {
+
+        // Label must be unique within each research project of the site (before anything is saved)
+        labelUniqueness.checkSite(transferredSite.getLabel(), transferredSite.getResearchProjectList(), null);
 
         // Handle coordinate
         if (transferredSite.getCoordinate() != null && transferredSite.getCoordinate().getCoordinateSystem() != null) {
@@ -105,30 +115,17 @@ public class SiteController implements Serializable {
         transferredSite.setSiteTypeList(siteTypeList);
         // ------------------------------------------------------------
 
-        // Check if such a site with these values already exists
-        Optional<Site> existingSite = siteRepository.findAlreadyExisting(
-                transferredSite.getLabel(),
-                transferredSite.getResearchProjectList()
-                        .stream()
-                        .map(ResearchProject::getId)
-                        .collect(Collectors.toSet())
-        );
+        siteRepository.save(transferredSite);
 
-        if (existingSite.isEmpty()) {
-            siteRepository.save(transferredSite);
+        // Handle reference literature
+        for (Literature transferredLiterature : transferredSite.getLiteratureList()) {
+            Literature literature = literatureRepository.findById(transferredLiterature.getId())
+                    .orElseThrow(() -> new IllegalArgumentException("invalid literature id: " + transferredLiterature.getId()));
 
-            // Handle reference literature
-            for (Literature transferredLiterature : transferredSite.getLiteratureList()) {
-                Literature literature = literatureRepository.findById(transferredLiterature.getId())
-                        .orElseThrow(() -> new IllegalArgumentException("invalid literature id: " + transferredLiterature.getId()));
-
-                literature.getSiteList().add(transferredSite);
-                literatureRepository.save(literature);
-            }
-            return "site is created";
-        } else {
-            return "site already exists";
+            literature.getSiteList().add(transferredSite);
+            literatureRepository.save(literature);
         }
+        return "site is created";
     }
 
     @PutMapping("/{siteId}")
@@ -137,6 +134,9 @@ public class SiteController implements Serializable {
 
         Site site = siteRepository.findById(siteId)
                 .orElseThrow(() -> new IllegalArgumentException("invalid site id: " + siteId));
+
+        // Label must be unique within each (new) research project of the site
+        labelUniqueness.checkSite(transferredSite.getLabel(), transferredSite.getResearchProjectList(), siteId);
 
         // update attributes
         site.setLabel(transferredSite.getLabel());
@@ -317,5 +317,10 @@ public class SiteController implements Serializable {
                 return "invalid role: " + role;
             }
         }
+    }
+
+    @ExceptionHandler(LabelTakenException.class)
+    public ResponseEntity<String> handleLabelTaken(LabelTakenException e) {
+        return ResponseEntity.status(HttpStatus.CONFLICT).body(e.getMessage());
     }
 }

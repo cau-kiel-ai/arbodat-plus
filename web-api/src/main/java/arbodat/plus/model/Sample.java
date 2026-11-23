@@ -10,8 +10,12 @@ import java.util.UUID;
 
 @Data
 @Entity
-@Table(name = "sample")
+// A sample label is unique within its feature (exact; ignoring case is checked by LabelUniqueness)
+@Table(name = "sample",
+        uniqueConstraints = @UniqueConstraint(name = Sample.UNIQUE_LABEL, columnNames = {"feature_id", "sample_label"}))
 public class Sample implements Serializable {
+
+    public static final String UNIQUE_LABEL = "uk_sample_feature_label";
 
     @Id
     @GeneratedValue(strategy = GenerationType.UUID)

@@ -168,6 +168,38 @@ class MigrationServiceTest extends PostgresTest {
     }
 
     @Test
+    void existingRecordsInOtherLetterCaseAreRecognised() throws IOException {
+        createData(site("ok"));
+        migrate(List.of("ok"), newResearchProject());
+        // Renamed in ArboDat+ in the meantime
+        jdbc.update("UPDATE feature SET feature_label = 'f1'");
+        jdbc.update("UPDATE sample SET sample_label = 's1'");
+        jdbc.update("UPDATE absolute_dating SET sub_sample = 'u1'");
+
+        MigrationResponse response = migrate(List.of("ok"), existingResearchProject());
+
+        assertTrue(response.getFailedSiteList().isEmpty(), () -> String.valueOf(response.getFailedSiteList()));
+        assertEquals(1, count("feature"));
+        assertEquals(1, count("sample"));
+        assertEquals(1, count("absolute_dating"));
+        assertEquals(1, response.getExistingFeatureList().size());
+        assertEquals(1, response.getExistingSampleList().size());
+        assertEquals(1, response.getExistingAbsoluteDatingList().size());
+    }
+
+    @Test
+    void aNewResearchProjectWithTheNameOfAnExistingOneIsRefused() throws IOException {
+        createData(site("ok"));
+        migrate(List.of("ok"), newResearchProject());
+
+        ResearchProject sameName = newResearchProject();
+        sameName.setProjectName("MIGRATION TEST");
+        assertThrows(LabelTakenException.class, () -> migrate(List.of("ok"), sameName));
+        assertEquals(1, count("research_project"));
+        assertEquals(1, count("site"));
+    }
+
+    @Test
     void rowsOfOtherSitesAreNotMixedIn() throws IOException {
         // 'ok2' starts like 'ok' and 'OK2' differs only in letter case from 'ok2'
         createData(site("ok"), site("ok2").featureSite("OK2"));

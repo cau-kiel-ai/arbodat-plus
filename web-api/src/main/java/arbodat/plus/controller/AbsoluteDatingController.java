@@ -5,6 +5,8 @@ import arbodat.plus.dto_migration.BulkLabAndNumberItem;
 import arbodat.plus.model.*;
 import arbodat.plus.repository.*;
 import arbodat.plus.service.LabAndNumberMigrationService;
+import arbodat.plus.service.LabelTakenException;
+import arbodat.plus.service.LabelUniqueness;
 import arbodat.plus.service.LaboratoryNumberTakenException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -60,6 +62,9 @@ public class AbsoluteDatingController {
     @Autowired
     OtherDatingRepository otherDatingRepository;
 
+    @Autowired
+    LabelUniqueness labelUniqueness;
+
     @GetMapping
     public List<AbsoluteDating> getAllAbsoluteDatings() {
         return absoluteDatingRepository.findAll();
@@ -67,6 +72,9 @@ public class AbsoluteDatingController {
 
     @PostMapping
     public String create(@RequestBody AbsoluteDating transferredAbsoluteDating) {
+
+        // Sub-sample must be unique within the sample (before anything is saved)
+        labelUniqueness.checkSubSample(transferredAbsoluteDating.getSubSample(), idOf(transferredAbsoluteDating.getSample()), null);
 
         // Handle material
         if (transferredAbsoluteDating.getMaterial() != null) {
@@ -153,6 +161,9 @@ public class AbsoluteDatingController {
     {
         AbsoluteDating absoluteDating = absoluteDatingRepository.findById(absoluteDatingId)
                 .orElseThrow(() -> new IllegalArgumentException("invalid absoluteDating id: " + absoluteDatingId));
+
+        // Sub-sample must be unique within the (new) sample
+        labelUniqueness.checkSubSample(transferredAbsoluteDating.getSubSample(), idOf(transferredAbsoluteDating.getSample()), absoluteDatingId);
 
         // Update attributes
         absoluteDating.setSubSample(transferredAbsoluteDating.getSubSample());
@@ -440,10 +451,22 @@ public class AbsoluteDatingController {
         return ResponseEntity.status(HttpStatus.CONFLICT).body(e.getMessage());
     }
 
-    // Another request took the number between the check and the save
+    @ExceptionHandler(LabelTakenException.class)
+    public ResponseEntity<String> handleLabelTaken(LabelTakenException e) {
+        return ResponseEntity.status(HttpStatus.CONFLICT).body(e.getMessage());
+    }
+
+    // Another request took the number or the sub-sample between the check and the save
     @ExceptionHandler(DataIntegrityViolationException.class)
     public ResponseEntity<String> handleDataIntegrityViolation(DataIntegrityViolationException e) {
+        String cause = String.valueOf(e.getMostSpecificCause().getMessage());
         return ResponseEntity.status(HttpStatus.CONFLICT)
-                .body("The dating could not be saved: its laboratory number is already used by another dating.");
+                .body(cause.contains(AbsoluteDating.UNIQUE_SUB_SAMPLE)
+                        ? "The dating could not be saved: its sub-sample is already used in this sample."
+                        : "The dating could not be saved: its laboratory number is already used by another dating.");
+    }
+
+    private static UUID idOf(Sample sample) {
+        return sample == null ? null : sample.getId();
     }
 }

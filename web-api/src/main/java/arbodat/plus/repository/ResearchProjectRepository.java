@@ -17,6 +17,9 @@ public interface ResearchProjectRepository extends JpaRepository<ResearchProject
 
     Optional<ResearchProject> findByProjectName(String projectName);
 
+    // Project names compare case-insensitively (like the labels of sites, features, samples)
+    List<ResearchProject> findByProjectNameIgnoreCase(String projectName);
+
     @Query("SELECT DISTINCT rp FROM ResearchProject rp JOIN rp.siteList s WHERE s.id in :siteIds")
     List<ResearchProject> findBySiteIdIn(@Param("siteIds") Collection<UUID> siteIds);
 }

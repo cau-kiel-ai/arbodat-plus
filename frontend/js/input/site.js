@@ -310,7 +310,7 @@ function create_update_site() {
                 })
                 .catch(error => {
                     console.error('Error during PUT request to update site:', error);
-                    toast.error("action failed");
+                    toast.error(error.response?.status === 409 ? getErrorMessage(error) : "action failed");
                 });
             });
 
@@ -344,7 +344,7 @@ function create_update_site() {
             })
             .catch(error => {
                 console.error('Error during POST request to create site:', error);
-                toast.error("action failed");
+                toast.error(error.response?.status === 409 ? getErrorMessage(error) : "action failed");
             });
         }
 

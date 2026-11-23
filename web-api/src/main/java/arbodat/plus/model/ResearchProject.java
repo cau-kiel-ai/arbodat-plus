@@ -11,8 +11,12 @@ import java.util.UUID;
 
 @Data
 @Entity
-@Table(name = "research_project")
+// A project name is unique (exact; ignoring case is checked by LabelUniqueness)
+@Table(name = "research_project",
+        uniqueConstraints = @UniqueConstraint(name = ResearchProject.UNIQUE_NAME, columnNames = {"project_name"}))
 public class ResearchProject implements Serializable {
+
+    public static final String UNIQUE_NAME = "uk_research_project_name";
 
     @Id
     @GeneratedValue(strategy = GenerationType.UUID)

@@ -50,7 +50,7 @@ function create_update_researchProject() {
                 })
                 .catch(error => {
                     console.error('Error during PUT request to update research project:', error);
-                    toast.error("action failed");
+                    toast.error(error.response?.status === 409 ? getErrorMessage(error) : "action failed");
                 });
             });
 
@@ -68,7 +68,7 @@ function create_update_researchProject() {
             })
             .catch((error) => {
                 console.error('Error during POST request to create research project:', error);
-                toast.error("action failed");
+                toast.error(error.response?.status === 409 ? getErrorMessage(error) : "action failed");
             });
         };
 
