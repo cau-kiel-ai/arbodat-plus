@@ -209,8 +209,8 @@ function addC14LabCodesToJSON(row) {
     }, rows, skippedReasons, rows => deleteTableRows(c14LabTable, rows.map(row => row.getData().id)));
 }
 
-// Common parts of the migration Tabulators (team, results, fractions analyzed, labs and numbers, coordinates,
-// non-matching attributes) ----
+// Common parts of the migration Tabulators (team, literature, results, fractions analyzed, labs and numbers,
+// coordinates, non-matching attributes) ----
 
 // Cell text, or a grey hint (e.g. "select", "enter") while the cell is empty
 const placeholderFormatter = (text, format = value => value) => cell =>
@@ -268,10 +268,22 @@ function setupMigrationTable(table, { counter, copyFields = {} }) {
     table.on("dataProcessed", updateCounter);
 }
 
+// Adds values to a list field (e.g. users, literature) of the row with rowId and of the other selected rows,
+// if that row is selected (e.g. a user / literature created in a popup opened from the row)
+function chooseInRows(table, rowId, field, values) {
+    const row = rowId ? table?.getRow(rowId) : null;
+    if (!row || values.length === 0) return;
+    const rows = row.isSelected() ? table.getSelectedData() : [row.getData()];
+    return updateTableRows(table, rows.map(data => ({
+        id: data.id,
+        [field]: [...new Set([...(data[field] ?? []), ...values])],
+    })));
+}
+
 // Tabulator can't measure itself in a collapsed accordion: redraw the migration tables once they are visible.
 // Tables which are still being built measure themselves (the accordions are open then).
 function redrawMigrationTables() {
-    const tables = [userTable, fractionTable, c14LabTable, labTable, siteCoordinateTable, sampleCoordinateTable,
+    const tables = [userTable, literatureTable, fractionTable, c14LabTable, labTable, siteCoordinateTable, sampleCoordinateTable,
                     ...nonMatchingTables.values(), ...[...resultTables.values()].map(site => site.table)];
     tables.forEach(table => {
         if (table?.initialized) table.redraw(true);

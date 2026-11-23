@@ -579,31 +579,25 @@
           <div id="panelsStayOpen-collapseFour" class="accordion-collapse collapse">
             <div class="accordion-body">
               <p>
-                List of literature for the selected sites.<br>
+                List of literature references of the selected sites (author and publication year from ArboDat).<br>
+                - Link literature by clicking into the 'literature' cell, searching by typing and clicking on the literature (several are possible), then 'Update'. The literature is added to the literature of the site.<br>
+                - If a literature does not exist yet, create it with 'Create' in the row.<br>
+                - To select literature or update several rows simultaneously select multiple rows.<br>
+                - To select or deselect a row use the checkbox on the left. To select or deselect <u>all</u> rows use the checkbox at the top left of a table.<br>
+                - To filter rows by site, author and/or publicationYear use the fields in the table header.
               </p>
 
-                <!-- Literature Table -->
-                <table class="table table-striped">
-                  <thead>
-                      <tr>
-                          <th>Site</th>
-                          <th>author</th>
-                          <th>publicationYear</th>
-                          <th>Create Literature</th>
-                      </tr>
-                  </thead>
-                  <tbody id="literatureTableBody">
-                      <!-- Rows will be dynamically added here by populateLiterature function -->
-                  </tbody>
-                </table>
+                <div class="d-flex flex-wrap align-items-center gap-3 mb-2">
+                  <span id="literatureCounter" class="small text-muted"></span>
+                </div>
+                <!-- Tabulator, created by populateLiterature (literature.js) -->
+                <div id="literatureTable" class="migration-result-table"></div>
 
                 <!-- Literature Popup -->
                 <div id="literaturModal" class="modal">
                   <div class="modal-content">
                     <span class="close">&times;</span>
                     <h2>Create new Literature</h2>
-                    When a new literature is created, it is automatically linked to the corresponding site. To link an existing literature to this site, simply select the literature (by clicking in the 'title' field) and 'update' at the bottom.
-                    <br><br>
 
                     <!-- Author -->
                     <form id="authorForm" role="form">
@@ -661,8 +655,6 @@
                         <legend>Literature</legend>
 
                         <input type="hidden" id="literatureId">
-                        <input type="hidden" id="literatureSiteId">
-                        <input type="hidden" id="literatureRowId">
                         
                         <!-- title -->
                         <div class="row">

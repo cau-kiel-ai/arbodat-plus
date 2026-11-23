@@ -80,7 +80,7 @@ async function migrateSites(researchProjectList) {
         const resultList = response.data.resultList;
         
         await populateNonMatchingDanteAttributes(nonMatchingDanteAttributeList);
-        populateLiterature(literatureList);
+        await populateLiterature(literatureList);
         await populateCoordinates(coordinateList);
         await populateUsers(userList);
         populateFractionsAnalyzed(fractionAnalyzedList);

@@ -8,6 +8,9 @@ let userRowCounter = 0;
 // Users of ArboDat+: [{ value: id, label: name }] (reloaded after a user is created in the popup)
 let userOptions = [];
 
+// Row which opened the user popup (the user created there is chosen in it)
+let userWindowRowId = null;
+
 // Rows per bulk request (requests are sent one after another)
 const USER_CHUNK_SIZE = 500;
 
@@ -52,6 +55,15 @@ async function fetchUsers() {
     if (userTable?.initialized) userTable.redraw(true);
 }
 
+// Called by the user popup after a user was created: it is chosen in the row which opened the popup
+// (and in the other selected rows, if that row is selected); it is saved with 'Update'
+async function onUserCreated() {
+    const known = new Set(userOptions.map(option => option.value));
+    await fetchUsers();
+    const created = userOptions.map(option => option.value).filter(id => !known.has(id));
+    await chooseInRows(userTable, userWindowRowId, "users", created);
+}
+
 function createUserTable(rows) {
     const userNames = ids => ids
         .map(id => userOptions.find(option => option.value === id)?.label)
@@ -93,7 +105,7 @@ function createUserTable(rows) {
             {title: "New user", headerSort: false, hozAlign: "center", width: 90, // as wide as the button
                 formatter: () => `<button type="button">Create</button>`,
                 cellClick: (e, cell) => {
-                    if (e.target.closest("button")) openUserWindow(cell.getRow().getData().userLabel);
+                    if (e.target.closest("button")) openUserWindow(cell.getRow());
                 },
             },
         ],
@@ -112,7 +124,9 @@ document.addEventListener("shown.bs.collapse", event => {
     }
 });
 
-function openUserWindow (userLabel) {
+function openUserWindow (row) {
+    const userLabel = row.getData().userLabel;
+    userWindowRowId = row.getData().id;
 
     // Reset institutionForm
     document.getElementById("institutionForm").reset();

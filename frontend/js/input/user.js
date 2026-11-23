@@ -149,9 +149,10 @@ function create_update_user() {
                 document.getElementById("institutionContainer").innerHTML = '';
                 // ------------------------------------------------------------
 
-                // Update 'Select existing Users' selection in migration
-                if (typeof fetchUsers === "function") {
-                    fetchUsers();
+                // Migration: the new user is offered and chosen in the row which opened the popup
+                // (this script is also used by the migration page, only that one defines onUserCreated)
+                if (typeof onUserCreated === "function") {
+                    onUserCreated();
                 }
                 // -----------------------------------------------------
             })
