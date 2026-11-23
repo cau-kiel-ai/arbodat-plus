@@ -1235,7 +1235,7 @@ public class MigrationService {
                                 }
                                 // WoodSubfossile --------------------------------------------------------
                                 if (matchingSample.getWoodSubfossile() == null) {
-                                    String woodSubfossileLabel = row.getString("Inventar_HK");
+                                    String woodSubfossileLabel = row.getString("Inventar_Holz_sf");
                                     String woodSubfossileUri = sampleInvestigatedMapper.getUri(woodSubfossileLabel);
                                     Optional<SampleInvestigated> woodSubfossile = ctx.cachedLookup("sampleInvestigated", woodSubfossileUri, sampleInvestigatedRepository::findById);
                                     if (woodSubfossile.isPresent()) {
