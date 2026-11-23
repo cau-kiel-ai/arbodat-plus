@@ -40,6 +40,20 @@ async function migrateSites(researchProjectList) {
             }
         });
 
+        // Sites, whose migration failed: they were rolled back and can be migrated again
+        const failedSiteList = response.data.failedSiteList ?? [];
+        const failedSites = new Map(failedSiteList.map(item => [item.label, item.message]));
+        markFailedSites(selectedCheckboxes, failedSites);
+
+        if (failedSites.size === selectedCheckboxes.length) {
+            toast.error("Migration failed for all selected sites, nothing was migrated.");
+            return;
+        }
+        if (failedSites.size > 0) {
+            toast.info(`Migration failed for ${failedSites.size} site(s): ${[...failedSites.keys()].join(", ")}. `
+                       + "They were rolled back, all other sites were migrated.");
+        }
+
         // Migration succeeded: reset researchProject list and box in html container --------------
         researchProjects = window.researchProjects;
         researchProjects.length = 0;
@@ -48,17 +62,19 @@ async function migrateSites(researchProjectList) {
         // -------------------------------------------------------------------
 
         // Strike, uncheck and disable migrated lines
-        selectedCheckboxes.forEach(checkbox => {
-            const row = checkbox.closest("tr");
-            row.style.color = "gray";
-            checkbox.disabled = true;
-            checkbox.checked = false;
-            // Add a green tick
-            const greenCheck = document.createElement("span");
-            greenCheck.innerHTML = "✅";
-            greenCheck.style.marginLeft = "20px";
-            row.lastElementChild.appendChild(greenCheck);
-        });
+        selectedCheckboxes
+            .filter(checkbox => !failedSites.has(checkbox.value))
+            .forEach(checkbox => {
+                const row = checkbox.closest("tr");
+                row.style.color = "gray";
+                checkbox.disabled = true;
+                checkbox.checked = false;
+                // Add a green tick
+                const greenCheck = document.createElement("span");
+                greenCheck.innerHTML = "✅";
+                greenCheck.style.marginLeft = "20px";
+                row.lastElementChild.appendChild(greenCheck);
+            });
 
         // Extract lists from the response        
         const existingSiteList = response.data.existingSiteList;
@@ -126,6 +142,23 @@ async function migrateSites(researchProjectList) {
     } finally {
         hideLoading();
     }
+}
+
+// Mark sites, whose migration failed (rolled back), with the reason; they stay selectable for a new attempt
+function markFailedSites(selectedCheckboxes, failedSites) {
+    selectedCheckboxes.forEach(checkbox => {
+        const row = checkbox.closest("tr");
+        row.querySelector(".failedSiteMessage")?.remove();
+
+        if (failedSites.has(checkbox.value)) {
+            const failedMessage = document.createElement("span");
+            failedMessage.className = "failedSiteMessage";
+            failedMessage.textContent = "❗ failed, rolled back: " + failedSites.get(checkbox.value);
+            failedMessage.style.marginLeft = "20px";
+            failedMessage.style.color = "darkred";
+            row.lastElementChild.appendChild(failedMessage);
+        }
+    });
 }
 
 // Create Tables for already existing items under 'Site Selection' ----------------------
