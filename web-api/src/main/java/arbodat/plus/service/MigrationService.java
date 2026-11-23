@@ -469,7 +469,7 @@ public class MigrationService {
                         // -----------------------------------------------------------------------------
                         //  Projekt*                    -> label
                         //  Fustel                      -> labelAbbreviation
-                        //  Ort, Kreis, Land, FlurStr   -> Address entity -> town, district, country, streetOrPlace
+                        //  Ort, Kreis, Land, FlurStr   -> Address entity -> town, district, county, streetOrPlace
                         //  EVNr                        -> site_number
                         //  NaturE                      -> NaturalUnit entity -> label (Dante)
                         //  TK                          -> CoordinateMigration -> remarks
@@ -481,7 +481,7 @@ public class MigrationService {
                         //  Aut, PublJahr               -> LiteratureMigration
                         //  okFustel                    -> undisturbed
                         //  AnmFustel                   -> remarks
-                        //  Staat                       -> Address entity -> county
+                        //  Staat                       -> Address entity -> country
                         //  KoordSys                    -> CoordinateMigration (EPSG-Code needed)
 
 
@@ -521,8 +521,8 @@ public class MigrationService {
                                 // Set address
                                 Address newAddress = new Address();
 
-                                newAddress.setCountry(row.getString("Land"));
-                                newAddress.setCounty(row.getString("Staat"));
+                                newAddress.setCounty(row.getString("Land"));
+                                newAddress.setCountry(row.getString("Staat"));
                                 newAddress.setDistrict(row.getString("Kreis"));
                                 newAddress.setTown(row.getString("Ort"));
                                 newAddress.setStreet_or_place(row.getString("FlurStr"));

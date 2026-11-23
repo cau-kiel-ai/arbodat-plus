@@ -180,6 +180,19 @@ class MigrationServiceTest extends PostgresTest {
         assertEquals(1, count("sample"));
     }
 
+    @Test
+    void landIsTheCountyAndStaatTheCountry() throws IOException {
+        createData(site("ok").site("Land", "Hessen").site("Staat", "Germany")
+                             .site("Kreis", "Frankfurt/Main").site("Ort", "Nieder-Eschbach"));
+
+        migrate(List.of("ok"), newResearchProject());
+
+        assertEquals(Map.of("county", "Hessen", "country", "Germany",
+                            "district", "Frankfurt/Main", "town", "Nieder-Eschbach"),
+                     jdbc.queryForMap("SELECT a.county, a.country, a.district, a.town FROM site s "
+                                      + "JOIN address a ON s.address = a.id"));
+    }
+
     // Legacy content without a target in ArboDat+ -------------------------------------------------
 
     @Test
