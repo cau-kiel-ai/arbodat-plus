@@ -1,10 +1,16 @@
-// Searchable multi-select for Tabulator (select2): cell editor (multiSelectEditor) and header filter (multiSelectFilter).
+// Searchable select for Tabulator (select2): cell editors for several values (multiSelectEditor) or one value
+// (singleSelectEditor) and a header filter for several values (multiSelectFilter).
 //
 // Values come from editorParams / headerFilterParams (as for Tabulator's list editor, so code that reads them stays valid):
-//   values:      [{ value, label }], plain values, or groups { label, options: [...] } (headings, can't be chosen);
-//                a function returning them (filter only: called again whenever the filter is opened)
-//   valuesLookup: true (filter only) -> the distinct values of the column
-//   tags:        true -> new values can be typed (Enter or ';')
+//   values:       [{ value, label }], plain values, or groups { label, options: [...] } (headings, can't be chosen);
+//                 entries without a value (e.g. 'none') are left out: the x removes the value;
+//                 a function returning them (filter only: called again whenever the filter is opened)
+//   valuesLookup: true (filter only) -> the distinct values of the column (labels as in the download)
+//                 a function (cell, term) (single editor only) -> the entries for a search term (e.g. taxCodes)
+//   valuesInData: true (filter only) -> only the values which are in the column
+//   tags:         true -> new values can be typed (Enter, or ';' for several values)
+//   isTag:        term -> whether a typed term can be a new value (e.g. a year of 4 digits)
+//   tagValue:     key -> the value of a typed term (e.g. Number)
 // The original values are given back (e.g. numbers stay numbers).
 //
 // Behaviour:
@@ -15,6 +21,10 @@
 // - an x at the right end removes all values (the cursor is in the search field afterwards); Esc closes the list
 //   (also when the search field has no focus), as does the focus going to another field
 // - editor: closing the list (click outside, Esc) takes the selection, an unchanged selection is no edit
+// - single editor: the value is shown as text (no pill); choosing a value takes it at once;
+//   required columns (title with '*') have no x
+// - long lists show the first MULTI_SELECT_RESULT_LIMIT matching entries (typing narrows them)
+// - a pill longer than the field is cut (...); filter: the header gets higher with wrapped pills
 // - filter: filters while values are chosen / removed
 // Needs jQuery and select2; styles see scss/_multiSelectEditor.scss.
 
@@ -24,13 +34,18 @@ const multiSelectUtils = $.fn.select2.amd.require("select2/utils");
 // Widest a column grows for its pills (px); more pills wrap into several lines
 const MULTI_SELECT_MAX_WIDTH = 500;
 
-// Fills the <select> with the values; returns Map(option value -> original value)
+// Entries shown at once (long lists like samples, taxCodes); typing narrows them
+const MULTI_SELECT_RESULT_LIMIT = 200;
+
+// Fills the <select> with the values; returns Map(option value -> original value).
+// chosen: values or { value, label } entries
 function fillMultiSelect(select, values, chosen) {
     const originals = new Map();
-    const chosenKeys = new Set(chosen.map(String));
+    const chosenKeys = new Set(chosen.map(entry => String(typeof entry === "object" && entry !== null ? entry.value : entry)));
 
     const addOption = (parent, entry) => {
         const { value, label } = typeof entry === "object" && entry !== null ? entry : { value: entry, label: entry };
+        if (value === null || value === undefined) return; // 'none': the x removes the value
         const key = String(value);
         if (originals.has(key)) return;
         originals.set(key, value);
@@ -63,8 +78,8 @@ function fillMultiSelect(select, values, chosen) {
 }
 
 // The chosen values, as the original values
-function multiSelectValues($select, originals) {
-    return ($select.val() ?? []).map(key => originals.has(key) ? originals.get(key) : key);
+function multiSelectValues($select, originals, tagValue = key => key) {
+    return ($select.val() ?? []).map(key => originals.has(key) ? originals.get(key) : tagValue(key));
 }
 
 // Distinct values of a column (also of array values), sorted
@@ -78,24 +93,113 @@ function distinctColumnValues(column) {
     return [...values].sort((a, b) => String(a).localeCompare(String(b), undefined, { numeric: true }));
 }
 
+// editorParams for years (e.g. excavation years): the years in the column (newest first),
+// a new year can be typed (4 digits)
+function yearEditorParams(cell) {
+    return {
+        values: distinctColumnValues(cell.getColumn()).reverse(),
+        tags: true,
+        isTag: term => /^\d{4}$/.test(term),
+        tagValue: Number,
+    };
+}
+
+// Value -> label of the values in a column (labels as in the download, e.g. names instead of ids), sorted by label
+function columnValueLabels(column) {
+    const field = column.getField();
+    const toLabel = column.getDefinition().accessorDownload;
+    const labels = new Map();
+    column.getTable().getData().forEach(row => {
+        const value = field.split(".").reduce((object, key) => object?.[key], row);
+        [].concat(value ?? []).forEach(item => {
+            if (item === "" || item === null || labels.has(item)) return;
+            // the download label is for the whole value: only for single values
+            const label = toLabel && !Array.isArray(value) ? toLabel(item, row) : item;
+            labels.set(item, label === "" || label === null || label === undefined ? item : label);
+        });
+    });
+    return new Map([...labels].sort(([, a], [, b]) => String(a).localeCompare(String(b), undefined, { numeric: true })));
+}
+
+// Only the entries whose value is in the set (headings without entries are left out)
+function entriesIn(values, keys) {
+    return (values ?? [])
+        .map(entry => entry?.options ? { ...entry, options: entriesIn(entry.options, keys) } : entry)
+        .filter(entry => entry?.options
+            ? entry.options.length > 0
+            : keys.has(String(typeof entry === "object" && entry !== null ? entry.value : entry)));
+}
+
 // select2 on the <select> with the shared behaviour; anchor: the element the dropdown is placed under
-function attachMultiSelect(select, { anchor, column, placeholder, tags = false, cssClass, onResize = () => {} }) {
+//   single:    one value (shown as text, see singleSelectEditor)
+//   clearable: x at the right end which removes all values
+//   search:    term -> fills the <select> with the entries for the term itself (no matching by select2)
+function attachMultiSelect(select, { anchor, column, placeholder, tags = false, cssClass, onResize = () => {},
+                                     single = false, clearable = true, search, isTag }) {
     const $select = $(select).select2({
         placeholder: { id: "", text: placeholder },
-        allowClear: true,               // x at the right end: removes all values
+        allowClear: clearable,          // x at the right end: removes all values
         closeOnSelect: false,           // several values one after another
         width: "100%",
         dropdownParent: $(document.body),
         tags,
-        tokenSeparators: tags ? [";"] : undefined,
-        // Chosen values are not offered (and can't be highlighted / deselected by Enter)
-        matcher: (params, data) => data.element?.selected ? null : multiSelectDefaultMatcher(params, data),
+        tokenSeparators: tags && !single ? [";"] : undefined,
+        // only terms that can be a value (e.g. 4 digits for a year) are offered as new value
+        ...(isTag ? { createTag: params => {
+            const term = String(params.term ?? "").trim();
+            return isTag(term) ? { id: term, text: term } : null;
+        } } : {}),
+        // Chosen values are not offered (and can't be highlighted / deselected by Enter);
+        // also under a heading (select2 matches the entries of a group with its own matcher)
+        matcher: (params, data) => {
+            if (data.element?.selected) return null;
+            if (data.children) {
+                const children = data.children.filter(child => !child.element?.selected);
+                if (children.length === 0) return null;
+                data = { ...data, children };
+            }
+            return multiSelectDefaultMatcher(params, data);
+        },
         // Pills without the indentation of entries under a heading (DANTE lists)
         templateSelection: data => String(data.text ?? "").replace(/^[\s\u00a0]+/, ""),
     });
     const select2 = $select.data("select2");
     select2.$container.addClass(cssClass);
     select2.dropdown.$dropdown.addClass("multi-select-dropdown");
+    if (single) select2.$container.addClass("multi-select-single");
+
+    // Searching: the entries for the term (search), at most MULTI_SELECT_RESULT_LIMIT of them
+    const dataAdapter = select2.dataAdapter;
+    const query = dataAdapter.query.bind(dataAdapter);
+    dataAdapter.query = (params, callback) => {
+        if (search) {
+            search(params.term ?? "");
+            params = { ...params, term: "" };
+        }
+        query(params, data => {
+            const results = data.results ?? [];
+            if (results.length <= MULTI_SELECT_RESULT_LIMIT) return callback(data);
+            callback({ ...data, results: [...results.slice(0, MULTI_SELECT_RESULT_LIMIT),
+                { id: "", text: `${results.length - MULTI_SELECT_RESULT_LIMIT} more: type to narrow the list`, disabled: true }] });
+        });
+    };
+
+    // Not clearable (required): Backspace in the empty search field doesn't remove the value either
+    if (!clearable) {
+        select2.$container[0].addEventListener("keydown", event => {
+            if (event.key === "Backspace" && event.target.value === "") {
+                event.preventDefault();
+                event.stopPropagation();
+            }
+        }, true);
+        $select.on("select2:unselecting", event => event.preventDefault());
+    }
+
+    // One value: its text gives way to the typed search
+    if (single) {
+        select2.$container.on("input", ".select2-search__field", event =>
+            select2.$container.toggleClass("multi-select-typing", event.target.value !== ""));
+    }
 
     // The dropdown is placed directly under the anchor and as wide as it (select2 would align it to its own,
     // smaller field). select2 positions it on open, scroll and resize: corrected after it.
@@ -136,8 +240,13 @@ function attachMultiSelect(select, { anchor, column, placeholder, tags = false, 
         if (!$select.data("select2")) return; // already closed
         const $container = select2.$container;
         const selection = $container.find(".select2-selection")[0];
-        $container.removeClass("multi-select-wrap"); // width of the pills in one line
-        const needed = selection.scrollWidth + 12; // + cell padding
+        // width of the pills in one line, at their full length (otherwise they are cut to the field)
+        $container.removeClass("multi-select-wrap");
+        // what the column has around the field (padding of the cell / header filter)
+        const around = Math.max(0, column.getWidth() - selection.getBoundingClientRect().width);
+        $container.addClass("multi-select-measure"); // the field as wide as its content
+        const needed = Math.ceil(selection.getBoundingClientRect().width + around);
+        $container.removeClass("multi-select-measure");
         const width = Math.min(needed, MULTI_SELECT_MAX_WIDTH);
         if (width > column.getWidth()) column.setWidth(width);
         $container.toggleClass("multi-select-wrap", needed > column.getWidth());
@@ -153,6 +262,7 @@ function attachMultiSelect(select, { anchor, column, placeholder, tags = false, 
     $select.on("select2:select select2:unselect", () => setTimeout(() => {
         if (!$select.data("select2") || !select2.isOpen()) return;
         select2.$container.find(".select2-search__field").val("");
+        select2.$container.removeClass("multi-select-typing");
         select2.trigger("query", { term: "" });
     }));
 
@@ -244,11 +354,11 @@ function multiSelectEditor(cell, onRendered, success, cancel, params = {}) {
         const normalizeRowHeight = () => cell.getRow().normalizeHeight?.();
         const multiSelect = attachMultiSelect(select, {
             anchor: cell.getElement(), column: cell.getColumn(), placeholder: "search",
-            tags: params.tags === true, cssClass: "multi-select-editor", onResize: normalizeRowHeight,
+            tags: params.tags === true, isTag: params.isTag, cssClass: "multi-select-editor", onResize: normalizeRowHeight,
         });
         multiSelect.$select.one("select2:close", () => {
             multiSelect.detach();
-            const values = multiSelectValues(multiSelect.$select, originals);
+            const values = multiSelectValues(multiSelect.$select, originals, params.tagValue);
             multiSelect.$select.select2("destroy");
             const unchanged = values.length === before.length && values.every(value => before.includes(value));
             unchanged ? cancel() : success(values);
@@ -259,17 +369,69 @@ function multiSelectEditor(cell, onRendered, success, cancel, params = {}) {
     return select;
 }
 
+// Cell editor for one value: the search field as in multiSelectEditor, the value as text (no pill);
+// choosing a value takes it at once, the x (not in required columns) removes it
+function singleSelectEditor(cell, onRendered, success, cancel, params = {}) {
+    const before = cell.getValue() ?? null;
+    const select = document.createElement("select");
+    select.multiple = true; // the search field in the cell (select2's single select has it in the dropdown)
+    const lookup = typeof params.valuesLookup === "function" ? term => params.valuesLookup(cell, term) : null;
+    const chosen = before === null || before === "" ? [] : [before];
+    let originals = fillMultiSelect(select, lookup ? lookup("") : params.values, chosen);
+
+    // valuesLookup: the entries of the term (the chosen value stays in the <select>)
+    const search = lookup && (term => {
+        const keep = [...select.selectedOptions].map(option =>
+            ({ value: originals.has(option.value) ? originals.get(option.value) : option.value, label: option.text }));
+        const entries = lookup(term);
+        originals = fillMultiSelect(select, entries, keep); // keeps the chosen value (at the end if not an entry)
+    });
+
+    onRendered(() => {
+        const normalizeRowHeight = () => cell.getRow().normalizeHeight?.();
+        const required = String(cell.getColumn().getDefinition().title ?? "").startsWith("*");
+        const multiSelect = attachMultiSelect(select, {
+            anchor: cell.getElement(), column: cell.getColumn(), placeholder: "search",
+            tags: params.tags === true, isTag: params.isTag, cssClass: "multi-select-editor", onResize: normalizeRowHeight,
+            single: true, clearable: !required, search,
+        });
+        let picked; // key of the chosen entry
+        multiSelect.$select.on("select2:select", event => {
+            picked = event.params.data.id;
+            setTimeout(() => { if (multiSelect.$select.data("select2")) multiSelect.$select.select2("close"); });
+        });
+        multiSelect.$select.one("select2:close", () => {
+            multiSelect.detach();
+            const keys = multiSelect.$select.val() ?? [];
+            const key = picked !== undefined ? picked : keys[0];
+            const value = key === undefined ? null : (originals.has(key) ? originals.get(key) : (params.tagValue ?? (k => k))(key));
+            multiSelect.$select.select2("destroy");
+            value === before ? cancel() : success(value);
+            setTimeout(normalizeRowHeight);
+        });
+        multiSelect.open();
+    });
+    return select;
+}
+
+// headerFilterFunc of a multiSelectFilter on a column with one value: rows with one of the chosen values
+function anyOfFilter(headerValue, rowValue) {
+    return !Array.isArray(headerValue) || headerValue.length === 0 || headerValue.includes(rowValue);
+}
+
 // Header filter: filters while values are chosen / removed
 function multiSelectFilter(cell, onRendered, success, cancel, params = {}) {
     const column = cell.getColumn();
     const select = document.createElement("select");
     select.multiple = true;
     let originals = new Map();
-    const dynamic = params.valuesLookup === true || typeof params.values === "function";
+    const dynamic = params.valuesLookup === true || params.valuesInData === true || typeof params.values === "function";
     const load = () => {
         const chosen = select.isConnected ? [...select.selectedOptions].map(option => originals.get(option.value) ?? option.value) : [];
-        const values = params.valuesLookup === true ? distinctColumnValues(column)
-                     : typeof params.values === "function" ? params.values() : params.values;
+        let values = params.valuesLookup === true
+            ? [...columnValueLabels(column)].map(([value, label]) => ({ value, label }))
+            : typeof params.values === "function" ? params.values() : params.values;
+        if (params.valuesInData === true) values = entriesIn(values, new Set(distinctColumnValues(column).map(String)));
         originals = fillMultiSelect(select, values, chosen);
     };
     load();
@@ -278,6 +440,8 @@ function multiSelectFilter(cell, onRendered, success, cancel, params = {}) {
         // No placeholder, like the other filter fields
         const multiSelect = attachMultiSelect(select, {
             anchor: cell.getElement(), column, placeholder: "", cssClass: "multi-select-filter",
+            // wrapped pills: the header gets as high as needed (Tabulator's own calculation of the header height)
+            onResize: () => column.getTable().columnManager?.verticalAlignHeaders?.(),
         });
         // The values can change (edits, deleted rows)
         if (dynamic) multiSelect.$select.on("select2:opening", load);

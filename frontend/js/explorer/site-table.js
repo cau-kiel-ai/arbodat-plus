@@ -228,8 +228,8 @@ async function buildSiteTable() {
                 accessorDownload: value => formatLit(literature, value),
             },
             {title:"taxonomy", field:"taxonomy.id", headerSort:false,
-                editor:"list", editorParams: danteEditorParams("taxonomy", { none: true }),
-                headerFilter:true, headerFilterParams: {
+                editor: singleSelectEditor, editorParams: danteEditorParams("taxonomy", { none: true }),
+                headerFilter: multiSelectFilter, headerFilterParams: { valuesInData: true,
                     values: cachedTaxonomies.map(taxonomy => ({
                         value: taxonomy.uri,
                         label: taxonomy.prefLabel.en
@@ -306,9 +306,9 @@ async function buildSiteTable() {
                 }
             },
             {title:"natural unit", titleDownload:"naturalUnit", field:"naturalUnit.id", headerSortTristate:true,
-                editor:"list", editorParams: danteEditorParams("naturalUnit", { none: true,
+                editor: singleSelectEditor, editorParams: danteEditorParams("naturalUnit", { none: true,
                     fallback: naturalUnits.map(naturalUnit => ({ value: naturalUnit.id, label: naturalUnitDownloadLabels.get(naturalUnit.id) })) }),
-                headerFilter:true, headerFilterParams: {
+                headerFilter: multiSelectFilter, headerFilterParams: { valuesInData: true,
                     values: naturalUnits.map(naturalUnit => ({
                         value: naturalUnit.id,
                         label: naturalUnit.label + (naturalUnit.naturalMainGroup ? ` (${naturalUnit.naturalMainGroup})` : "")
@@ -498,8 +498,8 @@ async function buildSiteTable() {
             {title:"remarks", field:"remarksSite", editor:"input", headerFilter:true, headerSort:false},
             // Coordinate ---------------------------------------------------------------------------------------------
             {title:"coordinate system", titleDownload:"coordinateSystem", field:"coordinate.coordinateSystem.id", headerSortTristate:true,
-                editor:"list", editorParams: danteEditorParams("coordinateSystem", { none: true }),
-                headerFilter:true, headerFilterParams: {
+                editor: singleSelectEditor, editorParams: danteEditorParams("coordinateSystem", { none: true }),
+                headerFilter: multiSelectFilter, headerFilterParams: { valuesInData: true,
                     values: cachedCoordinateSystems.map(crs => ({
                             value: crs.uri,
                             label: [crs.prefLabel.en, crs.notation].filter(Boolean).join(" - ")

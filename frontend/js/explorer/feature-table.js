@@ -26,12 +26,6 @@ async function buildFeatureTable() {
         console.error("Error loading sites:", error)
     }
 
-    // Create year list for excavation yerars -----------------------------------
-    const currentYear = new Date().getFullYear();
-    const years = [];
-    for (let year = currentYear; year >= 0; year--) {
-    years.push(year);
-    }
 
     function formatPreservationCondition(preservationConditionId){
         if (!preservationConditionId) return "";
@@ -59,7 +53,7 @@ async function buildFeatureTable() {
             {title:"id", field:"id", headerFilter:true, headerSort:false},
             {title:"*label", titleDownload:"label", field:"label", validator: ["required"], editor:"input", headerFilter:true, headerSortTristate:true},
             {title: "*site", titleDownload:"site", field:"site.id", headerSortTristate:true,
-                editor:"list", editorParams:{
+                editor: singleSelectEditor, editorParams:{
                     values: [
                         ...sites.map(item => ({
                             value: item.id,
@@ -72,7 +66,7 @@ async function buildFeatureTable() {
                     ],
                     emptyValue:null
                 },
-                headerFilter:"list", headerFilterParams: {
+                headerFilter: multiSelectFilter, headerFilterParams: { valuesInData: true,
                     values: sites.map(item => ({
                             value: item.id,
                             label:
@@ -137,8 +131,8 @@ async function buildFeatureTable() {
                 }
             },
             {title:"preservation condition", titleDownload:"preservationCondition", field:"preservationCondition.id", headerSortTristate:true,
-                editor:"list", editorParams: danteEditorParams("preservationCondition", { none: true }),
-                headerFilter:true, headerFilterParams: {
+                editor: singleSelectEditor, editorParams: danteEditorParams("preservationCondition", { none: true }),
+                headerFilter: multiSelectFilter, headerFilterParams: { valuesInData: true,
                     values: cachedPreservationConditions.map(item => ({
                         value: item.uri,
                         label: item.prefLabel.en
@@ -155,8 +149,8 @@ async function buildFeatureTable() {
                 accessorDownload: value => formatPreservationCondition(value),
             },
             {title:"feature type", titleDownload:"featureType", field:"featureType.id", headerSortTristate:true,
-                editor:"list", editorParams: danteEditorParams("featureType", { none: true }),
-                headerFilter:true, headerFilterParams: {
+                editor: singleSelectEditor, editorParams: danteEditorParams("featureType", { none: true }),
+                headerFilter: multiSelectFilter, headerFilterParams: { valuesInData: true,
                     values: cachedFeatureTypes.map(item => ({
                         value: item.uri,
                         label: item.prefLabel.en
@@ -172,17 +166,11 @@ async function buildFeatureTable() {
                 formatter: textFormatter(cell => formatFeatureType(cell.getValue())),
                 accessorDownload: value => formatFeatureType(value),
             },
-            {title: "excavationYears", field:"excavationYears", headerSortTristate:true,
-                editor: multiSelectEditor, editorParams:{
-                    values: years,
-                    autocomplete:false,
-                    multiselect:true,
-                    emptyValue:[]
-                },
-                headerFilter: multiSelectFilter, headerFilterParams: {
-                    values: years,
-                    multiselect: true
-                },
+            {title: "excavation years", titleDownload:"excavationYears", field:"excavationYears", headerSortTristate:true,
+                // The years of the features, or a new one typed in (4 digits), as on the input page
+                editor: multiSelectEditor, editorParams: yearEditorParams,
+                // The years in the table
+                headerFilter: multiSelectFilter, headerFilterParams: { valuesLookup: true },
                 headerFilterFunc: function(headerValue, rowValue){
                     return headerValue.every(val => rowValue.includes(val));
                 },

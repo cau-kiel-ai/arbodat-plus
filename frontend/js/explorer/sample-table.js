@@ -72,12 +72,6 @@ async function buildSampleTable() {
             .join(", ");
     }
 
-    // Create year list for botanical determination year ------------------------
-    const currentYear = new Date().getFullYear();
-    const years = [];
-    for (let year = currentYear; year >= 0; year--) {
-    years.push(year);
-    }
 
     function formatSampleType(sampleTypeId){
         if (!sampleTypeId) return "";
@@ -111,7 +105,7 @@ async function buildSampleTable() {
             {title:"id", field:"id", headerFilter:true, headerSort:false},
             {title:"*label", titleDownload:"label", field:"label", validator: ["required"], editor:"input", headerFilter:true, headerSortTristate:true},
             {title: "*feature", titleDownload:"feature", field:"feature.id", headerSortTristate:true,
-                editor:"list", editorParams: function(cell) {
+                editor: singleSelectEditor, editorParams: function(cell) {
                     const rowData = cell.getRow().getData();
                     const siteId = rowData?.feature?.site?.id;
 
@@ -124,7 +118,7 @@ async function buildSampleTable() {
                             }))
                     };
                 },
-                headerFilter:"list", headerFilterParams: {
+                headerFilter: multiSelectFilter, headerFilterParams: { valuesInData: true,
                     values: features.map(item => ({
                             value: item.id,
                             label:
@@ -145,7 +139,7 @@ async function buildSampleTable() {
                 accessorDownload: value => formatFeature(features, value),
             },
             {title: "*site", titleDownload:"site", field:"feature.site.id", headerSortTristate:true, 
-                editor:"list", editorParams:{
+                editor: singleSelectEditor, editorParams:{
                     values: sites.map(item => ({
                             value: item.id,
                             label:
@@ -156,7 +150,7 @@ async function buildSampleTable() {
                         }))
                     ,
                 },
-                headerFilter:"list", headerFilterParams: {
+                headerFilter: multiSelectFilter, headerFilterParams: { valuesInData: true,
                     values: sites.map(item => ({
                             value: item.id,
                             label:
@@ -194,8 +188,8 @@ async function buildSampleTable() {
             },
             // Coordinate ---------------------------------------------------------------------------------------------
             {title:"coordinate system", titleDownload:"coordinateSystem", field:"coordinate.coordinateSystem.id", headerSortTristate:true,
-                editor:"list", editorParams: danteEditorParams("coordinateSystem", { none: true }),
-                headerFilter:true, headerFilterParams: {
+                editor: singleSelectEditor, editorParams: danteEditorParams("coordinateSystem", { none: true }),
+                headerFilter: multiSelectFilter, headerFilterParams: { valuesInData: true,
                     values: cachedCoordinateSystems.map(crs => ({
                             value: crs.uri,
                             label: [crs.prefLabel.en, crs.notation].filter(Boolean).join(" - ")
@@ -276,19 +270,11 @@ async function buildSampleTable() {
                 accessorDownload: value => formatUser(users, value),
             },
             {title:"botanicalDeterminationYear", field:"botanicalDeterminationYear", headerSortTristate:true,
-                editor:"list", editorParams:{
-                    values: years,
-                    emptyValue:null
-                },
-                headerFilter:"list", headerFilterParams: {
-                    values: years,
-                    multiselect: true
-                },
-                headerFilterFunc: function(headerValue, rowValue) {
-                    if (!headerValue || headerValue.length === 0) return true;
-                    if (rowValue == null) return false;
-                    return headerValue.includes(rowValue);
-                },
+                // The years of the samples, or a new one typed in (4 digits; stored as text, e.g. '2020,2024' from ArboDat)
+                editor: singleSelectEditor, editorParams: cell => ({ ...yearEditorParams(cell), tagValue: String }),
+                // The years in the table (as stored, so they match the rows)
+                headerFilter: multiSelectFilter, headerFilterParams: { valuesLookup: true },
+                headerFilterFunc: anyOfFilter,
                 sorter:"array", sorterParams:{
                     valueMap:"label"
                 },
@@ -322,8 +308,8 @@ async function buildSampleTable() {
                 cellClick: (e, cell) => openFractionModal(cell.getRow()),
             },
             {title:"sample type", titleDownload:"sampleType", field:"sampleType.id", headerSortTristate:true,
-                editor:"list", editorParams: danteEditorParams("sampleType", { none: true }),
-                headerFilter:true, headerFilterParams: {
+                editor: singleSelectEditor, editorParams: danteEditorParams("sampleType", { none: true }),
+                headerFilter: multiSelectFilter, headerFilterParams: { valuesInData: true,
                     values: cachedSampleTypes.map(item => ({
                             value: item.uri,
                             label: item.prefLabel.en
@@ -426,8 +412,8 @@ async function buildSampleTable() {
                 }
             },
             {title:"seeds and fruits", titleDownload:"seedsAndFruits", field:"seedsAndFruits.id", headerSortTristate:true,
-                editor:"list", editorParams: danteEditorParams("seedsAndFruits", { none: true }),
-                headerFilter:true, headerFilterParams: {
+                editor: singleSelectEditor, editorParams: danteEditorParams("seedsAndFruits", { none: true }),
+                headerFilter: multiSelectFilter, headerFilterParams: { valuesInData: true,
                     values: cachedSampleInvestigated.map(item => ({
                             value: item.uri,
                             label: item.prefLabel.en
@@ -444,8 +430,8 @@ async function buildSampleTable() {
                 accessorDownload: value => formatSampleInvestigated(value),
             },
             {title:"wood subfossile", titleDownload:"woodSubfossile", field:"woodSubfossile.id", headerSortTristate:true,
-                editor:"list", editorParams: danteEditorParams("woodSubfossile", { none: true }),
-                headerFilter:true, headerFilterParams: {
+                editor: singleSelectEditor, editorParams: danteEditorParams("woodSubfossile", { none: true }),
+                headerFilter: multiSelectFilter, headerFilterParams: { valuesInData: true,
                     values: cachedSampleInvestigated.map(item => ({
                             value: item.uri,
                             label: item.prefLabel.en
@@ -462,8 +448,8 @@ async function buildSampleTable() {
                 accessorDownload: value => formatSampleInvestigated(value),
             },
             {title:"charcoal investigated", titleDownload:"charcoalInvestigated", field:"charcoalInvestigated.id", headerSortTristate:true,
-                editor:"list", editorParams: danteEditorParams("charcoalInvestigated", { none: true }),
-                headerFilter:true, headerFilterParams: {
+                editor: singleSelectEditor, editorParams: danteEditorParams("charcoalInvestigated", { none: true }),
+                headerFilter: multiSelectFilter, headerFilterParams: { valuesInData: true,
                     values: cachedSampleInvestigated.map(item => ({
                             value: item.uri,
                             label: item.prefLabel.en
@@ -507,8 +493,8 @@ async function buildSampleTable() {
                 },
             },
             {title:"chronozone", field:"chronozone.id", headerSortTristate:true,
-                editor:"list", editorParams: danteEditorParams("chronozone", { none: true }),
-                headerFilter:true, headerFilterParams: {
+                editor: singleSelectEditor, editorParams: danteEditorParams("chronozone", { none: true }),
+                headerFilter: multiSelectFilter, headerFilterParams: { valuesInData: true,
                     values: cachedChronozones.map(item => ({
                             value: item.uri,
                             label: item.prefLabel.en

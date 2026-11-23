@@ -33,9 +33,31 @@
         display: contents;
     }
 
+    // A pill longer than the field is cut (...), so the x for all values stays in the field
     .select2-selection__choice {
-        flex-shrink: 0;
+        flex-shrink: 1;
+        min-width: 0;
+        max-width: calc(100% - 8px);
         margin: 0 0 0 4px;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+    }
+
+    // Measuring the width the pills need (js: fit): at their full length
+    &.multi-select-measure {
+        .select2-selection--multiple {
+            width: max-content;
+        }
+
+        .select2-selection__choice {
+            flex-shrink: 0;
+            max-width: none;
+        }
+    }
+
+    .select2-search--inline {
+        flex-shrink: 0;
     }
 
     // x for all values: at the right end (select2 places it absolutely at the top), looks like the x of the pills
@@ -98,6 +120,27 @@
         border: none;
         border-radius: 0;
         background: transparent;
+    }
+
+    // One value (singleSelectEditor): as text, not as a pill; it gives way to the typed search
+    &.multi-select-single {
+        .select2-selection__choice {
+            padding: 0;
+            border: none;
+            background: none;
+        }
+
+        .select2-selection__choice__remove {
+            display: none;
+        }
+
+        .select2-selection__choice__display {
+            padding: 0;
+        }
+
+        &.multi-select-typing .select2-selection__choice {
+            display: none;
+        }
     }
 }
 
