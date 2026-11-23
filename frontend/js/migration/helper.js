@@ -1,95 +1,15 @@
 function toggleAllCheckboxes(masterCheckbox, tableBodyId) {
     const tableBody = document.getElementById(tableBodyId);
     if (tableBody) {
-      // Rows hidden by a table filter (tableFilter.js) and group header checkboxes are skipped
+      // Group header checkboxes are skipped
       const checkboxes = tableBody.querySelectorAll('input[type="checkbox"]:not(.group-select)');
       checkboxes.forEach(checkbox => {
-        if (!checkbox.disabled && !checkbox.closest('tr.filter-hidden')) {
+        if (!checkbox.disabled) {
           checkbox.checked = masterCheckbox.checked;
         }
       });
       // Let the table filter update its group header checkboxes
       tableBody.dispatchEvent(new Event('change'));
-    }
-}
-
-let updatingDropdowns = false;
-function updateCheckedDropdowns(value, tableBodyId, selectIdPrefix) {
-    if (updatingDropdowns) return;
-    updatingDropdowns = true;
-
-    const tableBody = document.getElementById(tableBodyId);
-    if (tableBody) {
-        const checkboxes = tableBody.querySelectorAll('input[type="checkbox"]:checked');
-        // Update value in checked Dropdowns
-        checkboxes.forEach(checkbox => {
-            if (!checkbox.disabled) {
-                const row = checkbox.closest('tr');
-                const dropdown = row.querySelector(`select[id^=${selectIdPrefix}]`);
-                if (dropdown) {
-                    dropdown.value = value;
-                    if(selectIdPrefix === "coordinateSystemDropdown_") {
-                        $(dropdown).trigger('change');
-                    }
-                    if ([
-                        "c14LabDropdown_",
-                        "taxCodeDropdown_",
-                        "restTypeDropdown_",
-                        "stateOfPreservationDropdown_",
-                        "coordinateSystemDropdown_",
-                        "danteDropdown_",
-                    ].includes(selectIdPrefix)) {
-                        $(dropdown).trigger('change.select2');
-                    }
-                }
-            }
-        });
-    }
-    updatingDropdowns = false;
-}
-
-let updatingDropdownsMultiple = false;
-function updateCheckedDropdownsMultiple(values, tableBodyId, selectIdPrefix) {
-    if (updatingDropdownsMultiple) return;
-    updatingDropdownsMultiple = true;
-
-    const tableBody = document.getElementById(tableBodyId);
-    if (tableBody) {
-        const checkboxes = tableBody.querySelectorAll('input[type="checkbox"]:checked');
-        // Update values in checked Dropdowns
-        checkboxes.forEach(checkbox => {
-            if (!checkbox.disabled) {
-                const row = checkbox.closest('tr');
-                const dropdown = row.querySelector(`select[id^=${selectIdPrefix}]`);
-                if (dropdown) {
-                    // Clear previous selections
-                    Array.from(dropdown.options).forEach(option => {
-                        option.selected = values.includes(option.value);
-                    });
-                    if (selectIdPrefix === "danteDropdown_") {
-                        $(dropdown).trigger('change.select2');
-                    }
-                }
-            }
-        });
-    }
-    updatingDropdownsMultiple = false;
-}
-
-function updateCheckedInputs(value, tableBodyId, inputIdPrefix) {
-    const tableBody = document.getElementById(tableBodyId);
-    if (tableBody) {
-        const checkboxes = tableBody.querySelectorAll('input[type="checkbox"]:checked');
-        // Update value in checked inputs
-        checkboxes.forEach(checkbox => {
-            if (!checkbox.disabled) {
-                const row = checkbox.closest('tr');
-                const input = row.querySelector(`input[id^=${inputIdPrefix}]`);
-                if (input) {
-                    input.value = value;
-                }
-            }
-        });
     }
 }
 
@@ -104,12 +24,6 @@ function escapeJsArg(value) {
         .replace(/&/g, "&amp;")
         .replace(/"/g, "&quot;")
         .replace(/</g, "&lt;");
-}
-
-// Encode an item for the single quoted data-item attribute of the 'Add to JSON' button.
-// encodeURIComponent keeps the apostrophe, which would end the attribute value.
-function encodeRowItem(item) {
-    return encodeURIComponent(JSON.stringify(item)).replace(/'/g, "%27");
 }
 
 // Add one grouped entry to the JSON, remove all rows it covers and tell the user
@@ -128,24 +42,6 @@ function addGroupToJSON(entry, rows, skippedReasons = [], removeRows = rows => r
         }
         toast.success(message);
     }
-}
-
-// Adds all rows with the same attribute and nonMatchingLabel as the clicked row
-function addLabelToJSON(itemId, attribute, button) {
-    const clickedRow = button.closest("tr");
-    const label = clickedRow.dataset.nonMatchingLabel;
-
-    const rows = Array.from(document.querySelectorAll("tr[data-attribute]"))
-        .filter(row => row.dataset.attribute === attribute && row.dataset.nonMatchingLabel === label);
-    if (!rows.includes(clickedRow)) {
-        rows.push(clickedRow);
-    }
-
-    addGroupToJSON({
-        attribute: attribute,
-        nonMatchingLabel: label,
-        itemIds: rows.map(row => row.dataset.id ?? itemId)
-    }, rows);
 }
 
 // Results -------------------------------------------------------------------
@@ -313,7 +209,8 @@ function addC14LabCodesToJSON(row) {
     }, rows, skippedReasons, rows => deleteTableRows(c14LabTable, rows.map(row => row.getData().id)));
 }
 
-// Common parts of the migration Tabulators (team, results, fractions analyzed, labs and numbers, coordinates) ----
+// Common parts of the migration Tabulators (team, results, fractions analyzed, labs and numbers, coordinates,
+// non-matching attributes) ----
 
 // Cell text, or a grey hint (e.g. "select", "enter") while the cell is empty
 const placeholderFormatter = (text, format = value => value) => cell =>
@@ -375,7 +272,7 @@ function setupMigrationTable(table, { counter, copyFields = {} }) {
 // Tables which are still being built measure themselves (the accordions are open then).
 function redrawMigrationTables() {
     const tables = [userTable, fractionTable, c14LabTable, labTable, siteCoordinateTable, sampleCoordinateTable,
-                    ...[...resultTables.values()].map(site => site.table)];
+                    ...nonMatchingTables.values(), ...[...resultTables.values()].map(site => site.table)];
     tables.forEach(table => {
         if (table?.initialized) table.redraw(true);
     });
@@ -407,18 +304,4 @@ function deleteTableRows(table, ids) {
     const remove = new Set(ids);
     if (remove.size < BULK_ROWS) return table.deleteRow([...remove]);
     return replaceTableData(table, table.getData().filter(row => !remove.has(row.id)));
-}
-
-function hideTableIfTbodyEmpty(tbody) {
-    if (tbody) {
-        const table = tbody.closest('table');
-        if (table) {
-            // hide if empty
-            if (tbody.rows.length === 0) {
-                table.style.display = 'none';
-            } else { // display
-                table.style.display = 'table';
-            }
-        }
-    }
 }

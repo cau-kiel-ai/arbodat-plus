@@ -1,702 +1,237 @@
-function populateNonMatchingDanteAttributes(nonMatchingDanteAttributeList) {    
-    // Site attributes
-    const siteTypeTableBody = document.getElementById("siteTypeTableBody");
-    const naturalUnitTableBody = document.getElementById("naturalUnitTableBody");
-    // Feature attributes
-    const featureTypeTableBody = document.getElementById("featureTypeTableBody");
-    const preservationConditionTableBody = document.getElementById("preservationConditionTableBody");
-    // Sample attributes
-    const sampleTypeTableBody = document.getElementById("sampleTypeTableBody");
-    const chronozoneTableBody = document.getElementById("chronozoneTableBody");
-    const seedsAndFruitsTableBody = document.getElementById("seedsAndFruitsTableBody");
-    const charcoalInvestigatedTableBody = document.getElementById("charcoalInvestigatedTableBody");
-    const woodSubfossileTableBody = document.getElementById("woodSubfossileTableBody");
-    // AbsoluteDating attributes
-    const materialTableBody = document.getElementById("materialTableBody");
-    const datingMethodTableBody = document.getElementById("datingMethodTableBody");
-
-    // Create lines
-    nonMatchingDanteAttributeList.forEach(async item => {
-        const row = document.createElement("tr");
-
-        const id        = item.id;
-        const attribute = item.attribute;
-        row.dataset.id        = id;
-        row.dataset.attribute = attribute;
-        row.dataset.nonMatchingLabel = item.nonMatchingLabel;
-
-        let dropdown;
-
-        switch (attribute) {
-
-            case ("siteType"):
-
-                dropdown = `<select id="danteDropdown_${id}_${attribute}"
-                                    multiple
-                                    style="width: 100%"
-                                    onchange="updateCheckedDropdownsMultiple(Array.from(this.selectedOptions).map(option => option.value),
-                                                                             'siteTypeTableBody',
-                                                                             'danteDropdown_')">
-                            </select>`;
-
-                // Add columns
-                row.innerHTML = `
-                    <td><input type="checkbox"></td>
-                    <td>${escapeHtml(item.type)}</td>
-                    <td>${escapeHtml(item.label)}</td>
-                    <td>
-                        ${escapeHtml(item.nonMatchingLabel)}
-                        <br>
-                        <button type="button"
-                                onclick="addLabelToJSON('${id}', '${attribute}', event.currentTarget)">
-                                Add&#8239to&#8239JSON
-                        </button>
-                    </td>
-                    <td>${dropdown}</td>
-                    <td>
-                        <button type="button"
-                                onclick="updateAttributes('${id}', '${attribute}', this.closest('tr'))">
-                                Update
-                        </button>
-                    </td>
-                `;
-
-                siteTypeTableBody.appendChild(row);                
-                
-                // Populate Dropdown
-                await fetchDanteAttribute(attribute);
-                populateDanteDropdown (attribute, document.getElementById(`danteDropdown_${id}_${attribute}`));
-
-                break;
-
-            case "naturalUnit":
-
-                dropdown = `<select id="danteDropdown_${id}_${attribute}"
-                                    style="width: 100%;"
-                                    onchange="updateCheckedDropdowns(this.value, 'naturalUnitTableBody', 'danteDropdown_')">
-                                    <option value=""></option>
-                            </select>`;
-
-                // Add columns
-                row.innerHTML = `
-                    <td><input type="checkbox"></td>
-                    <td>${escapeHtml(item.type)}</td>
-                    <td>${escapeHtml(item.label)}</td>
-                    <td>
-                        ${escapeHtml(item.nonMatchingLabel)}
-                        <br>
-                        <button type="button"
-                                onclick="addLabelToJSON('${id}', '${attribute}', event.currentTarget)">
-                                Add&#8239to&#8239JSON
-                        </button>
-                    </td>
-                    <td>${dropdown}</td>
-                    <td>
-                        <button type="button"
-                                onclick="updateAttribute('${id}', '${attribute}', this.closest('tr'))">
-                                Update
-                        </button>
-                    </td>
-                `;
-
-                naturalUnitTableBody.appendChild(row);
-
-                // Populate Dropdown
-                await fetchDanteAttribute(attribute);
-                populateDanteDropdown (attribute, document.getElementById(`danteDropdown_${id}_${attribute}`));
-
-                break;
-
-            case ("featureType"):
-
-                dropdown = `<select id="danteDropdown_${id}_${attribute}"
-                                    style="width: 100%"
-                                    onchange="updateCheckedDropdowns(this.value, 'featureTypeTableBody', 'danteDropdown_')">
-                                    <option value=""></option>
-                            </select>`;
-
-                // Add columns
-                row.innerHTML = `
-                    <td><input type="checkbox"></td>
-                    <td>${escapeHtml(item.type)}</td>
-                    <td>${escapeHtml(item.label)}</td>
-                    <td>
-                        ${escapeHtml(item.nonMatchingLabel)}
-                        <br>
-                        <button type="button"
-                                onclick="addLabelToJSON('${id}', '${attribute}', event.currentTarget)">
-                                Add&#8239to&#8239JSON
-                        </button>
-                    </td>
-                    <td>${dropdown}</td>
-                    <td>
-                        <button type="button"
-                                onclick="updateAttribute('${id}', '${attribute}', this.closest('tr'))">
-                                Update
-                        </button>
-                    </td>
-                `;
-
-                featureTypeTableBody.appendChild(row);
-                
-                // Populate Dropdown
-                await fetchDanteAttribute(attribute);
-                populateDanteDropdown (attribute, document.getElementById(`danteDropdown_${id}_${attribute}`));
-
-                break;
-
-            case ("preservationCondition"):
-
-                dropdown = `<select id="danteDropdown_${id}_${attribute}"
-                                    style="width: 100%"
-                                    onchange="updateCheckedDropdowns(this.value, 'preservationConditionTableBody', 'danteDropdown_')">
-                                    <option value=""></option>
-                            </select>`;
-
-                // Add columns
-                row.innerHTML = `
-                    <td><input type="checkbox"></td>
-                    <td>${escapeHtml(item.type)}</td>
-                    <td>${escapeHtml(item.label)}</td>
-                    <td>
-                        ${escapeHtml(item.nonMatchingLabel)}
-                        <br>
-                        <button type="button"
-                                onclick="addLabelToJSON('${id}', '${attribute}', event.currentTarget)">
-                                Add&#8239to&#8239JSON
-                        </button>
-                    </td>
-                    <td>${dropdown}</td>
-                    <td>
-                        <button type="button"
-                                onclick="updateAttribute('${id}', '${attribute}', this.closest('tr'))">
-                                Update
-                        </button>
-                    </td>
-                `;
-
-                preservationConditionTableBody.appendChild(row);
-
-                // Populate Dropdown
-                await fetchDanteAttribute(attribute);
-                populateDanteDropdown (attribute, document.getElementById(`danteDropdown_${id}_${attribute}`));
-
-                break;
-
-            case ("sampleType"):
-                
-                dropdown = `<select id="danteDropdown_${id}_${attribute}"
-                                    style="width: 100%"
-                                    onchange="updateCheckedDropdowns(this.value, 'sampleTypeTableBody', 'danteDropdown_')">
-                                    <option value=""></option>
-                            </select>`;
-
-                // Add columns
-                row.innerHTML = `
-                    <td><input type="checkbox"></td>
-                    <td>${escapeHtml(item.type)}</td>
-                    <td>${escapeHtml(item.label)}</td>
-                    <td>
-                        ${escapeHtml(item.nonMatchingLabel)}
-                        <br>
-                        <button type="button"
-                                onclick="addLabelToJSON('${id}', '${attribute}', event.currentTarget)">
-                                Add&#8239to&#8239JSON
-                        </button>
-                    </td>
-                    <td>${dropdown}</td>
-                    <td>
-                        <button type="button"
-                                onclick="updateAttribute('${id}', '${attribute}', this.closest('tr'))">
-                                Update
-                        </button>
-                    </td>
-                `;
-
-                sampleTypeTableBody.appendChild(row);
-
-                // Populate Dropdown
-                await fetchDanteAttribute(attribute);
-                populateDanteDropdown (attribute, document.getElementById(`danteDropdown_${id}_${attribute}`));
-
-                break;
-
-            case ("chronozone"):
-
-                dropdown = `<select id="danteDropdown_${id}_${attribute}"
-                                    style="width: 100%"
-                                    onchange="updateCheckedDropdowns(this.value, 'chronozoneTableBody', 'danteDropdown_')">
-                                    <option value=""></option>
-                            </select>`;
-
-                // Add columns
-                row.innerHTML = `
-                    <td><input type="checkbox"></td>
-                    <td>${escapeHtml(item.type)}</td>
-                    <td>${escapeHtml(item.label)}</td>
-                    <td>
-                        ${escapeHtml(item.nonMatchingLabel)}
-                        <br>
-                        <button type="button"
-                                onclick="addLabelToJSON('${id}', '${attribute}', event.currentTarget)">
-                                Add&#8239to&#8239JSON
-                        </button>
-                    </td>
-                    <td>${dropdown}</td>
-                    <td>
-                        <button type="button"
-                                onclick="updateAttribute('${id}', '${attribute}', this.closest('tr'))">
-                                Update
-                        </button>
-                    </td>
-                `;
-
-                chronozoneTableBody.appendChild(row);
-
-                // Populate Dropdown
-                await fetchDanteAttribute(attribute);
-                populateDanteDropdown (attribute, document.getElementById(`danteDropdown_${id}_${attribute}`));
-
-                break;
-
-            case ("seedsAndFruits"):
-
-                dropdown = `<select id="danteDropdown_${id}_${attribute}"
-                                    style="width: 100%"
-                                    onchange="updateCheckedDropdowns(this.value, 'seedsAndFruitsTableBody', 'danteDropdown_')">
-                                    <option value=""></option>
-                            </select>`;
-
-                // Add columns
-                row.innerHTML = `
-                    <td><input type="checkbox"></td>
-                    <td>${escapeHtml(item.type)}</td>
-                    <td>${escapeHtml(item.label)}</td>
-                    <td>
-                        ${escapeHtml(item.nonMatchingLabel)}
-                        <br>
-                        <button type="button"
-                                onclick="addLabelToJSON('${id}', '${attribute}', event.currentTarget)">
-                                Add&#8239to&#8239JSON
-                        </button>
-                    </td>
-                    <td>${dropdown}</td>
-                    <td>
-                        <button type="button"
-                                onclick="updateAttribute('${id}', '${attribute}', this.closest('tr'))">
-                                Update
-                        </button>
-                    </td>
-                `;
-
-                seedsAndFruitsTableBody.appendChild(row);
-
-                // Populate Dropdown
-                await fetchDanteAttribute(attribute);
-                populateDanteDropdown (attribute, document.getElementById(`danteDropdown_${id}_${attribute}`));
-
-                break;
-
-            case ("charcoalInvestigated"):
-
-                dropdown = `<select id="danteDropdown_${id}_${attribute}"
-                                    style="width: 100%"
-                                    onchange="updateCheckedDropdowns(this.value, 'charcoalInvestigatedTableBody', 'danteDropdown_')">
-                                    <option value=""></option>
-                            </select>`;
-
-                // Add columns
-                row.innerHTML = `
-                    <td><input type="checkbox"></td>
-                    <td>${escapeHtml(item.type)}</td>
-                    <td>${escapeHtml(item.label)}</td>
-                    <td>
-                        ${escapeHtml(item.nonMatchingLabel)}
-                        <br>
-                        <button type="button"
-                                onclick="addLabelToJSON('${id}', '${attribute}', event.currentTarget)">
-                                Add&#8239to&#8239JSON
-                        </button>
-                    </td>
-                    <td>${dropdown}</td>
-                    <td>
-                        <button type="button"
-                                onclick="updateAttribute('${id}', '${attribute}', this.closest('tr'))">
-                                Update
-                        </button>
-                    </td>
-                `;
-
-                charcoalInvestigatedTableBody.appendChild(row);
-
-                // Populate Dropdown
-                await fetchDanteAttribute(attribute);
-                populateDanteDropdown (attribute, document.getElementById(`danteDropdown_${id}_${attribute}`));
-
-                break;
-
-            case ("woodSubfossile"):
-
-                dropdown = `<select id="danteDropdown_${id}_${attribute}"
-                                    style="width: 100%"
-                                    onchange="updateCheckedDropdowns(this.value, 'woodSubfossileTableBody', 'danteDropdown_')">
-                                    <option value=""></option>
-                            </select>`;
-
-                // Add columns
-                row.innerHTML = `
-                    <td><input type="checkbox"></td>
-                    <td>${escapeHtml(item.type)}</td>
-                    <td>${escapeHtml(item.label)}</td>
-                    <td>
-                        ${escapeHtml(item.nonMatchingLabel)}
-                        <br>
-                        <button type="button"
-                                onclick="addLabelToJSON('${id}', '${attribute}', event.currentTarget)">
-                                Add&#8239to&#8239JSON
-                        </button>
-                    </td>
-                    <td>${dropdown}</td>
-                    <td>
-                        <button type="button"
-                                onclick="updateAttribute('${id}', '${attribute}', this.closest('tr'))">
-                                Update
-                        </button>
-                    </td>
-                `;
-
-                woodSubfossileTableBody.appendChild(row);
-
-                // Populate Dropdown
-                await fetchDanteAttribute(attribute);
-                populateDanteDropdown (attribute, document.getElementById(`danteDropdown_${id}_${attribute}`));
-
-                break;
-
-            case ("material"):
-
-                dropdown = `<select id="danteDropdown_${id}_${attribute}"
-                                    style="width: 100%"
-                                    onchange="updateCheckedDropdowns(this.value, 'materialTableBody', 'danteDropdown_')">
-                                    <option value=""></option>
-                            </select>`;
-
-                // Add columns
-                row.innerHTML = `
-                    <td><input type="checkbox"></td>
-                    <td>${escapeHtml(item.type)}</td>
-                    <td>${escapeHtml(item.label)}</td>
-                    <td>
-                        ${escapeHtml(item.nonMatchingLabel)}
-                        <br>
-                        <button type="button"
-                                onclick="addLabelToJSON('${id}', '${attribute}', event.currentTarget)">
-                                Add&#8239to&#8239JSON
-                        </button>
-                    </td>
-                    <td>${dropdown}</td>
-                    <td>
-                        <button type="button"
-                                onclick="updateAttribute('${id}', '${attribute}', this.closest('tr'))">
-                                Update
-                        </button>
-                    </td>
-                `;
-
-                materialTableBody.appendChild(row);
-
-                // Populate Dropdown
-                await fetchDanteAttribute(attribute);
-                populateDanteDropdown (attribute, document.getElementById(`danteDropdown_${id}_${attribute}`));
-
-                break;
-
-            case ("datingMethod"):
-
-                dropdown = `<select id="danteDropdown_${id}_${attribute}"
-                                    style="width: 100%"
-                                    onchange="updateCheckedDropdowns(this.value, 'datingMethodTableBody', 'danteDropdown_')">
-                                    <option value=""></option>
-                            </select>`;
-
-                // Add columns
-                row.innerHTML = `
-                    <td><input type="checkbox"></td>
-                    <td>${escapeHtml(item.type)}</td>
-                    <td>${escapeHtml(item.label)}</td>
-                    <td>
-                        ${escapeHtml(item.nonMatchingLabel)}
-                        <br>
-                        <button type="button"
-                                onclick="addLabelToJSON('${id}', '${attribute}', event.currentTarget)">
-                                Add&#8239to&#8239JSON
-                        </button>
-                    </td>
-                    <td>${dropdown}</td>
-                    <td>
-                        <button type="button"
-                                onclick="updateAttribute('${id}', '${attribute}', this.closest('tr'))">
-                                Update
-                        </button>
-                    </td>
-                `;
-
-                datingMethodTableBody.appendChild(row);
-
-                // Populate Dropdown
-                await fetchDanteAttribute(attribute);
-                populateDanteDropdown (attribute, document.getElementById(`danteDropdown_${id}_${attribute}`));
-
-                break;
-        }
-
-        if (attribute === "siteType") {
-            // Select2 Multi-select boxes (pillbox)
-            $(`#danteDropdown_${id}_${attribute}`).select2({
-                placeholder: 'select',
-                allowClear: true,
-                templateSelection: function(item) {
-                    return (item.text || '').trim();
-                }
-            });
-        } else {
-            // Select2 dropdown
-            $(`#danteDropdown_${id}_${attribute}`).select2({
-                placeholder: 'select',
-                allowClear: true,
-                templateSelection: function(item) {
-                    return (item.text || '').trim();
-                }
-            });
-            // remove arrow
-            $(`#danteDropdown_${id}_${attribute}`)
-                .next('.select2-container')
-                .find('.select2-selection__arrow')
-                .remove();
-        }
+// Non-matching attributes accordion: one Tabulator per attribute (only the visible rows are rendered), the rows are plain objects.
+// Each row is a value of ArboDat (nonMatchingLabel) of a site / feature / sample / absolute dating which is not in DANTE;
+// a DANTE value is chosen for it (several for site types, they are added to the site's site types).
+
+// The attributes in their order on the page: [attribute, title]
+const NON_MATCHING_ATTRIBUTES = [
+    ["siteType", "siteType (several values)"],
+    ["naturalUnit", "naturalUnit"],
+    ["featureType", "featureType"],
+    ["preservationCondition", "preservationCondition"],
+    ["sampleType", "sampleType"],
+    ["chronozone", "chronozone"],
+    ["seedsAndFruits", "seedsAndFruits"],
+    ["charcoalInvestigated", "charcoalInvestigated"],
+    ["woodSubfossile", "woodSubfossile"],
+    ["material", "material"],
+    ["datingMethod", "datingMethod"],
+];
+
+const nonMatchingTables = new Map(); // attribute -> Tabulator
+let nonMatchingRowCounter = 0;
+
+// Rows per bulk request (requests are sent one after another)
+const NON_MATCHING_CHUNK_SIZE = 500;
+
+const isMultipleAttribute = attribute => attribute === "siteType";
+
+function toNonMatchingRow(item) {
+    return {
+        id:               `nonMatching_${++nonMatchingRowCounter}`,
+        entityId:         item.id,
+        attribute:        item.attribute,
+        type:             item.type,  // site, feature, sample, absoluteDating
+        label:            item.label,
+        nonMatchingLabel: item.nonMatchingLabel,
+        value:            isMultipleAttribute(item.attribute) ? [] : null, // uri(s) (DANTE)
+        error:            "",         // reason, if the last 'Update' failed
+    };
+}
+
+async function populateNonMatchingDanteAttributes(nonMatchingDanteAttributeList) {
+    const rowsByAttribute = new Map();
+    nonMatchingDanteAttributeList.map(toNonMatchingRow).forEach(row => {
+        if (!rowsByAttribute.has(row.attribute)) rowsByAttribute.set(row.attribute, []);
+        rowsByAttribute.get(row.attribute).push(row);
     });
+    if (rowsByAttribute.size === 0) return;
 
-    // if tbody empty hide tables
-    // else display
-    const tbodyList = [siteTypeTableBody, naturalUnitTableBody, featureTypeTableBody,
-                 preservationConditionTableBody, sampleTypeTableBody, chronozoneTableBody,
-                 seedsAndFruitsTableBody, charcoalInvestigatedTableBody, woodSubfossileTableBody,
-                 materialTableBody, datingMethodTableBody];
-    tbodyList.forEach(tbody => {
-        hideTableIfTbodyEmpty(tbody);
+    await loadDanteListOptions([...rowsByAttribute.keys()]);
+    createNonMatchingSections();
+
+    rowsByAttribute.forEach((rows, attribute) => {
+        // Sites migrated later: add the rows to the table
+        if (nonMatchingTables.has(attribute)) {
+            nonMatchingTables.get(attribute).addData(rows);
+            return;
+        }
+        const section = document.getElementById(`nonMatching_${attribute}`);
+        if (!section) {
+            console.error("Unknown non-matching attribute: ", attribute);
+            return;
+        }
+        section.hidden = false;
+        nonMatchingTables.set(attribute, createNonMatchingTable(attribute, rows, section));
     });
 }
 
-async function updateAttributes(id, attribute, row, triggerNext=true) {
-    // For multiple selection (only siteTypes)
-
-    const dropdown = document.getElementById(`danteDropdown_${id}_${attribute}`);
-    const attributeIds = Array.from(dropdown.selectedOptions).map(option => option.value);
-    const attributeLabels = Array.from(dropdown.selectedOptions).map(option => option.getAttribute("data-label"));
-
-    if (attributeIds.length > 0 && attributeLabels.length > 0) {
-        let url = "";
-        let payload = []
-
-        if (attribute == "siteType") {            
-            url = `api/sites/${id}/updateSiteTypes`;
-            
-            payload = attributeIds.map((id, index) => ({
-                id: id,
-                label: attributeLabels[index]
-            }));
-
-            try {
-                const response = await fetch(
-                    url,
-                    {
-                        method: 'PUT',
-                        headers: {
-                            'Content-Type': 'application/json'
-                        },
-                        body: JSON.stringify(payload)
-                    }
-                );
-                if (!response.ok) {
-                    throw new Error(`HTTP Error! Status: ${response.status}`);
-                }
-                const data = await response.text();
-                console.log(data);
-
-                row.remove();
-                if (triggerNext) {
-                    const tableBodyId = "siteTypeTableBody";
-                    updateCheckedAttributes(tableBodyId, true);
-                }
-                return true;
-
-            } catch (error) {
-                console.error('Error:', error);
-                toast.error("Failed to update DANTE Attribute.");
-            }
-        }
-
-    } else {
-        if (triggerNext) {
-            toast.info(`No ${attribute} selected.`);
-        }
-        return false;
-    }
-}
-
-async function updateAttribute(id, attribute, row, triggerNext=true) {
-    const dropdown = document.getElementById(`danteDropdown_${id}_${attribute}`);
-    const attributeId = dropdown ? dropdown.value : null;
-    const attributeLabel = dropdown ? dropdown.options[dropdown.selectedIndex].getAttribute("data-label") : null;
-
-    if (attributeId && attributeLabel) {
-
-        const payload = {
-            id: attributeId,
-            label: attributeLabel
-        };
-
-        let url = "";
-        let tableBodyId = null;
-        switch (attribute) {
-            // site
-            case ("naturalUnit"):
-                url = `api/sites/${id}/updateNaturalUnit`;  
-                tableBodyId = "naturalUnitTableBody";
-                break;
-
-            // feature
-            case ("featureType"):
-                url = `api/features/${id}/updateFeatureType`;
-                tableBodyId = "featureTypeTableBody";
-                break;
-            
-            case ("preservationCondition"):
-                url = `api/features/${id}/updatePreservationCondition`;
-                tableBodyId = "preservationConditionTableBody";
-                break;
-
-            // sample
-            case ("sampleType"):
-                url = `api/samples/${id}/updateSampleType`;
-                tableBodyId = "sampleTypeTableBody";
-                break;
-
-            case ("chronozone"):
-                url = `api/samples/${id}/updateChronozone`;
-                tableBodyId = "chronozoneTableBody";
-                break;
-
-            case ("seedsAndFruits"):
-                url = `api/samples/${id}/updateSeedsAndFruits`;
-                tableBodyId = "seedsAndFruitsTableBody";
-                break;
-
-            case ("charcoalInvestigated"):
-                url = `api/samples/${id}/updateCharcoalInvestigated`;
-                tableBodyId = "charcoalInvestigatedTableBody";
-                break;
-
-            case ("woodSubfossile"):
-                url = `api/samples/${id}/updateWoodSubfossile`;
-                tableBodyId = "woodSubfossileTableBody";
-                break;
-
-            // absoluteDating
-            case ("datingMethod"):
-                url = `api/absolute_datings/${id}/updateDatingMethod`;
-                tableBodyId = "datingMethodTableBody";
-                break;
-
-            case ("material"):
-                url = `api/absolute_datings/${id}/updateMaterial`;
-                tableBodyId = "materialTableBody";
-                break;
-            
-            default:
-                console.error("Unknown attribute");
-                return;
-        }
-
-        try {
-            const response = await fetch(
-                url,
-                {
-                    method: 'PUT',
-                    headers: {
-                        'Content-Type': 'application/json'
-                    },
-                    body: JSON.stringify(payload)
-                }
-            );
-            if (!response.ok) {
-                throw new Error(`HTTP Error! Status: ${response.status}`);
-            }
-            const data = await response.text();
-            console.log(data);
-            
-            row.remove();
-            if (triggerNext) { updateCheckedAttributes(tableBodyId); }
-            return true;
-
-        } catch (error) {
-            console.error('Error:', error);
-            toast.error("Failed to update DANTE Attribute.");
-        }
-
-    } else {
-        if (triggerNext) {
-            toast.info(`No ${attribute} selected.`);
-        }
-        return false;
-    }
-}
-
-async function updateCheckedAttributes(tableBodyId, siteType=false) {
-    const tableBody = document.getElementById(tableBodyId);
-    if (tableBody) {
-        const checkboxes = Array.from(tableBody.querySelectorAll('input[type="checkbox"]:checked'));
-        const concurrencyLimit = 100;
-        showLoading();
-        try {
-            for (let i = 0; i < checkboxes.length; i += concurrencyLimit) {
-                const batch = checkboxes.slice(i, i + concurrencyLimit);
-
-                const promises = batch.map(async checkbox => {
-                    if (checkbox.disabled) return true;
-
-                    const row = checkbox.closest('tr');    
-                    const id        = row.dataset.id;
-                    const attribute = row.dataset.attribute;
-    
-                    if (siteType) {
-                        return updateAttributes(id, attribute, row, false);
-                    } else {
-                        return updateAttribute(id, attribute, row, false);
-                    }
-                });
-
-                await Promise.allSettled(promises);
-            };
-        } finally {
-            hideLoading();
-        }
-    }
-}
-
-// Filter each non-matching attribute table by nonMatchingLabel (see tableFilter.js)
-[
-    "siteTypeTableBody", "naturalUnitTableBody", "featureTypeTableBody", "preservationConditionTableBody",
-    "sampleTypeTableBody", "chronozoneTableBody", "seedsAndFruitsTableBody", "charcoalInvestigatedTableBody",
-    "woodSubfossileTableBody", "materialTableBody", "datingMethodTableBody"
-].forEach(tableBodyId => {
-    createTableFilter({
-        tbody: tableBodyId,
-        counterColumns: [1, 3],
-        fields: [{
-            key: "nonMatchingLabel",
-            label: "nonMatchingLabel",
-            getValue: row => row.dataset.nonMatchingLabel ?? ""
-        }]
+// A hidden section (title, counter, table) per attribute, shown when the attribute has rows
+function createNonMatchingSections() {
+    const container = document.getElementById("nonMatchingAttributeTables");
+    if (container.children.length > 0) return;
+    NON_MATCHING_ATTRIBUTES.forEach(([attribute, title]) => {
+        const section = document.createElement("div");
+        section.id = `nonMatching_${attribute}`;
+        section.hidden = true;
+        section.innerHTML = `
+            <div class="d-flex flex-wrap align-items-center gap-3 mb-2 mt-4">
+                <strong>${escapeHtml(title)}</strong>
+                <span class="small text-muted" data-counter></span>
+            </div>
+            <div class="migration-result-table" data-table></div>`;
+        container.appendChild(section);
     });
+}
+
+function createNonMatchingTable(attribute, rows, section) {
+    const multiple = isMultipleAttribute(attribute);
+    const labels = danteListOptions.get(attribute).labels;
+    const valueLabels = value => [].concat(value ?? []).map(uri => labels.get(uri) ?? uri).join(", ");
+    const table = () => nonMatchingTables.get(attribute);
+
+    const instance = newTabulator(section.querySelector("[data-table]"), {
+        data: rows,
+        index: "id",
+        maxHeight: "70vh",
+        layout: "fitDataFill", // columns as wide as their content (no stretched last column)
+        placeholder: `no non-matching ${attribute}`,
+        columns: [
+            selectionColumn(),
+            filterTextColumn("Type", "type"),
+            filterTextColumn("Label", "label"),
+            filterListColumn("nonMatchingLabel", "nonMatchingLabel"),
+            {title: "danteLabels", field: "value", headerSort: false, minWidth: 220, maxWidth: 360,
+                tooltip: (e, cell) => cell.getElement().classList.contains("tabulator-editing") ? "" : escapeHtml(valueLabels(cell.getValue())),
+                editor: multiple ? multiSelectEditor : singleSelectEditor,
+                editorParams: danteEditorParams(attribute, { multiselect: multiple }),
+                formatter: cell => valueLabels(cell.getValue())
+                    ? escapeHtml(valueLabels(cell.getValue()))
+                    : `<span class="migration-result-placeholder">select</span>`},
+            {title: "Update", headerSort: false, hozAlign: "center", width: 80, // as wide as the button
+                formatter: cell => {
+                    const error = cell.getRow().getData().error;
+                    return `<button type="button">Update</button>
+                            ${error ? `<div class="text-danger small text-wrap">${escapeHtml(error)}</div>` : ""}`;
+                },
+                cellClick: (e, cell) => {
+                    if (e.target.closest("button")) updateNonMatchingAttributes(table(), cell.getRow());
+                },
+            },
+            {title: "Add to JSON", headerSort: false, hozAlign: "center", width: 110, // as wide as the button
+                formatter: () => `<button type="button">Add&#8239;to&#8239;JSON</button>`,
+                cellClick: (e, cell) => {
+                    if (e.target.closest("button")) addNonMatchingLabelToJSON(table(), cell.getRow());
+                },
+            },
+        ],
+    });
+    setupMigrationTable(instance, {
+        counter: section.querySelector("[data-counter]"),
+        copyFields: { value: () => true },
+    });
+    // All rows updated / added to the JSON: the section is hidden (again shown for sites migrated later)
+    const toggleSection = () => setTimeout(() => section.hidden = instance.getDataCount() === 0);
+    ["rowDeleted", "rowAdded", "dataProcessed"].forEach(event => instance.on(event, toggleSection));
+    return instance;
+}
+
+// Tabulator can't measure itself in a collapsed accordion -> redraw when it is opened
+document.addEventListener("shown.bs.collapse", event => {
+    if (event.target.id === "panelsStayOpen-collapseFive") {
+        nonMatchingTables.forEach(table => table.redraw());
+    }
 });
+
+// Update ---------------------------------------------------------------------------------------
+
+// Checks a row. Returns { item } or { reason, message } if it can not be updated yet.
+function buildNonMatchingItem(data) {
+    const uris = [].concat(data.value ?? []).filter(Boolean);
+    if (uris.length === 0) {
+        return { reason: `no ${data.attribute} selected`, message: `No ${data.attribute} selected.` };
+    }
+    const labels = danteListOptions.get(data.attribute).labels;
+    return { item: {
+        clientId:  data.id,
+        attribute: data.attribute,
+        id:        data.entityId,
+        values:    uris.map(uri => ({ id: uri, label: labels.get(uri) ?? null })),
+    } };
+}
+
+// 'Update' button: updates the clicked row and all other selected rows of the table
+async function updateNonMatchingAttributes(table, row) {
+    const data = row.getData();
+
+    const clicked = buildNonMatchingItem(data);
+    if (!clicked.item) {
+        toast.info(clicked.message);
+        return;
+    }
+
+    const items = [clicked.item];
+    const skippedReasons = [];
+    table.getSelectedData().forEach(other => {
+        if (other.id === data.id) return;
+        const entry = buildNonMatchingItem(other);
+        if (entry.item) {
+            items.push(entry.item);
+        } else {
+            skippedReasons.push(entry.reason);
+        }
+    });
+
+    const updated = [];
+    const errors = [];
+    showLoading();
+    try {
+        for (let i = 0; i < items.length; i += NON_MATCHING_CHUNK_SIZE) {
+            const chunk = items.slice(i, i + NON_MATCHING_CHUNK_SIZE);
+            try {
+                const response = await axios.put("api/migration/nonMatchingAttributes/bulk", chunk);
+                response.data.forEach(status => {
+                    if (status.status === "updated") updated.push(status.clientId);
+                    else errors.push({ id: status.clientId, error: status.message || "failed" });
+                });
+            } catch (error) {
+                console.error("Error during bulk update of non-matching attributes: ", error);
+                const message = getErrorMessage(error);
+                chunk.forEach(item => errors.push({ id: item.clientId, error: message }));
+            }
+        }
+
+        if (updated.length > 0) await deleteTableRows(table, updated);
+        if (errors.length > 0)  await updateTableRows(table, errors);
+    } finally {
+        hideLoading();
+    }
+
+    // Summary --------------------------------------------------
+    if (items.length > 1 || skippedReasons.length > 0) {
+        let message = `${updated.length} ${updated.length === 1 ? "row" : "rows"} updated.`;
+        if (skippedReasons.length > 0) {
+            message += ` ${skippedReasons.length} selected skipped (${[...new Set(skippedReasons)].join(", ")}).`;
+        }
+        if (errors.length > 0) {
+            message += ` ${errors.length} failed (see the rows).`;
+        }
+        (errors.length > 0 ? toast.error : toast.success)(message);
+    } else if (errors.length > 0) {
+        toast.error("Failed to update DANTE Attribute: " + errors[0].error);
+    }
+}
+
+// Add to JSON -----------------------------------------------------------------------------------
+
+// Adds the clicked row and all rows of the attribute with the same nonMatchingLabel
+// (for a value which is not in DANTE)
+function addNonMatchingLabelToJSON(table, row) {
+    const data = row.getData();
+    const rows = table.getRows().filter(other => other === row || other.getData().nonMatchingLabel === data.nonMatchingLabel);
+
+    addGroupToJSON({
+        attribute: data.attribute,
+        nonMatchingLabel: data.nonMatchingLabel,
+        itemIds: rows.map(other => other.getData().entityId),
+    }, rows, [], rows => deleteTableRows(table, rows.map(row => row.getData().id)));
+}

@@ -172,48 +172,20 @@
         font-weight: 200;
         line-height: 24px;
       }
-      /* Table filters (tableFilter.js): Select2 in an extra header row above the filtered columns.
-         .table-filter-select gives other Select2 dropdowns (e.g. results taxonomy) the same look */
-      .table-filter-bar {
-        color: #000000;
-      }
-      /* 'group by': same font as the text above the table, the dropdown directly behind the label text */
-      .table-filter-bar label {
-        display: inline-flex;
-        align-items: center;
-        gap: 6px;
-        padding: 0;
-        margin: 0;
-        font: inherit;
-      }
-      .table-filter-bar label select {
-        width: auto;
-        padding: 4px 8px;
-        font: inherit;
-      }
-      .table-filter-row th {
-        font-weight: normal;
-        padding-top: 4px;
-        padding-bottom: 4px;
-      }
-      .table-filter-row .select2-container,
+      /* Select2 dropdowns above a table (e.g. results taxonomy) */
       .table-filter-select .select2-container {
         min-width: 110px;
       }
-      .table-filter-row .select2-container .select2-selection--single,
       .table-filter-select .select2-container .select2-selection--single {
         height: 34px !important;
       }
-      .table-filter-row .select2-container .select2-selection--single .select2-selection__rendered,
       .table-filter-select .select2-container .select2-selection--single .select2-selection__rendered {
         padding: 4px 8px;
         font-size: 13px;
       }
-      .table-filter-row .select2-container .select2-selection--single .select2-selection__arrow,
       .table-filter-select .select2-container .select2-selection--single .select2-selection__arrow {
         height: 32px;
       }
-      .table-filter-row .select2-container .select2-selection--single .select2-selection__clear,
       .table-filter-select .select2-container .select2-selection--single .select2-selection__clear {
         transform: translateX(10%) translateY(-2px);
       }
@@ -813,244 +785,11 @@
                 - If attributes you are looking for are not in the central thesauri lists (dropdowns), you can use the ‘Add to JSON’ option to save non matching attributes at the bottom of the page.<br>
                 - To select danteLabels or update attributes in several rows simultaneously select multiple rows.<br>
                 - To select or deselect a row use the checkbox on the left. To select or deselect <u>all</u> rows use the checkbox at the top left of a table.<br>
-                - To filter rows by nonMatchingLabel use the dropdown in the table header.
+                - To filter rows by type, label and/or nonMatchingLabel use the fields in the table header.
               </p>
-              </p>
 
-              <form id="danteAttributesForm">
-                   
-                <table class="table table-striped">
-                  <caption style="caption-side: top;">
-                    siteType (select multiple items by using the shift key)
-                  </caption>
-                  <thead>
-                      <tr>
-                          <th>
-                            <input type="checkbox" onclick="toggleAllCheckboxes(this, 'siteTypeTableBody')">
-                          </th>
-                          <th>Type</th>
-                          <th>Label</th>
-                          <th>nonMatchingLabel</th>
-                          <th style="min-width: 200px;">danteLabels</th>
-                          <th></th> <!-- updateAttribute -->
-                      </tr>
-                  </thead>
-                  <tbody id="siteTypeTableBody">
-                      <!-- Rows will be dynamically added here by populateNonMatchingDanteAttributes function -->
-                  </tbody>
-                </table>
-
-                <table class="table table-striped">
-                  <caption style="caption-side: top;">
-                    naturalUnit
-                  </caption>
-                  <thead>
-                      <tr>
-                          <th>
-                            <input type="checkbox" onclick="toggleAllCheckboxes(this, 'naturalUnitTableBody')">
-                          </th>
-                          <th>Type</th>
-                          <th>Label</th>
-                          <th>nonMatchingLabel</th>
-                          <th style="min-width: 200px;">danteLabels</th>
-                          <th></th> <!-- updateAttribute -->
-                      </tr>
-                  </thead>
-                  <tbody id="naturalUnitTableBody">
-                      <!-- Rows will be dynamically added here by populateNonMatchingDanteAttributes function -->
-                  </tbody>
-                </table>
-
-                <table class="table table-striped">
-                  <caption style="caption-side: top;">
-                    featureType
-                  </caption>
-                  <thead>
-                      <tr>
-                          <th>
-                            <input type="checkbox" onclick="toggleAllCheckboxes(this, 'featureTypeTableBody')">
-                          </th>
-                          <th>Type</th>
-                          <th>Label</th>
-                          <th>nonMatchingLabel</th>
-                          <th style="min-width: 200px;">danteLabels</th>
-                          <th></th> <!-- updateAttribute -->
-                      </tr>
-                  </thead>
-                  <tbody id="featureTypeTableBody">
-                      <!-- Rows will be dynamically added here by populateNonMatchingDanteAttributes function -->
-                  </tbody>
-                </table>
-
-                <table class="table table-striped">
-                  <caption style="caption-side: top;">
-                    preservationCondition
-                  </caption>
-                  <thead>
-                      <tr>
-                          <th>
-                            <input type="checkbox" onclick="toggleAllCheckboxes(this, 'preservationConditionTableBody')">
-                          </th>
-                          <th>Type</th>
-                          <th>Label</th>
-                          <th>nonMatchingLabel</th>
-                          <th style="min-width: 200px;">danteLabels</th>
-                          <th></th> <!-- updateAttribute -->
-                      </tr>
-                  </thead>
-                  <tbody id="preservationConditionTableBody">
-                      <!-- Rows will be dynamically added here by populateNonMatchingDanteAttributes function -->
-                  </tbody>
-                </table>
-
-                <table class="table table-striped">
-                  <caption style="caption-side: top;">
-                    sampleType
-                  </caption>
-                  <thead>
-                      <tr>
-                          <th>
-                            <input type="checkbox" onclick="toggleAllCheckboxes(this, 'sampleTypeTableBody')">
-                          </th>
-                          <th>Type</th>
-                          <th>Label</th>
-                          <th>nonMatchingLabel</th>
-                          <th style="min-width: 200px;">danteLabels</th>
-                          <th></th> <!-- updateAttribute -->
-                      </tr>
-                  </thead>
-                  <tbody id="sampleTypeTableBody">
-                      <!-- Rows will be dynamically added here by populateNonMatchingDanteAttributes function -->
-                  </tbody>
-                </table>
-
-                <table class="table table-striped">
-                  <caption style="caption-side: top;">
-                    chronozone
-                  </caption>
-                  <thead>
-                      <tr>
-                          <th>
-                            <input type="checkbox" onclick="toggleAllCheckboxes(this, 'chronozoneTableBody')">
-                          </th>
-                          <th>Type</th>
-                          <th>Label</th>
-                          <th>nonMatchingLabel</th>
-                          <th style="min-width: 200px;">danteLabels</th>
-                          <th></th> <!-- updateAttribute -->
-                      </tr>
-                  </thead>
-                  <tbody id="chronozoneTableBody">
-                      <!-- Rows will be dynamically added here by populateNonMatchingDanteAttributes function -->
-                  </tbody>
-                </table>
-
-                <table class="table table-striped">
-                  <caption style="caption-side: top;">
-                    seedsAndFruits
-                  </caption>
-                  <thead>
-                    <tr>
-                      <th>
-                        <input type="checkbox" onclick="toggleAllCheckboxes(this, 'seedsAndFruitsTableBody')">
-                      </th>
-                      <th>Type</th>
-                      <th>Label</th>
-                      <th>nonMatchingLabel</th>
-                      <th style="min-width: 200px;">danteLabels</th>
-                      <th></th> <!-- updateAttribute -->
-                    </tr>
-                  </thead>
-                  <tbody id="seedsAndFruitsTableBody">
-                      <!-- Rows will be dynamically added here by populateNonMatchingDanteAttributes function -->
-                  </tbody>
-                </table>
-
-                <table class="table table-striped">
-                  <caption style="caption-side: top;">
-                    charcoalInvestigated
-                  </caption>
-                  <thead>
-                      <tr>
-                          <th>
-                            <input type="checkbox" onclick="toggleAllCheckboxes(this, 'charcoalInvestigatedTableBody')">
-                          </th>
-                          <th>Type</th>
-                          <th>Label</th>
-                          <th>nonMatchingLabel</th>
-                          <th style="min-width: 200px;">danteLabels</th>
-                          <th></th> <!-- updateAttribute -->
-                      </tr>
-                  </thead>
-                  <tbody id="charcoalInvestigatedTableBody">
-                      <!-- Rows will be dynamically added here by populateNonMatchingDanteAttributes function -->
-                  </tbody>
-                </table>
-
-                <table class="table table-striped">
-                  <caption style="caption-side: top;">
-                    woodSubfossile
-                  </caption>
-                  <thead>
-                      <tr>
-                          <th>
-                            <input type="checkbox" onclick="toggleAllCheckboxes(this, 'woodSubfossileTableBody')">
-                          </th>
-                          <th>Type</th>
-                          <th>Label</th>
-                          <th>nonMatchingLabel</th>
-                          <th style="min-width: 200px;">danteLabels</th>
-                          <th></th> <!-- updateAttribute -->
-                      </tr>
-                  </thead>
-                  <tbody id="woodSubfossileTableBody">
-                      <!-- Rows will be dynamically added here by populateNonMatchingDanteAttributes function -->
-                  </tbody>
-                </table>
-
-                <table class="table table-striped">
-                  <caption style="caption-side: top;">
-                    material
-                  </caption>
-                  <thead>
-                      <tr>
-                          <th>
-                            <input type="checkbox" onclick="toggleAllCheckboxes(this, 'materialTableBody')">
-                          </th>
-                          <th>Type</th>
-                          <th>Label</th>
-                          <th>nonMatchingLabel</th>
-                          <th style="min-width: 200px;">danteLabels</th>
-                          <th></th> <!-- updateAttribute -->
-                      </tr>
-                  </thead>
-                  <tbody id="materialTableBody">
-                      <!-- Rows will be dynamically added here by populateNonMatchingDanteAttributes function -->
-                  </tbody>
-                </table>
-
-                <table class="table table-striped">
-                  <caption style="caption-side: top;">
-                    datingMethod
-                  </caption>
-                  <thead>
-                      <tr>
-                          <th>
-                            <input type="checkbox" onclick="toggleAllCheckboxes(this, 'datingMethodTableBody')">
-                          </th>
-                          <th>Type</th>
-                          <th>Label</th>
-                          <th>nonMatchingLabel</th>
-                          <th style="min-width: 200px;">danteLabels</th>
-                          <th></th> <!-- updateAttribute -->
-                      </tr>
-                  </thead>
-                  <tbody id="datingMethodTableBody">
-                      <!-- Rows will be dynamically added here by populateNonMatchingDanteAttributes function -->
-                  </tbody>
-                </table>
-
-              </form>
+              <!-- One Tabulator per attribute with rows, created by populateNonMatchingDanteAttributes (nonMatchingDanteAttributes.js) -->
+              <div id="nonMatchingAttributeTables"></div>
 
             </div>
           </div>
@@ -1435,7 +1174,6 @@
     <!-- migration specific -->
     <!-- shared by the accordion scripts below (e.g. placeholderFormatter while they load) -->
     <script src="js/migration/helper.js"></script>
-    <script src="js/migration/tableFilter.js"></script>
     <script src="js/migration/getSites.js"></script>
     <script src="js/migration/researchProject-dropdown.js"></script>
     <script src="js/migration/migrateSites.js"></script>
