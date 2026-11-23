@@ -26,12 +26,6 @@ async function buildLiteratureTable() {
         console.error("Error loading authors:", error)
     }
 
-    // Create year list for publication year ------------------------------------
-    const currentYear = new Date().getFullYear();
-    const years = [];
-    for (let year = currentYear; year >= 0; year--) {
-    years.push(year);
-    }
 
     // Create Table -------------------------------------------------------------
     literatureTable = newTabulator("#table", {
@@ -44,19 +38,13 @@ async function buildLiteratureTable() {
             {title:"id", field:"id", headerFilter:true, headerSort:false},
             {title:"*title", titleDownload:"title", field:"title", validator: ["required"], editor:"input", headerFilter:true, headerSortTristate:true},
             {title:"publication year", titleDownload:"publicationYear", field:"publicationYear", headerSortTristate:true,
-                editor:"list", editorParams:{
-                    values: years,
-                    emptyValue:null
-                },
-                headerFilter:"list", headerFilterParams: {
-                    values: years,
-                    multiselect: true
-                },
-                headerFilterFunc: function(headerValue, rowValue) {
-                    if (!headerValue || headerValue.length === 0) return true;
-                    if (rowValue == null) return false;
-                    return headerValue.includes(rowValue);
-                },
+                // Free text, only a year of 4 digits (or nothing)
+                editor:"input", editorParams: { mask: "9999" },
+                validator: "regex:^\\d{4}$",
+                mutatorEdit: value => value === "" || value === null || value === undefined ? null : Number(value),
+                // The years in the table
+                headerFilter: multiSelectFilter, headerFilterParams: { valuesLookup: true },
+                headerFilterFunc: anyOfFilter,
                 sorter:"array", sorterParams:{
                     valueMap:"label"
                 },

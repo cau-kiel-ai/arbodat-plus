@@ -397,17 +397,21 @@ async function createResultTable({ selector, results, hiddenFields = [], height 
                     }
                 },
             },
-            {title:"*sieve size", titleDownload:"sieveSize", field:"sieveSize", validator: ["required"], headerFilter:"input", headerSortTristate:true,
-                editor:"list", editorParams: function(cell) {
+            {title:"*sieve size", titleDownload:"sieveSize", field:"sieveSize", validator: ["required"], headerSortTristate:true,
+                // The sieve sizes of the sample's fractions analyzed with this org / min (a result belongs to a fraction)
+                editor: singleSelectEditor, editorParams: function(cell) {
                     const rowData = cell.getRow().getData();
                     const fractions = rowData?.sample.fractionAnalyzedList || [];
                     const orgOrMin = rowData?.orgOrMin;
                     const allowedValues = fractions.filter(f => f.orgOrMin === orgOrMin).map(f => f.sieveSize);
 
                     return {
-                        values: allowedValues
+                        values: [...new Set(allowedValues)].sort((a, b) => a - b)
                     };
                 },
+                // The sieve sizes in the table
+                headerFilter: multiSelectFilter, headerFilterParams: { valuesLookup: true },
+                headerFilterFunc: anyOfFilter,
             },
             {title:"*fraction analyzed", titleDownload:"fractionAnalyzed", field:"fractionAnalyzed", headerSortTristate:true,
                 editor:"list", editorParams:{ values: [ "yes", "no", "partly"] },

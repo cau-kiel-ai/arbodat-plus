@@ -433,5 +433,17 @@ button:hover{
 
 @import 'stickyAccordion';
 @import 'multiSelectEditor';
+
+// Number cells and number filters of the tables: typed only, without the spin buttons
+.tabulator input[type=number] {
+    appearance: textfield;
+    -moz-appearance: textfield;
+
+    &::-webkit-outer-spin-button,
+    &::-webkit-inner-spin-button {
+        -webkit-appearance: none;
+        margin: 0;
+    }
+}
 @import 'footer';
 @import 'navbar';

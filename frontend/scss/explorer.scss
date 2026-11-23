@@ -195,6 +195,18 @@ button:hover{
 @import '../vendor/bootstrap@5.3.8/scss/bootstrap';
 @import 'footer';
 @import 'multiSelectEditor';
+
+// Number cells and number filters of the tables: typed only, without the spin buttons
+.tabulator input[type=number] {
+    appearance: textfield;
+    -moz-appearance: textfield;
+
+    &::-webkit-outer-spin-button,
+    &::-webkit-inner-spin-button {
+        -webkit-appearance: none;
+        margin: 0;
+    }
+}
 @import 'navbar';
 
 // Center the "select row" checkbox in the header of the row selection column
