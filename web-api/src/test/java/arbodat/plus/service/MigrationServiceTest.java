@@ -180,7 +180,125 @@ class MigrationServiceTest extends PostgresTest {
         assertEquals(1, count("sample"));
     }
 
+    // Legacy content without a target in ArboDat+ -------------------------------------------------
+
+    @Test
+    void materialWithoutMatchIsKeptInTheDatingRemarks() throws IOException {
+        createData(site("ok").dating("Anmerkungen", "remark").dating("Material", "1 Korn Hordeum vulgare, vk"));
+
+        migrate(List.of("ok"), newResearchProject());
+
+        assertEquals("remark\nMaterial (ArboDat): 1 Korn Hordeum vulgare, vk",
+                     jdbc.queryForObject("SELECT remarks FROM absolute_dating", String.class));
+        assertEquals(0, count("absolute_dating WHERE material IS NOT NULL"));
+    }
+
+    @Test
+    void fieldsOfOtherDatingMethodsAreKeptInTheDatingRemarks() throws IOException {
+        createData(
+                // C14 dating: its C14 fields are taken over, 'Alter andere' and the dendro fields go to the remarks
+                site("c14").dating("Methode", "C14-Datierung").dating("C14-Alter BP", 1500)
+                           .dating("Alter andere", "ca. 1200 BC").dating("Dendroalter", "1180").dating("Waldkante", true),
+                // Other dating: the C14 age goes to the remarks, pMC = 0 (default value) and Waldkante = no are empty
+                site("other").dating("Methode", "sonstige").dating("C14-Alter BP", 2950).dating("pMC-Wert", 0.0));
+
+        migrate(List.of("c14", "other"), newResearchProject());
+
+        assertEquals("Dendroalter (ArboDat): 1180\nWaldkante (ArboDat): true\nAlter andere (ArboDat): ca. 1200 BC",
+                     datingRemarks("c14"));
+        assertEquals(List.of(1500), jdbc.queryForList("SELECT c14_age_bp FROM c14_dating", Integer.class));
+        assertEquals("C14-Alter BP (ArboDat): 2950", datingRemarks("other"));
+    }
+
+    @Test
+    void tkAndLimesWithoutCoordinateGoToTheSiteRemarks() throws IOException {
+        createData(site("tk").site("AnmFustel", "remark").site("TK", "5817").site("Limes", true),
+                   site("noLimes"),                                                  // Limes = no -> nothing
+                   site("zeros").site("rWert", 0.0).site("hWert", 0.0).site("üNN", 0.0)); // ArboDat default values
+
+        MigrationResponse response = migrate(List.of("tk", "noLimes", "zeros"), newResearchProject());
+
+        assertEquals("remark\nTK = 5817, Limes = true", siteRemarks("tk"));
+        assertNull(siteRemarks("noLimes"));
+        assertNull(siteRemarks("zeros"));
+        assertEquals(0, count("coordinate"));
+        assertTrue(response.getCoordinateList().isEmpty());
+    }
+
+    @Test
+    void sitesWithEastingOrNorthingAreCompletedInTheMigrationAndAltitudeOnlyIsSetDirectly() throws IOException {
+        createData(site("grid").site("rWert", 3480000.0).site("hWert", 5550000.0).site("TK", "5817"),
+                   site("altitude").site("üNN", 120.5).site("TK", "5818").site("Limes", true));
+
+        MigrationResponse response = migrate(List.of("grid", "altitude"), newResearchProject());
+
+        // Easting / northing: coordinate list (coordinate system is chosen in the migration), TK in its remarks
+        assertEquals(1, response.getCoordinateList().size());
+        assertEquals("grid", response.getCoordinateList().get(0).getLabel());
+        assertEquals("TK = 5817", response.getCoordinateList().get(0).getRemarks());
+        assertNull(siteRemarks("grid"));
+
+        // Altitude only: coordinate is set directly, TK and Limes in the coordinate remarks
+        assertEquals(Map.of("altitude", 120.5, "remarks_coordinate", "TK = 5818, Limes = true"),
+                     jdbc.queryForMap("SELECT c.altitude, c.remarks_coordinate FROM site s "
+                                      + "JOIN coordinate c ON s.coordinate = c.id WHERE s.site_label = 'altitude'"));
+        assertNull(siteRemarks("altitude"));
+    }
+
+    @Test
+    void samplesWithoutKoordXAndKoordYGetAnAltitudeOnlyCoordinate() throws IOException {
+        createData(site("altitude").sample("Prob_üNN", 45.083f),                       // Single: stays 45.083
+                   site("koordZ").sample("KoordZ", 20.27),
+                   site("both").sample("Prob_üNN", 234.0f).sample("KoordZ", 1.5),     // Prob_üNN has priority
+                   site("zeros").sample("KoordX", 0.0).sample("KoordY", 0.0)          // ArboDat default values
+                                .sample("KoordZ", 0.0).sample("Prob_üNN", 0.0f),
+                   site("grid").sample("KoordX", 243.0).sample("KoordY", 423.0).sample("KoordZ", 234.0));
+
+        MigrationResponse response = migrate(List.of("altitude", "koordZ", "both", "zeros", "grid"), newResearchProject());
+
+        assertEquals(Arrays.asList(45.083, null), sampleCoordinate("altitude"));
+        assertEquals(Arrays.asList(20.27, "altitude taken from KoordZ"), sampleCoordinate("koordZ"));
+        assertEquals(Arrays.asList(234.0, "KoordZ = 1.5"), sampleCoordinate("both"));
+        assertEquals(0, count("sample s JOIN feature f ON s.feature_id = f.id JOIN site si ON f.site = si.id "
+                              + "WHERE si.site_label IN ('zeros', 'grid') AND s.coordinate IS NOT NULL"));
+
+        // Only the sample with KoordX / KoordY is completed in the migration
+        assertEquals(1, response.getCoordinateList().size());
+        assertEquals("grid", response.getCoordinateList().get(0).getSiteLabel());
+        assertEquals(423.0, response.getCoordinateList().get(0).getLatitude());
+        assertEquals(243.0, response.getCoordinateList().get(0).getLongitude());
+    }
+
+    @Test
+    void aSecondMigrationDoesntRepeatTheRemarks() throws IOException {
+        createData(site("tk").site("TK", "5817"));
+        migrate(List.of("tk"), newResearchProject());
+
+        migrate(List.of("tk"), existingResearchProject());
+
+        assertEquals("TK = 5817", siteRemarks("tk"));
+    }
+
     // Helpers -------------------------------------------------------------------------------------
+
+    private String siteRemarks(String siteLabel) {
+        return jdbc.queryForObject("SELECT remarks_site FROM site WHERE site_label = ?", String.class, siteLabel);
+    }
+
+    private String datingRemarks(String siteLabel) {
+        return jdbc.queryForObject("SELECT d.remarks FROM absolute_dating d JOIN sample s ON d.sample = s.id "
+                                   + "JOIN feature f ON s.feature_id = f.id JOIN site si ON f.site = si.id "
+                                   + "WHERE si.site_label = ?", String.class, siteLabel);
+    }
+
+    // [altitude, remarks] of the coordinate of the sample of a site
+    private List<Object> sampleCoordinate(String siteLabel) {
+        Map<String, Object> coordinate = jdbc.queryForMap(
+                "SELECT c.altitude, c.remarks_coordinate FROM sample s JOIN coordinate c ON s.coordinate = c.id "
+                + "JOIN feature f ON s.feature_id = f.id JOIN site si ON f.site = si.id WHERE si.site_label = ?",
+                siteLabel);
+        return Arrays.asList(coordinate.get("altitude"), coordinate.get("remarks_coordinate"));
+    }
 
     private MigrationResponse migrate(List<String> siteLabels, ResearchProject researchProject) {
         return migrationService.migrateData(dataFile.getAbsolutePath(), strukDataFile.getAbsolutePath(),
@@ -252,16 +370,18 @@ class MigrationServiceTest extends PostgresTest {
                            "EDatProb", DataType.SHORT_DATE_TIME));
 
             for (SiteRows site : siteRowsList) {
-                addRow(sites, Map.of("Projekt", site.site, "okFustel", true, "Limes", false));
+                addRow(sites, with(Map.of("Projekt", site.site, "okFustel", true, "Limes", false), site.siteValues));
                 addRow(features, Map.of("Projekt", site.featureSite, "Befu", "F1", "okBefu", true, "FustelTyp", "-99"));
                 if (site.excavationYear != null) {
                     addRow(excavationYears, Map.of("Projekt", site.yearKeys[0], "Befu", site.yearKeys[1],
                                                    "Jahr", (short) (int) site.excavationYear));
                 }
-                addRow(samples, Map.of("Projekt", site.sampleKeys[0], "Befu", site.sampleKeys[1],
-                                       "ProbNr", site.sampleKeys[2], "Trocken", true, "ORG1_0", "ja"));
-                addRow(datings, Map.of("Projekt", site.datingKeys[0], "Befu", site.datingKeys[1],
-                                       "ProbNr", site.datingKeys[2], "Unterprobe", "U1", "Labornummer", "KIA 1"));
+                addRow(samples, with(Map.of("Projekt", site.sampleKeys[0], "Befu", site.sampleKeys[1],
+                                            "ProbNr", site.sampleKeys[2], "Trocken", true, "ORG1_0", "ja"),
+                                     site.sampleValues));
+                addRow(datings, with(Map.of("Projekt", site.datingKeys[0], "Befu", site.datingKeys[1],
+                                            "ProbNr", site.datingKeys[2], "Unterprobe", "U1", "Labornummer", "KIA 1"),
+                                     site.datingValues));
                 addRow(results, Map.of("Projekt", site.resultKeys[0], "Befu", site.resultKeys[1],
                                        "ProbNr", site.resultKeys[2], "PCODE", "TRDIC", "Fraktion", "ORG 1,0",
                                        "Zust", "vk", "RTyp", "Sa/Fr", "cf", "-", "rAnzahl", 3));
@@ -273,9 +393,19 @@ class MigrationServiceTest extends PostgresTest {
         return new SiteRows(site);
     }
 
-    // Keys (site, feature, sample) of the rows of one site in the child tables, default: 'site', 'F1', 'S1'
+    private static Map<String, Object> with(Map<String, Object> row, Map<String, Object> values) {
+        Map<String, Object> merged = new HashMap<>(row);
+        merged.putAll(values);
+        return merged;
+    }
+
+    // Keys (site, feature, sample) of the rows of one site in the child tables, default: 'site', 'F1', 'S1',
+    // and further values of the site, sample and dating row
     private static class SiteRows {
         final String site;
+        final Map<String, Object> siteValues = new HashMap<>();
+        final Map<String, Object> sampleValues = new HashMap<>();
+        final Map<String, Object> datingValues = new HashMap<>();
         String featureSite;
         String[] sampleKeys;
         String[] datingKeys;
@@ -316,6 +446,21 @@ class MigrationServiceTest extends PostgresTest {
 
         SiteRows resultKeys(String site, String feature, String sample) {
             resultKeys = new String[]{site, feature, sample};
+            return this;
+        }
+
+        SiteRows site(String column, Object value) {
+            siteValues.put(column, value);
+            return this;
+        }
+
+        SiteRows sample(String column, Object value) {
+            sampleValues.put(column, value);
+            return this;
+        }
+
+        SiteRows dating(String column, Object value) {
+            datingValues.put(column, value);
             return this;
         }
 

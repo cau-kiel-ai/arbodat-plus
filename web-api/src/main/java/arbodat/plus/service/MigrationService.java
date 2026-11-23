@@ -541,6 +541,9 @@ public class MigrationService {
 //                                    }
                                 }
 
+                                // Set an altitude-only coordinate or TK and Limes as site remarks
+                                boolean siteCoordinateToComplete = setSiteCoordinateOrRemarks(newSite, row);
+
                                 // Insert the new site
                                 newSite = siteRepository.save(newSite);
                                 siteId = newSite.getId();
@@ -574,39 +577,9 @@ public class MigrationService {
                                             userLabel, "botanist", null, null));
                                 }
 
-                                // Add coordinate info to coordinateList ---------------------------------
-                                Double latitude = row.getDouble("rWert");
-                                Double longitude = row.getDouble("hWert");
-                                Double altitude = row.getDouble("üNN");
-                                String coordinateSystem = row.getString("KoordSys");
-
-                                // Set remarks
-                                String remarks = "";
-                                // TK
-                                String tk = row.getString("TK");
-                                if (tk != null) {
-                                    remarks = remarks.concat("TK = " + tk);
-                                }
-                                // Limes
-                                Boolean limes = (Boolean) row.get("Limes");
-                                if (limes != null) {
-                                    if (limes) {
-                                        if (remarks.isEmpty()) {
-                                            remarks = remarks.concat("Limes = true");
-                                        } else {
-                                            remarks = remarks.concat(", Limes = true");
-                                        }
-                                    } else {
-                                        if (remarks.isEmpty()) {
-                                            remarks = remarks.concat("Limes = false");
-                                        } else {
-                                            remarks = remarks.concat(", Limes = false");
-                                        }
-                                    }
-                                }
-                                if (latitude != null || longitude != null || altitude != null || !remarks.isEmpty()) {
-                                    coordinateList.add(new CoordinateMigration("site", siteId, siteLabel,
-                                            latitude, longitude, null, altitude, coordinateSystem, remarks, null, null));
+                                // Add coordinate info (with easting / northing) to coordinateList -------
+                                if (siteCoordinateToComplete) {
+                                    coordinateList.add(siteCoordinateMigration(row, siteId, siteLabel));
                                 }
 
                                 // Add literature info to literatureList ---------------------------------
@@ -695,39 +668,12 @@ public class MigrationService {
                                 }
 
 
-                                // Add coordinate info to coordinateList ------------------------
+                                // Coordinate (altitude-only directly, with easting / northing to coordinateList) ----
                                 if (matchingSite.getCoordinate() == null) {
-                                    Double latitude = row.getDouble("rWert");
-                                    Double longitude = row.getDouble("hWert");
-                                    Double altitude = row.getDouble("üNN");
-                                    String coordinateSystem = row.getString("KoordSys");
-                                    // Set remarks
-                                    String remarks = "";
-                                    // TK
-                                    String tk = row.getString("TK");
-                                    if (tk != null) {
-                                        remarks = remarks.concat("TK = " + tk);
-                                    }
-                                    // Limes
-                                    Boolean limes = (Boolean) row.get("Limes");
-                                    if (limes != null) {
-                                        if (limes) {
-                                            if (remarks.isEmpty()) {
-                                                remarks = remarks.concat("Limes = true");
-                                            } else {
-                                                remarks = remarks.concat(", Limes = true");
-                                            }
-                                        } else {
-                                            if (remarks.isEmpty()) {
-                                                remarks = remarks.concat("Limes = false");
-                                            } else {
-                                                remarks = remarks.concat(", Limes = false");
-                                            }
-                                        }
-                                    }
-                                    if (latitude != null || longitude != null || altitude != null || !remarks.isEmpty()) {
-                                        coordinateList.add(new CoordinateMigration("site", siteId, siteLabel,
-                                                latitude, longitude, null, altitude, coordinateSystem, remarks, null, null));
+                                    if (setSiteCoordinateOrRemarks(matchingSite, row)) {
+                                        coordinateList.add(siteCoordinateMigration(row, siteId, siteLabel));
+                                    } else {
+                                        siteRepository.save(matchingSite);
                                     }
                                 }
 
@@ -1136,13 +1082,8 @@ public class MigrationService {
                                 Optional<SampleInvestigated> woodSubfossile = ctx.cachedLookup("sampleInvestigated", woodSubfossileUri, sampleInvestigatedRepository::findById);
                                 woodSubfossile.ifPresent(newSample::setWoodSubfossile);
 
-                                // Add coordinate info to coordinateList
-                                Double latitude = row.getDouble("KoordY");
-                                Double longitude = row.getDouble("KoordX");
-                                Double zCoordinate = row.getDouble("KoordZ");
-                                // altitude
-                                Object altitudeValue = row.get("Prob_üNN");
-                                Double altitude = (altitudeValue instanceof Number) ? ((Number) altitudeValue).doubleValue() : null;
+                                // Set an altitude-only coordinate (without KoordX and KoordY)
+                                boolean sampleCoordinateToComplete = setSampleAltitudeCoordinate(newSample, row);
 
                                 // Insert the new sample
                                 newSample = sampleRepository.save(newSample);
@@ -1194,9 +1135,9 @@ public class MigrationService {
                                                                                                     woodSubfossileLabel));
                                 }
 
-                                if (latitude != null || longitude != null || zCoordinate != null || altitude != null) {
-                                    coordinateList.add(new CoordinateMigration("sample", sampleId, sampleLabel,
-                                            latitude, longitude, zCoordinate, altitude, "", "", siteLabel, featureLabel));
+                                // Add coordinate info (with KoordX / KoordY) to coordinateList
+                                if (sampleCoordinateToComplete) {
+                                    coordinateList.add(sampleCoordinateMigration(row, sampleId, sampleLabel, siteLabel, featureLabel));
                                 }
                             }
 
@@ -1309,18 +1250,12 @@ public class MigrationService {
                                     }
                                 }
 
-                                // Coordinate ------------------------------------------------------------
+                                // Coordinate (altitude-only directly, with KoordX / KoordY to coordinateList) --
                                 if (matchingSample.getCoordinate() == null) {
-                                    Double latitude = row.getDouble("KoordY");
-                                    Double longitude = row.getDouble("KoordX");
-                                    Double zCoordinate = row.getDouble("KoordZ");
-                                    // altitude
-                                    Object altitudeValue = row.get("Prob_üNN");
-                                    Double altitude = (altitudeValue instanceof Number) ? ((Number) altitudeValue).doubleValue() : null;
-
-                                    if (latitude != null || longitude != null || zCoordinate != null || altitude != null) {
-                                        coordinateList.add(new CoordinateMigration("sample", sampleId, sampleLabel,
-                                                latitude, longitude, zCoordinate, altitude, "", "", siteLabel, featureLabel));
+                                    if (setSampleAltitudeCoordinate(matchingSample, row)) {
+                                        coordinateList.add(sampleCoordinateMigration(row, sampleId, sampleLabel, siteLabel, featureLabel));
+                                    } else if (matchingSample.getCoordinate() != null) {
+                                        sampleRepository.save(matchingSample);
                                     }
                                 }
 
@@ -1677,7 +1612,6 @@ public class MigrationService {
 
                                 // Set absolute dating attributes
                                 newAbsoluteDating.setSubSample(subSample);
-                                newAbsoluteDating.setRemarks(row.getString("Anmerkungen"));
 
                                 // Set material
                                 String materialLabel = row.getString("Material");
@@ -1724,6 +1658,17 @@ public class MigrationService {
 
                                     datingType = "otherDating";
                                 }
+
+                                // Remarks: ArboDat remarks + material text without match + fields of other dating methods
+                                // (they have no target in ArboDat+ and would be lost otherwise)
+                                String remarks = row.getString("Anmerkungen");
+                                if (materialLabel != null && material.isEmpty()) {
+                                    remarks = appendRemark(remarks, "Material (ArboDat): " + materialLabel);
+                                }
+                                for (String line : notMigratedDatingFields(row, datingType)) {
+                                    remarks = appendRemark(remarks, line);
+                                }
+                                newAbsoluteDating.setRemarks(remarks);
 
                                 // Insert the new absolute dating (incl. its sub-dating)
                                 newAbsoluteDating = absoluteDatingRepository.save(newAbsoluteDating);
@@ -2062,6 +2007,129 @@ public class MigrationService {
         return tableMigrationResponse;
     }
 
+
+    // Value of a numeric ArboDat column, 0 (the default value in ArboDat) counts as not set.
+    // Single (FLOAT) values are taken over by their decimal representation (45.083 stays 45.083).
+    private static Double nonZeroValue(Row row, String column) {
+        Object value = row.get(column);
+        if (!(value instanceof Number number) || number.doubleValue() == 0) {
+            return null;
+        }
+        return (value instanceof Float) ? Double.valueOf(value.toString()) : number.doubleValue();
+    }
+
+    // Appends a line to the remarks (not twice, e.g. when migrating again)
+    private static String appendRemark(String remarks, String addition) {
+        if (addition == null || addition.isEmpty()) {
+            return remarks;
+        }
+        if (remarks == null || remarks.isBlank()) {
+            return addition;
+        }
+        if (remarks.contains(addition)) {
+            return remarks;
+        }
+        return remarks + "\n" + addition;
+    }
+
+    // TK and Limes of a site (Limes only if true: it's a yes/no field with default 'no' in ArboDat)
+    private static String tkAndLimes(Row row) {
+        List<String> remarks = new ArrayList<>();
+        String tk = row.getString("TK");
+        if (tk != null && !tk.isBlank()) {
+            remarks.add("TK = " + tk);
+        }
+        if (Boolean.TRUE.equals(row.get("Limes"))) {
+            remarks.add("Limes = true");
+        }
+        return String.join(", ", remarks);
+    }
+
+    // Coordinate of a site without easting and northing: an altitude-only coordinate is set directly, without
+    // any coordinate value TK and Limes go to the site remarks.
+    // Returns true, if the coordinate has to be completed in the migration (coordinate list).
+    private static boolean setSiteCoordinateOrRemarks(Site site, Row row) {
+        if (nonZeroValue(row, "rWert") != null || nonZeroValue(row, "hWert") != null) {
+            return true;
+        }
+        String tkAndLimes = tkAndLimes(row);
+        Double altitude = nonZeroValue(row, "üNN");
+        if (altitude != null) {
+            Coordinate coordinate = new Coordinate();
+            coordinate.setAltitude(altitude);
+            coordinate.setRemarksCoordinate(tkAndLimes.isEmpty() ? null : tkAndLimes);
+            site.setCoordinate(coordinate);
+        } else {
+            site.setRemarksSite(appendRemark(site.getRemarksSite(), tkAndLimes));
+        }
+        return false;
+    }
+
+    private static CoordinateMigration siteCoordinateMigration(Row row, UUID siteId, String siteLabel) {
+        return new CoordinateMigration("site", siteId, siteLabel,
+                nonZeroValue(row, "rWert"), nonZeroValue(row, "hWert"), null, nonZeroValue(row, "üNN"),
+                row.getString("KoordSys"), tkAndLimes(row), null, null);
+    }
+
+    // Coordinate of a sample without KoordX and KoordY: an altitude-only coordinate is set directly,
+    // Prob_üNN has priority, otherwise KoordZ is taken as altitude.
+    // Returns true, if the coordinate has to be completed in the migration (coordinate list).
+    private static boolean setSampleAltitudeCoordinate(Sample sample, Row row) {
+        if (nonZeroValue(row, "KoordX") != null || nonZeroValue(row, "KoordY") != null) {
+            return true;
+        }
+        Double koordZ = nonZeroValue(row, "KoordZ");
+        Double altitude = nonZeroValue(row, "Prob_üNN");
+        if (koordZ == null && altitude == null) {
+            return false;
+        }
+        Coordinate coordinate = new Coordinate();
+        if (altitude != null) {
+            coordinate.setAltitude(altitude);
+            if (koordZ != null) {
+                coordinate.setRemarksCoordinate("KoordZ = " + koordZ);
+            }
+        } else {
+            coordinate.setAltitude(koordZ);
+            coordinate.setRemarksCoordinate("altitude taken from KoordZ");
+        }
+        sample.setCoordinate(coordinate);
+        return false;
+    }
+
+    private static CoordinateMigration sampleCoordinateMigration(Row row, UUID sampleId, String sampleLabel,
+                                                                 String siteLabel, String featureLabel) {
+        return new CoordinateMigration("sample", sampleId, sampleLabel,
+                nonZeroValue(row, "KoordY"), nonZeroValue(row, "KoordX"), nonZeroValue(row, "KoordZ"),
+                nonZeroValue(row, "Prob_üNN"), "", "", siteLabel, featureLabel);
+    }
+
+    // Fields of the ArboDat dating, which are only taken over for one dating method
+    private static final Map<String, List<String>> DATING_FIELDS_BY_TYPE = Map.of(
+            "c14Dating", List.of("C14-Alter BP", "Standardab C14", "C14 cal", "13C PDB-Wert",
+                                 "Standardab 13C PDB", "pMC-Wert", "Standardab PMC"),
+            "dendroDating", List.of("Dendroalter", "Waldkante"),
+            "otherDating", List.of("Alter andere"));
+
+    // Non-empty fields of other dating methods than the one taken over, as remark lines
+    private static List<String> notMigratedDatingFields(Row row, String datingType) {
+        List<String> lines = new ArrayList<>();
+        DATING_FIELDS_BY_TYPE.entrySet().stream()
+                .filter(entry -> !entry.getKey().equals(datingType))
+                .sorted(Map.Entry.comparingByKey())
+                .flatMap(entry -> entry.getValue().stream())
+                .forEach(column -> {
+                    Object value = row.get(column);
+                    boolean empty = value == null
+                            || (value instanceof String text && text.isBlank())
+                            || (value instanceof Number number && number.doubleValue() == 0)
+                            || Boolean.FALSE.equals(value);
+                    if (!empty) {
+                        lines.add(column + " (ArboDat): " + value);
+                    }
+                });
+        return lines;
+    }
 
     private boolean isAddressEmpty(Address address) {
         return (address.getCountry() == null || address.getCountry().isEmpty()) &&
