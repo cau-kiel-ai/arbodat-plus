@@ -312,28 +312,33 @@
     
     <app-navbar></app-navbar>
     
-    <!-- Container for File Upload -->
     <div class="container-md">
-      <div class="card mx-auto" style="max-width: 500px; padding: 20px; box-shadow: 0px 4px 8px rgba(0, 0, 0, 0.1);">
+      <p style="margin-bottom: 32px;">
+        Migrate data from legacy MS Access ArboDat into ArboDat+.
+        Upload the two Access files 'ArchBotDaten.mdb' and 'ArchBotStrukDat.mdb', then work through the accordions from top to bottom:
+        Select research projects and the sites to migrate, then create or update data records and match the entries to the central DANTE thesauri.
+        Attributes that are not in the thesauri are collected in the JSON box at the bottom and can be sent to us for review.
+      </p>
+
+      <!-- File Upload -->
+      <div class="card mx-auto" style="max-width: 648px; padding: 20px; margin-bottom: 56px; box-shadow: 0px 4px 8px rgba(0, 0, 0, 0.1);">
         <h2 class="text-center">File Upload</h2>
         <form id="fileUploadForm">
             <div class="mb-3">
               <label for="dataFile" class="form-label">Select 'ArchBotDaten.mdb' file</label>
-              <input type="file" id="dataFile" class="form-control">
+              <input type="file" id="dataFile" class="form-control" accept=".mdb">
             </div>
             <div class="mb-3" style="margin-bottom: 20px !important;">
               <label for="strukDataFile" class="form-label">Select 'ArchBotStrukDat.mdb' file</label>
-              <input type="file" id="strukDataFile" class="form-control">
+              <input type="file" id="strukDataFile" class="form-control" accept=".mdb">
             </div>
             <div class="text-center">
-              <button type="button" class="btn btn-primary" onclick="getSites()">Upload</button>
+              <button type="button" id="uploadButton" class="btn btn-primary" onclick="getSites()" disabled>Upload</button>
             </div>
         </form>
       </div>
-    </div>
 
-    <!-- Accordion -->
-    <div class="container-md">
+      <!-- Accordion -->
       <div class="accordion" id="accordionPanels">
         
         <!-- Research Projects -->
@@ -1389,11 +1394,9 @@
         </div>
 
       </div>
-    </div>
 
-    <!-- Container for JSON -->
-    <div class="container-md">
-      <div class="card mx-auto" style="max-width: 680px; padding: 20px; box-shadow: 0px 4px 8px rgba(0, 0, 0, 0.1);">
+      <!-- JSON -->
+      <div class="card mx-auto" style="max-width: 648px; padding: 20px; margin-top: 56px; box-shadow: 0px 4px 8px rgba(0, 0, 0, 0.1);">
         <h2 class="text-center">JSON</h2>
         <p>If you add custom attributes which are not in the central thesauri lists, 
           they will be saved here in JSON format. You can download this file and 
@@ -1402,7 +1405,7 @@
         <pre id="jsonDisplay" class="bg-light p-3 border rounded" style="height: 200px; overflow-y: auto;"></pre>
         
         <div class="text-center">
-          <button type="button" class="btn btn-primary" onclick="downloadJSON()">Download JSON</button>
+          <button type="button" id="downloadJSONButton" class="btn btn-primary" onclick="downloadJSON()" disabled>Download JSON</button>
         </div>
 
       </div>

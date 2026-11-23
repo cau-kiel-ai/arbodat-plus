@@ -1,3 +1,11 @@
+// "Upload" is only enabled once both files are selected and both are .mdb files
+function updateUploadButton() {
+  const isMdb = id => /\.mdb$/i.test(document.getElementById(id).files[0]?.name ?? '');
+  document.getElementById('uploadButton').disabled = !(isMdb('dataFile') && isMdb('strukDataFile'));
+}
+document.getElementById('dataFile').addEventListener('change', updateUploadButton);
+document.getElementById('strukDataFile').addEventListener('change', updateUploadButton);
+
 async function getSites() {
   // Get 'ArchBotDaten.mdb' file from the file upload
   const dataFile = document.getElementById('dataFile');

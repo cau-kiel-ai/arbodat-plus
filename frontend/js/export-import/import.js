@@ -140,9 +140,15 @@ function renderImportPreview() {
     const container = document.getElementById('importPreview');
     const file = plan.file;
     const exportedAt = file.exportedAt ? new Date(file.exportedAt).toLocaleString() : null;
+    // at the end of the last fieldset: below the conflicts if there are any
+    const importButton = `
+        <div style="display: flex; flex-direction: column; align-items: center; gap: 6px; margin-top: 20px;">
+            <button type="button" id="importCommitButton" class="btn btn-primary" onclick="commitImport()" ${plan.canCommit ? '' : 'disabled'}>Import</button>
+            <span id="importStatus" class="text-body-secondary">${escapeHtml(importStatusText())}</span>
+        </div>`;
 
     container.innerHTML = `
-        <br>
+        <fieldset style="margin-top: 20px;">
         <legend>Preview</legend>
         <p class="text-body-secondary">
             ${file.formatVersion === 0
@@ -153,21 +159,15 @@ function renderImportPreview() {
         ${renderSummary(plan)}
         ${renderIssues(plan)}
         ${renderAmbiguities(plan)}
-        ${renderConflicts(plan)}
         ${renderKeyMatches(plan)}
         ${renderDetails(plan)}
-        <div style="display: flex; flex-direction: column; align-items: center; gap: 6px; margin-top: 20px;">
-            <button
-                type="button"
-                id="importCommitButton"
-                onclick="commitImport()"
-                ${plan.canCommit ? '' : 'disabled'}
-                style="padding-left: 10px; padding-right: 10px; padding-top: 2px; padding-bottom: 2px; border: 2px solid; border-radius: 4px;"
-            >
-                Import
-            </button>
-            <span id="importStatus" class="text-body-secondary">${escapeHtml(importStatusText())}</span>
-        </div>`;
+        ${plan.conflictTotal ? '' : importButton}
+        </fieldset>
+        ${plan.conflictTotal ? `
+        <fieldset>
+        ${renderConflicts(plan)}
+        ${importButton}
+        </fieldset>` : ''}`;
     container.hidden = false;
 }
 
@@ -347,7 +347,7 @@ function renderConflicts(plan) {
             </tr>`;
     }).join('');
     return `
-        <h5 class="mt-3">Conflicts (${plan.conflictTotal})</h5>
+        <legend>Conflicts (${plan.conflictTotal})</legend>
         <p class="text-body-secondary">
             These fields have a value here and a different one in the file. The value here is kept unless you take the imported one.
         </p>
@@ -510,7 +510,7 @@ function renderImportResult(result) {
     const vocabulary = result.outcomes.filter(o => !IMPORT_TYPE_LABELS[o.type]).reduce((n, o) => n + o.created, 0);
     const container = document.getElementById('importResult');
     container.innerHTML = `
-        <br>
+        <fieldset style="margin-top: 20px;">
         <legend>Imported</legend>
         ${rows ? `
             <div class="table-responsive">
@@ -521,7 +521,8 @@ function renderImportResult(result) {
             </div>` : '<p>Everything in the file was already here: nothing changed.</p>'}
         <p class="text-body-secondary">
             ${vocabulary ? `${vocabulary} vocabulary values added. ` : ''}${result.links ? `${result.links} links added.` : ''}
-        </p>`;
+        </p>
+        </fieldset>`;
     container.hidden = false;
     document.getElementById('importFileInput').value = '';
     importState.file = null;

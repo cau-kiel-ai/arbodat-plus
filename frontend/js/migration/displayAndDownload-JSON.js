@@ -9,6 +9,8 @@ function displayJSON() {
         }
         return value;
     }, 4);
+    // Nothing to download while no attribute has been added
+    document.getElementById("downloadJSONButton").disabled = jsonData.length === 0;
 }
 
 // Display JSON when loading the page
