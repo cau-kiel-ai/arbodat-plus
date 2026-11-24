@@ -280,6 +280,8 @@ async function createResultTable({ selector, results, hiddenFields = [], height 
                 }
             },
             {title:"entry date", titleDownload:"entryDate", field:"entryDate", editor:"date", headerSortTristate:true,
+                // Not in the future (local date)
+                editorParams: { max: new Date(Date.now() - new Date().getTimezoneOffset() * 60000).toISOString().split('T')[0] },
                 headerFilter:"input", headerFilterFunc: function(headerValue, rowValue) {
                     if (!headerValue) return true;
                     if (!rowValue) return false;
@@ -487,7 +489,7 @@ async function createResultTable({ selector, results, hiddenFields = [], height 
             },
             {title:"rCount", titleDownload:"restCount", field:"restCount", headerFilter:"input", headerSortTristate:true,
                 editor:"number", validator: ["integer"], editorParams:{
-                    min:0,
+                    min:-1, // -1: present, not counted (ArboDat convention)
                     step:1,
                 },
             },

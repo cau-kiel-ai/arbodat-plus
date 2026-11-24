@@ -1,5 +1,6 @@
 const resultForm = document.getElementById('resultForm');
-const today = new Date().toISOString().split('T')[0]; // "YYYY-MM-DD"
+// Today as local date "YYYY-MM-DD" (toISOString would give the UTC date)
+const today = new Date(Date.now() - new Date().getTimezoneOffset() * 60000).toISOString().split('T')[0];
 const taxonomy = document.getElementById("taxonomy_info");
 const taxCodeDropdown = document.getElementById("taxCode");
 
@@ -494,6 +495,12 @@ const estimationCheckbox = document.getElementById("estimation");
 
 // --------------------------------------------------------------------------------
 function submitResult() {
+    // A result needs a quantity: count (-1: present, not counted), fragments or weight (as in ArboDat)
+    const hasQuantity = [restCountInput, restFragmentInput, restWeightInput]
+        .some(input => input.value !== "" && Number(input.value) !== 0);
+    restCountInput.setCustomValidity(hasQuantity ? "" : "Please enter a count, fragments or a weight.");
+    entryDateInput.max = today;
+
     if (resultForm.checkValidity()) {
         const selectedFractionOption = fractionDropdown.options[fractionDropdown.selectedIndex]
 
@@ -579,7 +586,7 @@ function submitResult() {
         })
         .catch(error => {
             console.error('Error during POST request to create result:', error);
-            toast.error("action failed");
+            toast.error([400, 409].includes(error.response?.status) ? getErrorMessage(error) : "action failed");
         });
 
     } else { // Report -----------------

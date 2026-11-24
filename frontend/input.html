@@ -2331,8 +2331,12 @@
                       >
                       <script>
                         window.onload= function() {
-                          const today = new Date().toISOString().split('T')[0]; // "YYYY-MM-DD"
-                          document.querySelector('.set-today').value = today;
+                          // Today as local date (toISOString would give the UTC date): default and maximum
+                          const now = new Date();
+                          const today = new Date(now.getTime() - now.getTimezoneOffset() * 60000).toISOString().split('T')[0];
+                          const entryDate = document.querySelector('.set-today');
+                          entryDate.value = today;
+                          entryDate.max = today;
                         }
                       </script>
                     </div>
@@ -2500,10 +2504,10 @@
                   <!-- rest count -->
                   <div class="row">
                     <div class="col-25"> 
-                      <label for="r_count" data-tooltip="The number of finds of one type of plant remains.">rCount:</label>
+                      <label for="r_count" data-tooltip="The number of finds of one type of plant remains (-1: present, not counted).">rCount:</label>
                     </div>
                     <div class="col-75">
-                      <input type="number" step="1" min="0" id="r_count">
+                      <input type="number" step="1" min="-1" id="r_count">
                     </div>
                   </div>
 

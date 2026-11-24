@@ -316,6 +316,7 @@ async function createResult(row) {
 async function createResults(site, items, skippedReasons = []) {
     const done   = [];
     const errors = [];
+    const notes  = []; // created, but not meeting a result rule (e.g. no quantity in ArboDat)
 
     showLoading();
     try {
@@ -329,6 +330,7 @@ async function createResults(site, items, skippedReasons = []) {
                         errors.push({ id: status.clientId, error: status.message || "failed" });
                     } else {
                         done.push(status.clientId);
+                        if (status.status === "created" && status.message) notes.push(status.message);
                     }
                 });
             } catch (error) {
@@ -356,5 +358,10 @@ async function createResults(site, items, skippedReasons = []) {
         (errors.length > 0 ? toast.error : toast.success)(message);
     } else if (errors.length > 0) {
         toast.error("Failed to create result: " + errors[0].error);
+    }
+    if (notes.length > 0) {
+        toast.info(`${notes.length} created ${notes.length === 1 ? "result doesn't" : "results don't"} meet a rule `
+                   + `of ArboDat+ (taken over as in ArboDat): ${[...new Set(notes)].join(" ")} `
+                   + "Please check them in the Data Explorer.");
     }
 }

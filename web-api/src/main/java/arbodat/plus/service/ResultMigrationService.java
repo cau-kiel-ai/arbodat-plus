@@ -43,6 +43,7 @@ public class ResultMigrationService {
      * Creates the given results and sets the taxonomy of their sites.
      * Each item gets its own status; items with an unknown sample or a missing value get "error",
      * results which already exist (in the database or earlier in the list) get "exists".
+     * Results without quantity or with a future entry date are created anyway (data of ArboDat), with a note.
      */
     @Transactional
     public List<BulkItemStatus> createAll(String taxonomyLabel, List<BulkResultItem> items) {
@@ -136,7 +137,12 @@ public class ResultMigrationService {
         Iterator<Result> savedResults = saved.iterator();
         for (int i = 0; i < statuses.size(); i++) {
             if (statuses.get(i) == null) {
-                statuses.set(i, BulkItemStatus.created(clientIds.next(), savedResults.next().getId()));
+                // Created also if it doesn't meet a result rule (taken over from ArboDat): the rule is noted
+                Result savedResult = savedResults.next();
+                List<String> violations = ResultRules.violations(savedResult);
+                statuses.set(i, violations.isEmpty()
+                        ? BulkItemStatus.created(clientIds.next(), savedResult.getId())
+                        : BulkItemStatus.created(clientIds.next(), savedResult.getId(), String.join(" ", violations)));
             }
         }
         return statuses;

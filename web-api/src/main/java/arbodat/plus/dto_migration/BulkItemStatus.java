@@ -5,7 +5,8 @@ import lombok.Getter;
 
 import java.util.UUID;
 
-// Outcome of one item of a bulk create / update: "created" (with id), "updated", "exists" or "error" (with message)
+// Outcome of one item of a bulk create / update: "created" (with id, optionally a note as message), "updated",
+// "exists" or "error" (with message)
 @Getter
 @AllArgsConstructor
 public class BulkItemStatus {
@@ -16,6 +17,11 @@ public class BulkItemStatus {
 
     public static BulkItemStatus created(String clientId, UUID id) {
         return new BulkItemStatus(clientId, "created", id, null);
+    }
+
+    // Created, with a note (e.g. a rule of ArboDat+ the taken over value doesn't meet)
+    public static BulkItemStatus created(String clientId, UUID id, String note) {
+        return new BulkItemStatus(clientId, "created", id, note);
     }
 
     public static BulkItemStatus updated(String clientId) {

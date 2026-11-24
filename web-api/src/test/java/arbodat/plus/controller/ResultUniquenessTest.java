@@ -137,6 +137,7 @@ class ResultUniquenessTest extends PostgresTest {
         result.setClassificationConfer(cf == null ? null : withId(new ClassificationConfer(), cf));
         result.setRestType(restType == null ? null : withId(new RestType(), restType));
         result.setStateOfPreservation(state == null ? null : withId(new StateOfPreservation(), state));
+        result.setRestCount(1);
         result.setAbsoluteDatingList(new HashSet<>());
         return result;
     }

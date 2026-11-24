@@ -6,6 +6,7 @@ import arbodat.plus.model.*;
 import arbodat.plus.repository.*;
 import arbodat.plus.service.ResultKey;
 import arbodat.plus.service.ResultMigrationService;
+import arbodat.plus.service.ResultRules;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -54,6 +55,9 @@ public class ResultController {
     @PostMapping
     public String create(@RequestBody Result transferredResult) {
 
+        // Quantity and entry date (before anything is saved)
+        ResultRules.check(transferredResult);
+
         // Check if such a result already exists in the sample (before anything is saved)
         if (ResultKey.of(transferredResult).isTaken(resultRepository, null)) {
             return "result already exists";
@@ -92,6 +96,9 @@ public class ResultController {
         // Get result
         Result result = resultRepository.findById(resultId)
                 .orElseThrow(() -> new IllegalArgumentException("invalid result id: " + resultId));
+
+        // Quantity and entry date of the new values
+        ResultRules.check(transferredResult);
 
         // Check if another result of the sample has the new values (before the result is changed:
         // the query would flush the change). Values which aren't transferred stay as they are.
@@ -156,6 +163,11 @@ public class ResultController {
 
         resultRepository.save(result);
         return "result is updated";
+    }
+
+    @ExceptionHandler(ResultRules.ResultRuleException.class)
+    public ResponseEntity<String> handleResultRule(ResultRules.ResultRuleException e) {
+        return ResponseEntity.badRequest().body(e.getMessage());
     }
 
     // Another request saved the same result between the check and the save
