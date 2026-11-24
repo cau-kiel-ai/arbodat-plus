@@ -3,6 +3,7 @@ package arbodat.plus.controller;
 import arbodat.plus.Fixtures;
 import arbodat.plus.PostgresTest;
 import arbodat.plus.model.*;
+import arbodat.plus.service.ExcavationYears;
 import arbodat.plus.service.LabelConstraints;
 import arbodat.plus.service.LabelTakenException;
 import arbodat.plus.service.LabelUniqueness;
@@ -16,6 +17,9 @@ import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.dao.DuplicateKeyException;
 import org.springframework.transaction.support.TransactionTemplate;
 
+import java.time.Year;
+import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.HashSet;
 import java.util.List;
 import java.util.UUID;
@@ -103,6 +107,29 @@ class LabelUniquenessTest extends PostgresTest {
 
         tx.executeWithoutResult(status -> featureController.update(feature(data.site1(), "PIT 7"), data.feature1()));
         assertEquals("PIT 7", jdbc.queryForObject("SELECT feature_label FROM feature WHERE id = ?", String.class, data.feature1()));
+    }
+
+    // Excavation years ------------------------------------------------------------------------------
+
+    @Test
+    void excavationYearsAreStoredOnceInOrderAndInvalidOnesAreRefused() {
+        Feature feature = feature(data.site1(), "Pit 8");
+        feature.setExcavationYears(Arrays.asList(2014, 2013, 2014, null));
+        tx.executeWithoutResult(status -> featureController.create(feature));
+        UUID pit8 = jdbc.queryForObject("SELECT id FROM feature WHERE feature_label = 'Pit 8'", UUID.class);
+        assertEquals(List.of(2013, 2014), excavationYears(pit8));
+
+        Feature future = feature(data.site1(), "Pit 8");
+        future.setExcavationYears(new ArrayList<>(List.of(2013, Year.now().getValue() + 1)));
+        assertThrows(ExcavationYears.InvalidExcavationYearException.class,
+                () -> tx.executeWithoutResult(status -> featureController.update(future, pit8)));
+        assertEquals(List.of(2013, 2014), excavationYears(pit8));
+
+        Feature old = feature(data.site1(), "Pit 9");
+        old.setExcavationYears(new ArrayList<>(List.of(1650)));
+        assertThrows(ExcavationYears.InvalidExcavationYearException.class,
+                () -> tx.executeWithoutResult(status -> featureController.create(old)));
+        assertEquals(0, count("feature WHERE feature_label = 'Pit 9'"));
     }
 
     // Samples and sub-samples -----------------------------------------------------------------------
@@ -252,6 +279,11 @@ class LabelUniquenessTest extends PostgresTest {
 
     private static DataIntegrityViolationException violation(String databaseMessage) {
         return new DataIntegrityViolationException("could not execute statement", new RuntimeException(databaseMessage));
+    }
+
+    private List<Integer> excavationYears(UUID featureId) {
+        return jdbc.queryForList("SELECT excavation_year FROM excavation_years WHERE feature_id = ? ORDER BY excavation_year",
+                Integer.class, featureId);
     }
 
     private int constraintCount(String name) {

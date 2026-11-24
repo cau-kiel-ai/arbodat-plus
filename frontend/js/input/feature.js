@@ -81,7 +81,8 @@ initLazyMultiSelect('#excavation_years', {
     },
     format: item => String(item.id),
     tags:   true,
-    isTag:  term => /^\d{4}$/.test(term),
+    // Only years from 1700 to the current year (as checked by the backend)
+    isTag:  term => /^\d{4}$/.test(term) && Number(term) >= 1700 && Number(term) <= new Date().getFullYear(),
 });
 
 // Populate DANTE dropdowns -----------------------------------------------------
@@ -111,7 +112,7 @@ function create_update_feature() {
         const feature_label = document.getElementById("feature_label").value;
         const exc_area = document.getElementById("excavation_area").value;
         const cond_satisfactory = document.getElementById("feature_condition").checked;
-        const selectedYears = ($('#excavation_years').val() || []).map(year => parseInt(year, 10));
+        const selectedYears = [...new Set(($('#excavation_years').val() || []).map(year => parseInt(year, 10)))];
         const building_context = document.getElementById("building_context").checked;
         const building_context_description = document.getElementById("building_context_description").value;
         const remarks = document.getElementById("remarks_feature").value;        
@@ -148,7 +149,7 @@ function create_update_feature() {
                 })
                 .catch(error => {
                     console.error('Error during PUT request to update feature:', error);
-                    toast.error(error.response?.status === 409 ? getErrorMessage(error) : "action failed");
+                    toast.error([400, 409].includes(error.response?.status) ? getErrorMessage(error) : "action failed");
                 });
             });
         } else { // Create (POST) ---------------------------------------------------
@@ -165,7 +166,7 @@ function create_update_feature() {
             })
             .catch(error => {
                 console.error('Error during POST request to create feature:', error);
-                toast.error(error.response?.status === 409 ? getErrorMessage(error) : "action failed");
+                toast.error([400, 409].includes(error.response?.status) ? getErrorMessage(error) : "action failed");
             });
         }
        

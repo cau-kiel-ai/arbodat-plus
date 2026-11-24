@@ -744,7 +744,12 @@ public class MigrationService {
                                         excavationYears.add(year.intValue());
                                     }
                                 }
-                                newFeature.setExcavationYears(excavationYears);
+                                // Valid years (1700 - current year) each once; invalid ones are kept in the remarks
+                                newFeature.setExcavationYears(ExcavationYears.valid(excavationYears));
+                                for (Integer invalidYear : ExcavationYears.invalid(excavationYears)) {
+                                    newFeature.setRemarksFeature(appendRemark(newFeature.getRemarksFeature(),
+                                            "Excavation year (ArboDat): " + invalidYear));
+                                }
                                 // ------------------------------------------------------------------------------
 
                                 // Set building context

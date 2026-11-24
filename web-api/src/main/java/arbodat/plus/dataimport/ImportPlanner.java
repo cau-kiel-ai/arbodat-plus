@@ -9,6 +9,7 @@ import arbodat.plus.exchange.Field;
 import arbodat.plus.exchange.Field.*;
 import arbodat.plus.exchange.ValueType;
 import arbodat.plus.model.*;
+import arbodat.plus.service.ExcavationYears;
 import jakarta.persistence.EntityManager;
 import jakarta.persistence.PersistenceContext;
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
@@ -686,6 +687,12 @@ class ImportPlanner {
                 } else {
                     ValueList v = (ValueList) field;
                     link = v.link();
+                    if (record.type == FEATURE && "excavationYears".equals(field.name()) && !ExcavationYears.isValid(value)) {
+                        plan.warnings.add(new Issue("INVALID_EXCAVATION_YEAR", record.key(), record.path,
+                                Labels.record(graph, record) + ": the excavation year " + value + " is not between "
+                                        + ExcavationYears.MIN + " and this year; it is skipped."));
+                        continue;
+                    }
                     target = value;
                     label = String.valueOf(value);
                 }

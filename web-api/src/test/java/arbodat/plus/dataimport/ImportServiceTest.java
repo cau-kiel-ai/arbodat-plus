@@ -187,6 +187,23 @@ class ImportServiceTest extends PostgresTest {
     }
 
     @Test
+    void invalidExcavationYearsAreSkippedWithAWarning() throws Exception {
+        byte[] file = otherInstall(exportAll(), json -> {
+            JsonNode feature = json.get("researchProjects").get(0).get("sites").get(0).get("features").get(0);
+            ((ArrayNode) feature.get("excavationYears")).add(1650).add(2005);
+        });
+
+        PlanView plan = preview(file, null);
+        assertTrue(plan.warnings().stream().anyMatch(w -> w.code().equals("INVALID_EXCAVATION_YEAR")
+                && w.message().contains("1650")), plan.warnings().toString());
+        commit(file, plan, null);
+
+        List<Integer> years = jdbc.queryForList("SELECT excavation_year FROM excavation_years", Integer.class);
+        assertFalse(years.contains(1650), years.toString());
+        assertTrue(years.contains(2005), years.toString());
+    }
+
+    @Test
     void sameIdWinsOverADifferentLabel() throws Exception {
         byte[] file = exportAll();
         jdbc.update("UPDATE site SET site_label = 'Hedeby' WHERE id = ?", data.site1());

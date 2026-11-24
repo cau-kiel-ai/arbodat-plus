@@ -2,6 +2,7 @@ package arbodat.plus.controller;
 
 import arbodat.plus.model.*;
 import arbodat.plus.repository.*;
+import arbodat.plus.service.ExcavationYears;
 import arbodat.plus.service.LabelTakenException;
 import arbodat.plus.service.LabelUniqueness;
 import org.springframework.dao.DataIntegrityViolationException;
@@ -46,9 +47,10 @@ public class FeatureController {
     @PostMapping
     public String create(@RequestBody Feature transferredFeature) {
 
-        // Label must be unique within the site (before anything is saved)
+        // Label must be unique within the site, excavation years valid (before anything is saved)
         if (transferredFeature.getId() == null) {
             labelUniqueness.checkFeature(transferredFeature.getLabel(), idOf(transferredFeature.getSite()), null);
+            transferredFeature.setExcavationYears(ExcavationYears.checked(transferredFeature.getExcavationYears()));
         }
 
         // Handle feature type
@@ -113,12 +115,13 @@ public class FeatureController {
         Feature feature = featureRepository.findById(featureId)
                 .orElseThrow(() -> new IllegalArgumentException("invalid feature id: " + featureId));
 
-        // Label must be unique within the (new) site
+        // Label must be unique within the (new) site, excavation years valid
         labelUniqueness.checkFeature(transferredFeature.getLabel(), idOf(transferredFeature.getSite()), featureId);
+        List<Integer> excavationYears = ExcavationYears.checked(transferredFeature.getExcavationYears());
 
         // update attributes
         feature.setLabel(transferredFeature.getLabel());
-        feature.setExcavationYears(transferredFeature.getExcavationYears());
+        feature.setExcavationYears(excavationYears);
         feature.setExcavationArea(transferredFeature.getExcavationArea());
         feature.setBuildingContext(transferredFeature.getBuildingContext());
         // description only applies to features in a building context
@@ -207,6 +210,11 @@ public class FeatureController {
 
     private static UUID idOf(Site site) {
         return site == null ? null : site.getId();
+    }
+
+    @ExceptionHandler(ExcavationYears.InvalidExcavationYearException.class)
+    public ResponseEntity<String> handleInvalidExcavationYear(ExcavationYears.InvalidExcavationYearException e) {
+        return ResponseEntity.badRequest().body(e.getMessage());
     }
 
     @ExceptionHandler(LabelTakenException.class)

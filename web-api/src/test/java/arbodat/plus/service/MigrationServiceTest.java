@@ -211,6 +211,18 @@ class MigrationServiceTest extends PostgresTest {
     }
 
     @Test
+    void invalidExcavationYearsAreKeptInTheFeatureRemarks() throws IOException {
+        createData(site("ok").excavationYear("ok", "F1", 2019).excavationYear("ok", "F1", 2019)
+                             .excavationYear("ok", "F1", 1650));
+
+        migrate(List.of("ok"), newResearchProject());
+
+        assertEquals(List.of(2019), jdbc.queryForList("SELECT excavation_year FROM excavation_years", Integer.class));
+        assertEquals("Excavation year (ArboDat): 1650",
+                     jdbc.queryForObject("SELECT remarks_feature FROM feature", String.class));
+    }
+
+    @Test
     void rowsOfOtherSitesAreNotMixedIn() throws IOException {
         // 'ok2' starts like 'ok' and 'OK2' differs only in letter case from 'ok2'
         createData(site("ok"), site("ok2").featureSite("OK2"));
@@ -432,9 +444,8 @@ class MigrationServiceTest extends PostgresTest {
             for (SiteRows site : siteRowsList) {
                 addRow(sites, with(Map.of("Projekt", site.site, "okFustel", true, "Limes", false), site.siteValues));
                 addRow(features, Map.of("Projekt", site.featureSite, "Befu", "F1", "okBefu", true, "FustelTyp", "-99"));
-                if (site.excavationYear != null) {
-                    addRow(excavationYears, Map.of("Projekt", site.yearKeys[0], "Befu", site.yearKeys[1],
-                                                   "Jahr", (short) (int) site.excavationYear));
+                for (Object[] year : site.excavationYears) {
+                    addRow(excavationYears, Map.of("Projekt", year[0], "Befu", year[1], "Jahr", (short) (int) (Integer) year[2]));
                 }
                 addRow(samples, with(Map.of("Projekt", site.sampleKeys[0], "Befu", site.sampleKeys[1],
                                             "ProbNr", site.sampleKeys[2], "Trocken", true, "ORG1_0", "ja"),
@@ -470,8 +481,7 @@ class MigrationServiceTest extends PostgresTest {
         String[] sampleKeys;
         String[] datingKeys;
         String[] resultKeys;
-        String[] yearKeys;
-        Integer excavationYear;
+        final List<Object[]> excavationYears = new ArrayList<>(); // site, feature, year
 
         SiteRows(String site) {
             this.site = site;
@@ -525,8 +535,7 @@ class MigrationServiceTest extends PostgresTest {
         }
 
         SiteRows excavationYear(String site, String feature, int year) {
-            yearKeys = new String[]{site, feature};
-            excavationYear = year;
+            excavationYears.add(new Object[]{site, feature, year});
             return this;
         }
     }
