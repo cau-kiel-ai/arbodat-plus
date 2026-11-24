@@ -21,7 +21,7 @@ ArboDat+ is the continued development of the archaeobotanical database program A
 - The **'Export / Import'** module exports the whole database, or only selected research projects, sites, features or samples, to a JSON file, and imports such a file into another ArboDat+: records already there are recognised and completed, nothing is deleted, and conflicting values are decided in a preview.
 - Default values and custom order of Dante attributes in the 'Data Input' forms can be configured in the **'Settings'** module.
 
-Please note that this is an early public release, and further improvements are recommended. For example, the data import functionality is still to be refined, and integration with a data repository would further enhance the system's capabilities.
+Please note that this is an early public release, and further improvements are recommended. For example, the Data Report module and integration with a data repository would further enhance the system's capabilities.
 
 ## Install ArboDat+
 - **On your own computer:** download the ArboDat+ desktop app from the
