@@ -1010,26 +1010,12 @@ public class MigrationService {
                                 newSample.setSampleStorage(row.getBoolean("Vorfu"));
                                 newSample.setMicroRemain(row.getBoolean("SedProb"));
                                 newSample.setRemarksSample(row.getString("AnmProb"));
-                                // depthFrom
-                                Object depthFromValue = row.get("TiefeVon");
-                                Double depthFrom = (depthFromValue instanceof Number) ? ((Number) depthFromValue).doubleValue() : null;
-                                newSample.setDepthFrom(depthFrom);
-                                // depthTo
-                                Object depthToValue = row.get("TiefeBis");
-                                Double depthTo = (depthToValue instanceof Number) ? ((Number) depthToValue).doubleValue() : null;
-                                newSample.setDepthTo(depthTo);
-                                // sampleVolume
-                                Object sampleVolumeValue = row.get("ProbVol");
-                                Double sampleVolume = (sampleVolumeValue instanceof Number) ? ((Number) sampleVolumeValue).doubleValue() : null;
-                                newSample.setSampleVolume(sampleVolume);
-                                // totalWeight
-                                Object totalWeightValue = row.get("GesamtgewichtHK");
-                                Double totalWeight = (totalWeightValue instanceof Number) ? ((Number) totalWeightValue).doubleValue() : null;
-                                newSample.setTotalWeight(totalWeight);
-                                // weightUndetermined
-                                Object weightUndeterminedValue = row.get("GewichtHK_unbestimmt");
-                                Double weightUndetermined = (weightUndeterminedValue instanceof Number) ? ((Number) weightUndeterminedValue).doubleValue() : null;
-                                newSample.setWeightUndetermined(weightUndetermined);
+                                // Depth, volume (Single in ArboDat) and charcoal weights
+                                newSample.setDepthFrom(doubleValue(row, "TiefeVon"));
+                                newSample.setDepthTo(doubleValue(row, "TiefeBis"));
+                                newSample.setSampleVolume(doubleValue(row, "ProbVol"));
+                                newSample.setTotalWeight(doubleValue(row, "GesamtgewichtHK"));
+                                newSample.setWeightUndetermined(doubleValue(row, "GewichtHK_unbestimmt"));
 
                                 // Set dryOrWet
                                 if (row.getBoolean("Trocken")) {
@@ -2008,14 +1994,20 @@ public class MigrationService {
     }
 
 
-    // Value of a numeric ArboDat column, 0 (the default value in ArboDat) counts as not set.
-    // Single (FLOAT) values are taken over by their decimal representation (45.083 stays 45.083).
-    private static Double nonZeroValue(Row row, String column) {
+    // Value of a numeric ArboDat column. Single (FLOAT) values are taken over by their decimal representation:
+    // widening would add noise (12.3f -> 12.300000190734863), which the input form refuses (step 0.1).
+    private static Double doubleValue(Row row, String column) {
         Object value = row.get(column);
-        if (!(value instanceof Number number) || number.doubleValue() == 0) {
-            return null;
+        if (value instanceof Float single) {
+            return Double.parseDouble(single.toString());
         }
-        return (value instanceof Float) ? Double.valueOf(value.toString()) : number.doubleValue();
+        return (value instanceof Number number) ? number.doubleValue() : null;
+    }
+
+    // Value of a numeric ArboDat column, 0 (the default value in ArboDat) counts as not set
+    private static Double nonZeroValue(Row row, String column) {
+        Double value = doubleValue(row, column);
+        return (value == null || value == 0) ? null : value;
     }
 
     // Appends a line to the remarks (not twice, e.g. when migrating again)

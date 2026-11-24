@@ -200,6 +200,17 @@ class MigrationServiceTest extends PostgresTest {
     }
 
     @Test
+    void singleValuesAreTakenOverWithoutNoise() throws IOException {
+        // Single (FLOAT) in ArboDat: widened to double, 12.3f would be 12.300000190734863
+        createData(site("ok").sample("TiefeVon", 12.3f).sample("TiefeBis", 12.35f).sample("ProbVol", 0.1f));
+
+        migrate(List.of("ok"), newResearchProject());
+
+        assertEquals(Map.of("depth_from", 12.3, "depth_to", 12.35, "sample_volume", 0.1),
+                     jdbc.queryForMap("SELECT depth_from, depth_to, sample_volume FROM sample"));
+    }
+
+    @Test
     void rowsOfOtherSitesAreNotMixedIn() throws IOException {
         // 'ok2' starts like 'ok' and 'OK2' differs only in letter case from 'ok2'
         createData(site("ok"), site("ok2").featureSite("OK2"));
