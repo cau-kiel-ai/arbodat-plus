@@ -4,7 +4,7 @@
 
 // The attributes in their order on the page: [attribute, title]
 const NON_MATCHING_ATTRIBUTES = [
-    ["siteType", "siteType (several values)"],
+    ["siteType", "siteType (multiple selection)"],
     ["naturalUnit", "naturalUnit"],
     ["featureType", "featureType"],
     ["preservationCondition", "preservationCondition"],

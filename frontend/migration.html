@@ -528,7 +528,7 @@
               <p>
                 Select sites to be migrated corresponding to the added research projects above.<br>
                 - To select or deselect a site use the checkbox on the left. To select or deselect <u>all</u> sites use the checkbox at the top left of the table.<br>
-                - To filter sites by label or status use the fields in the table header.<br><br>
+                - To filter sites by label and/or status use the fields in the table header.<br><br>
                 - Sites that have the same label and already assigned to any added research project in the database will not be migrated (these sites will be listed below).
                 If the site to migrate contains more research projects than the existing site in the database, the additional research projects will be added to the existing site.<br>                
                 - Features, samples and datings related to the selected sites, that have the same label and are already assigned to the same elements in the database will not be migrated (these features, samples and datings will be listed below).
@@ -573,8 +573,8 @@
           <div id="panelsStayOpen-collapseFour" class="accordion-collapse collapse">
             <div class="accordion-body">
               <p>
-                List of literature references of the selected sites (author and publication year from ArboDat).<br>
-                - Link literature by clicking into the 'literature' cell, searching by typing and clicking on the literature (several are possible), then 'Update'. The literature is added to the literature of the site.<br>
+                List of literature references of the selected sites (author and publicationYear from ArboDat).<br>
+                - Link literature by clicking into the 'literature' cell, searching by typing and selecting literature (several are possible), then 'Update'. The literature is added to the literature list of the site.<br>
                 - If a literature does not exist yet, create it with 'Create' in the row.<br>
                 - To select literature or update several rows simultaneously select multiple rows.<br>
                 - To select or deselect a row use the checkbox on the left. To select or deselect <u>all</u> rows use the checkbox at the top left of a table.<br>
@@ -766,12 +766,12 @@
           <div id="panelsStayOpen-collapseFive" class="accordion-collapse collapse">
             <div class="accordion-body">
               <p>
-                List of non-matching Attributes.<br>
-                - Update attributes by selecting 'danteLabels' from the dropdowns.<br>
-                - If attributes you are looking for are not in the central thesauri lists (dropdowns), you can use the ‘Add to JSON’ option to save non matching attributes at the bottom of the page.<br>
-                - To select danteLabels or update attributes in several rows simultaneously select multiple rows.<br>
+                List of non-matching Attributes (nonMatchingLabel from ArboDat).<br>
+                - Update attributes by selecting 'danteLabels' from the dropdowns, searching by typing and selecting labels, then 'Update'.<br>
+                - If attributes you are looking for are not in the central thesauri lists (dropdowns), you can use the ‘Add to JSON’ option to save the nonMatchingLabels at the bottom of the page.<br>
+                - To select danteLabels or update labels in several rows simultaneously select multiple rows.<br>
                 - To select or deselect a row use the checkbox on the left. To select or deselect <u>all</u> rows use the checkbox at the top left of a table.<br>
-                - To filter rows by type, label and/or nonMatchingLabel use the fields in the table header.
+                - To filter rows by entity label (site/feature/sample/dating) and/or nonMatchingLabel use the fields in the table header.
               </p>
 
               <!-- One Tabulator per attribute with rows, created by populateNonMatchingDanteAttributes (nonMatchingDanteAttributes.js) -->
@@ -791,16 +791,16 @@
           <div id="panelsStayOpen-collapseSix" class="accordion-collapse collapse">
             <div class="accordion-body">
               <p>
-                List of site and sample coordinates for the selected sites.<br>
-                - To create coordinates select 'dante coordinateSystem'.<br>
+                List of site and sample coordinates for the selected sites (lon, lat, alt, x, y, z, coordinateSystem and remarks from ArboDat).<br>
+                - Create coordinates by entering lon, lat, alt (optional), 'dante coordinateSystem', then 'Create'.<br>
                 - If a coordinate system you are looking for is not in the central thesauri list (dropdown), you can use the ‘Add to JSON’ option to save the 'coordinateSystem' at the bottom of the page.<br>
-                - Before using the ‘Add to JSON’ option, please fill in all applicable fields(lon, lat,	alt, lon WGS84,	lat WGS84,	remarks).<br>
+                - Before using the ‘Add to JSON’ option, please fill in all applicable fields (lon, lat, alt, lon WGS84, lat WGS84 and remarks).<br>
                 - The 'altitude' and 'z coordinate' from the former database are displayed. But the new database only uses the altitude value.<br>
                 - The longitude and latitude WGS 84 fields are computed and filled in automatically (except for the coordinate systems 'DHDN / 3-degree Gauss' and 'local').<br>
                 - If ‘local’ is selected as coordinate system, this can be described in the ‘remarks’ text field.<br>
                 - To select coordinate systems or create coordinates in several rows simultaneously select multiple rows.<br>
                 - To select or deselect a row use the checkbox on the left. To select or deselect <u>all</u> rows use the checkbox at the top left of a table.<br>
-                - To filter rows by site, feature, sample or coordinateSystem use the fields in the table header.
+                - To filter rows by site, feature, sample and/or coordinateSystem use the fields in the table header.
               </p>
 
               <form>
@@ -833,11 +833,10 @@
           <div id="panelsStayOpen-collapseSeven" class="accordion-collapse collapse">
             <div class="accordion-body">
               <p>
-                List of users at the selected sites.<br>
-                - Update users by selecting existing users OR creating new ones first if they are missing.<br>
-                - To select users click into the 'Users' cell, search by typing and click on the users (several users are possible); a click outside the list or Esc takes them.<br>
-                - To select users in several rows simultaneously select multiple rows.<br>
-                - To update with selected users in several rows simultaneously select multiple rows.<br>
+                List of users at the selected sites (userRole and userLabel from ArboDat).<br>
+                - Update users by selecting existing users or 'Create' new ones first if they are missing.<br>
+                - To select users click into the 'Users' cell, search by typing and click on the users (several users are possible), then 'Update'.<br>
+                - To select users or update several rows simultaneously select multiple rows.<br>
                 - To select or deselect a row use the checkbox on the left. To select or deselect <u>all</u> rows use the checkbox at the top left of a table.<br>
                 - To filter rows by site, feature, sample, userRole and/or userLabel use the fields in the table header.
               </p>
@@ -1018,18 +1017,18 @@
 
               <form id="fractionAnalyzedForm">
                 <p style="margin-bottom: 0px;">
-                  List of the fractions analyzed from the samples taken at the selected sites.<br>
-                  Please check that 'orgOrMin' and 'sieveSize' are correct. These values can be edited.<br>
+                  List of the fractions analyzed from the samples taken at the selected sites (fractionAnalyzed, modifiedFraction, orgOrMin and sieveSize from ArboDat).<br>
+                  - Please check that 'orgOrMin' and 'sieveSize' are correct, then 'Create'. These values can be edited.<br>
                   - To edit orgOrMin and sieveSize in several rows simultaneously select multiple rows.<br>
                   - To create fraction analyzed in several rows simultaneously select multiple rows.<br>
                   - To select or deselect a row use the checkbox on the left. To select or deselect <u>all</u> rows use the checkbox at the top left of a table.<br>
                   - To sort the rows by sieveSize click on 'sieveSize' in the table header.<br>
-                  - To filter rows by site, feature or sample use the fields in the table header.
+                  - To filter rows by site, feature and/or sample use the fields in the table header.
                 </p>
 
                 <div class="d-flex flex-wrap align-items-center gap-3 mb-2">
                   <label class="d-flex align-items-center gap-2 mb-0">
-                    group by
+                    group rows by
                     <select id="fractionAnalyzedGroupBy" class="form-select form-select-sm w-auto">
                       <option value="">-</option>
                       <option value="orgOrMinAndSieveSize">orgOrMin and sieveSize</option>
@@ -1059,13 +1058,12 @@
             <div class="accordion-body">
               <form id="LabAndNumberForm">
                 <p>
-                  List of laboratories and numbers from the datings of the selected sites.<br>
-                  - To update datings select a laboratory and set a number.<br>
-                  - If a C14Laboratory you are looking for is not in the central thesauri list (dropdown), you can use the ‘Add to JSON’ option to save a new C14 laboratory code at the bottom of the page.<br>
-                  - To create/select laboratories in several rows simultaneously select multiple rows.<br>
-                  - To update datings in several rows simultaneously select multiple rows.<br>
+                  List of laboratories and numbers from the datings of the selected sites (labAndNumber from ArboDat).<br>
+                  - To update datings select a laboratory and set a number, then 'Update'.<br>
+                  - If a C14Laboratory you are looking for is not in the central thesauri list (dropdown), you can use the ‘Add to JSON’ option to save a 'new C14 laboratory' at the bottom of the page.<br>
+                  - To create/select laboratories or update datings in several rows simultaneously select multiple rows.<br>
                   - To select or deselect a row use the checkbox on the left. To select or deselect <u>all</u> rows use the checkbox at the top left of a table.<br>
-                  - To filter rows by site, feature, sample or subSample use the fields in the table header.
+                  - To filter rows by site, feature, sample, subSample, datingMethod and/or labAndNumber use the fields in the table header.
                 </p>
 
                 <div class="d-flex flex-wrap align-items-center gap-3 mb-2">
@@ -1099,14 +1097,13 @@
 
               <form id="resultForm">
                 <p>
-                  List of results for the selected sites.<br>
+                  List of results for the selected sites (taxCode, cf, restType and stateOfPreservation from ArboDat).<br>
                   - To create results 'select Taxonomy' for the corresponding site and, if dropdowns are available, select options from them.<br>
-                  - Before you can select a 'dante taxCode' you have to 'select Taxonomy'.<br>
                   - If attributes you are looking for are not in the central thesauri lists (dropdowns), you can use the ‘Add to JSON’ option to save non matching attributes at the bottom of the page.<br>
-                  - Before using the ‘Add to JSON’ option, please fill in all applicable fields(dante taxCode, dante restType, dante stateOfPreservation).<br>
+                  - Before using the ‘Add to JSON’ option, please fill in all applicable fields (dante taxCode, dante restType, dante stateOfPreservation).<br>
                   - To select dropdown options or create results in several rows simultaneously select multiple rows.<br>
                   - To select or deselect a row use the checkbox on the left. To select or deselect <u>all</u> rows use the checkbox at the top left of a table.<br>
-                  - To filter rows by taxCode and/or restType and/or stateOfPreservation use the dropdowns in the table header.
+                  - To filter rows by taxCode, restType and/or stateOfPreservation use the fields in the table header.
                 </p>
                 
                 <!-- Tables will be dynamically added here by migrateSites -> populateResults function -->
@@ -1130,7 +1127,7 @@
         <pre id="jsonDisplay" class="bg-light p-3 border rounded" style="height: 200px; overflow-y: auto;"></pre>
         
         <div class="text-center">
-          <button type="button" class="btn btn-primary" onclick="downloadJSON()">Download JSON</button>
+          <button type="button" class="btn btn-primary" onclick="downloadJSON()">Download</button>
         </div>
 
       </div>
