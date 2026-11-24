@@ -9,7 +9,7 @@ authors:
     given-names: Marten
     affiliation: "Kiel University"
 title: "ArboDat+"
-version: "5.0.0-rc.3"
+version: "5.0.0"
 doi: 10.5281/zenodo.17938311
 date-released: "2026-11-24"
 license: "BSD-2-Clause"
