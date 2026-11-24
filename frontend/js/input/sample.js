@@ -238,8 +238,8 @@ document.addEventListener('DOMContentLoaded', async function () {
         inputTimer = setTimeout(async () => {
     
             // Parse input
-            const longitude = parseFloat(longitude_input.value);
-            const latitude = parseFloat(latitude_input.value);
+            const longitude = parseDecimal(longitude_input.value);
+            const latitude = parseDecimal(latitude_input.value);
             const coordinateSystem = coordinate_system_dropdown.options[coordinate_system_dropdown.selectedIndex];
             let sourceEPSG = coordinateSystem?.getAttribute('data-crsNotation');
           

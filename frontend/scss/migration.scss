@@ -404,3 +404,8 @@ button:hover{
 @import 'multiSelect';
 @import 'footer';
 @import 'navbar';
+
+// Coordinate list: a field whose value can't be taken over (see showCoordinateErrors in coordinates.js)
+.coordinate-invalid {
+    outline: 2px solid var(--bs-danger);
+}

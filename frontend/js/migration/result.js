@@ -272,7 +272,7 @@ function resultPayload(data, site) {
     if (data.fractionAnalyzed !== "") {
         result.fractionAnalyzed = data.fractionAnalyzed;
         result.orgOrMin         = data.orgOrMin;
-        result.sieveSize        = parseFloat(data.sieveSize);
+        result.sieveSize        = parseDecimal(data.sieveSize);
     }
 
     // Only the sample id, to parse the JSON in the backend correctly

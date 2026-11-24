@@ -255,8 +255,8 @@ function openCreateFractionModal(rowData, onCreated) {
 // Checks a fraction row. Returns { payload } or { reason, message } if it can not be created yet.
 function buildFractionPayload(data) {
     // A decimal comma is accepted as well (e.g. '0,5')
-    const sieveSize = parseFloat(String(data.sieveSize).trim().replace(",", "."));
-    if (!data.orgOrMin || Number.isNaN(sieveSize)) {
+    const sieveSize = parseDecimal(data.sieveSize);
+    if (!data.orgOrMin || sieveSize === null) {
         return { reason: "no orgOrMin and/or sieveSize", message: "No orgOrMin selected and/or sieveSize entered." };
     }
     return {

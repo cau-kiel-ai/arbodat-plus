@@ -284,14 +284,14 @@ function addResultsToJSON(row) {
 
 function readCoordinateRow(row, attribute) {
     // Get latitude, longitude, altitude, remarks from input
-    const longitude = parseFloat(row.cells[2].querySelector("input").value);
-    const latitude  = parseFloat(row.cells[3].querySelector("input").value);
-    const altitude  = parseFloat(row.cells[4].querySelector("input").value);
+    const longitude = parseDecimal(row.cells[2].querySelector("input").value);
+    const latitude  = parseDecimal(row.cells[3].querySelector("input").value);
+    const altitude  = parseDecimal(row.cells[4].querySelector("input").value);
 
     // WGS84 and remarks are shifted by one cell in the sample table
     const offset = attribute == "coordinateSystemSite" ? 0 : 1;
-    const longitudeWgs84 = parseFloat(row.cells[7 + offset].querySelector("input").value);
-    const latitudeWgs84  = parseFloat(row.cells[8 + offset].querySelector("input").value);
+    const longitudeWgs84 = parseDecimal(row.cells[7 + offset].querySelector("input").value);
+    const latitudeWgs84  = parseDecimal(row.cells[8 + offset].querySelector("input").value);
     const remarks        = row.cells[9 + offset].querySelector("textarea").value;
 
     return {

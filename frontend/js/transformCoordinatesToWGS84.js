@@ -1,6 +1,13 @@
+// Number of an input, a decimal comma is accepted as well ('12,5'); null if empty or not a number
+function parseDecimal(value) {
+    if (value == null) return null;
+    const text = String(value).trim().replace(',', '.');
+    return text !== '' && !isNaN(text) ? Number(text) : null;
+}
+
 // A coordinate value entered: not empty and a number (0 too, it isn't "no value")
 function isCoordinateValue(value) {
-    return value != null && String(value).trim() !== '' && !isNaN(value);
+    return parseDecimal(value) !== null;
 }
 
 async function transformCoordinatesToWGS84(longitude, latitude, sourceEPSG) {

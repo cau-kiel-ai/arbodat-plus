@@ -109,8 +109,8 @@ function populateCoordinates(coordinateList) {
                 inputTimer = setTimeout(async () => {
             
                     // Parse input
-                    const longitude = parseFloat(longitude_input.value);
-                    const latitude = parseFloat(latitude_input.value);
+                    const longitude = parseDecimal(longitude_input.value);
+                    const latitude = parseDecimal(latitude_input.value);
                     const coordinateSystem = coordinate_system_dropdown.options[coordinate_system_dropdown.selectedIndex];
                     let sourceEPSG = coordinateSystem?.getAttribute('data-crsNotation');
                 
@@ -235,8 +235,8 @@ function populateCoordinates(coordinateList) {
                 inputTimer = setTimeout(async () => {
             
                     // Parse input
-                    const longitude = parseFloat(longitude_input.value);
-                    const latitude = parseFloat(latitude_input.value);
+                    const longitude = parseDecimal(longitude_input.value);
+                    const latitude = parseDecimal(latitude_input.value);
                     const coordinateSystem = coordinate_system_dropdown.options[coordinate_system_dropdown.selectedIndex];
                     let sourceEPSG = coordinateSystem?.getAttribute('data-crsNotation');
                 
@@ -297,132 +297,140 @@ function applySelect2Styles($select) {
     });
 }
 
-async function createCoordinate(itemType, itemId, row, triggerNext = true) {
+// Reads the coordinate of a row. Returns { payload } or { errors }: [{ input, message }], one per field
+function readCoordinateInputs(itemType, itemId) {
+    const input = name => document.getElementById(`${name}_${itemType}_${itemId}`);
+    const errors = [];
 
-    // Get longitudeInput
-    const longitudeInput = document.getElementById(`longitudeInput_${itemType}_${itemId}`);
-    const longitude = longitudeInput ? parseFloat(longitudeInput.value) : null;
-
-    if (longitudeInput && isCoordinateValue(longitudeInput.value)) {
-
-        // Get latitudeInput
-        const latitudeInput = document.getElementById(`latitudeInput_${itemType}_${itemId}`);
-        const latitude = latitudeInput ? parseFloat(latitudeInput.value) : null;
-
-        if (latitudeInput && isCoordinateValue(latitudeInput.value)) {
-
-            // Get coordinateSystemDropdown
-            const coordinateSystemDropdown = document.getElementById(`coordinateSystemDropdown_${itemType}_${itemId}`);
-            const coordinateSystemId = coordinateSystemDropdown ? coordinateSystemDropdown.value : null;
-            const coordinateSystemLabel = coordinateSystemDropdown ?
-                coordinateSystemDropdown.options[coordinateSystemDropdown.selectedIndex].text
-                : null;
-
-            if (coordinateSystemId && coordinateSystemLabel) {
-
-                // Get altitudeInput
-                const altitudeInput = document.getElementById(`altitudeInput_${itemType}_${itemId}`);
-                const altitude = altitudeInput ? altitudeInput.value : null;
-
-                // Get longitudeWGS84Input
-                const longitudeWGS84Input = document.getElementById(`longitudeWGS84Input_${itemType}_${itemId}`);
-                const longitudeWGS84 = longitudeWGS84Input ? longitudeWGS84Input.value : null;
-
-                // Get latitudeWGS84Input
-                const latitudeWGS84Input = document.getElementById(`latitudeWGS84Input_${itemType}_${itemId}`);
-                const latitudeWGS84 = latitudeWGS84Input ? latitudeWGS84Input.value : null;
-
-                // Get remarksInput
-                const remarksInput = document.getElementById(`remarksInput_${itemType}_${itemId}`);
-                const remarksCoordinate = remarksInput ? remarksInput.value : null;
-
-                // Create payload
-                const payload = {
-                    longitude: longitude,
-                    longitudeWgs84: longitudeWGS84,
-                    latitude: latitude,
-                    latitudeWgs84: latitudeWGS84,
-                    altitude: altitude,
-                    remarksCoordinate: remarksCoordinate,
-                    coordinateSystem: {
-                        id: coordinateSystemId,
-                        label: coordinateSystemLabel
-                    }
-                }
-
-                try {
-                    const response = await fetch(
-                        `api/coordinates/${itemType}/${itemId}`,
-                        {
-                            method: 'POST',
-                            headers: {
-                                'Content-Type': 'application/json'
-                            },
-                            body: JSON.stringify(payload)
-                        }
-                    );
-                    if (!response.ok) {
-                        throw new Error(`HTTP Error! Status: ${response.status}`);
-                    }
-                    const data = await response.text();
-                    console.log(data);
-
-                    row.remove();
-                    if (triggerNext) {
-                        const tableBodyId = itemType === 'site' ? 'siteCoordinateTableBody' : 'sampleCoordinateTableBody';
-                        createCheckedCoordinates(tableBodyId);
-                    }
-                    return true;
-
-                } catch (error) {
-                    console.error('Error:', error);
-                    toast.error("Failed to update Coordinate.");
-                }
-    
-            } else {
-                if (triggerNext) {
-                    toast.info(`No coordinateSystem selected.`);
-                }
-                return false;
-            }
-        } else {
-            if (triggerNext) {
-                toast.info(`No latitude entered.`);
-            }
-            return false;
-        }    
-    } else {
-        if (triggerNext) {
-            toast.info(`No longitude entered.`);
+    // A number; required: an empty field is an error as well
+    const number = (name, label, required) => {
+        const field = input(name);
+        const value = field ? field.value : "";
+        if (String(value).trim() === "") {
+            if (required) errors.push({ input: field, message: `${label}: required` });
+            return null;
         }
+        const parsed = parseDecimal(value);
+        if (parsed === null) errors.push({ input: field, message: `${label}: '${value.trim()}' is not a number` });
+        return parsed;
+    };
+
+    const longitude      = number("longitudeInput", "longitude", true);
+    const latitude       = number("latitudeInput", "latitude", true);
+    const altitude       = number("altitudeInput", "altitude", false);
+    const longitudeWgs84 = number("longitudeWGS84Input", "longitude WGS84", false);
+    const latitudeWgs84  = number("latitudeWGS84Input", "latitude WGS84", false);
+
+    const dropdown = input("coordinateSystemDropdown");
+    const coordinateSystemId = dropdown ? dropdown.value : "";
+    if (!coordinateSystemId) {
+        errors.push({ input: dropdown, message: "coordinate system: required" });
+    }
+
+    if (errors.length > 0) return { errors };
+
+    const remarksInput = input("remarksInput");
+    return {
+        payload: {
+            longitude, longitudeWgs84, latitude, latitudeWgs84, altitude,
+            remarksCoordinate: remarksInput ? remarksInput.value : null,
+            coordinateSystem: {
+                id:    coordinateSystemId,
+                label: dropdown.options[dropdown.selectedIndex].text
+            }
+        }
+    };
+}
+
+// Shows the messages of the last 'Create' below the button and marks the fields; no errors: clears them
+function showCoordinateErrors(row, errors) {
+    row.querySelectorAll(".coordinate-invalid").forEach(field => {
+        field.classList.remove("coordinate-invalid");
+        field.removeAttribute("title");
+    });
+    row.querySelector(".coordinate-errors")?.remove();
+    if (errors.length === 0) return;
+
+    errors.forEach(({ input, message }) => {
+        if (!input) return;
+        input.classList.add("coordinate-invalid");
+        input.title = message;
+    });
+    const list = document.createElement("div");
+    list.className = "coordinate-errors text-danger small text-wrap";
+    errors.forEach(({ message }) => {
+        const line = document.createElement("div");
+        line.textContent = message;
+        list.appendChild(line);
+    });
+    row.lastElementChild.appendChild(list);
+}
+
+// Creates the coordinate of a row. triggerNext: the 'Create' button of the row was clicked, the other
+// selected rows are created afterwards. Returns true if it was created.
+async function createCoordinate(itemType, itemId, row, triggerNext = true) {
+    const { payload, errors } = readCoordinateInputs(itemType, itemId);
+    if (errors) {
+        showCoordinateErrors(row, errors);
+        if (triggerNext) toast.info(errors.map(error => error.message).join(", "));
+        return false;
+    }
+
+    try {
+        const response = await fetch(`api/coordinates/${itemType}/${itemId}`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(payload)
+        });
+        if (!response.ok) {
+            // The backend names the field, if it can't read a value (see RequestBodyExceptionHandler)
+            const message = (await response.text()) || `HTTP Error! Status: ${response.status}`;
+            showCoordinateErrors(row, [{ input: null, message }]);
+            if (triggerNext) toast.error("Failed to create coordinate: " + message);
+            return false;
+        }
+
+        row.remove();
+        if (triggerNext) {
+            const tableBodyId = itemType === 'site' ? 'siteCoordinateTableBody' : 'sampleCoordinateTableBody';
+            createCheckedCoordinates(tableBodyId);
+        }
+        return true;
+
+    } catch (error) {
+        console.error('Error:', error);
+        showCoordinateErrors(row, [{ input: null, message: error.message }]);
+        if (triggerNext) toast.error("Failed to create coordinate.");
         return false;
     }
 }
 
+// Creates the coordinates of the selected rows; rows which fail keep their messages
 async function createCheckedCoordinates(tableBodyId) {
     const tableBody = document.getElementById(tableBodyId);
     if (tableBody) {
-        const checkboxes = Array.from(tableBody.querySelectorAll('input[type="checkbox"]:checked'));
+        const checkboxes = Array.from(tableBody.querySelectorAll('input[type="checkbox"]:checked'))
+            .filter(checkbox => !checkbox.disabled);
+        if (checkboxes.length === 0) return;
+
         const concurrencyLimit = 100;
+        let failed = 0;
         showLoading();
         try {
             for (let i = 0; i < checkboxes.length; i += concurrencyLimit) {
                 const batch = checkboxes.slice(i, i + concurrencyLimit);
 
-                const promises = batch.map(async checkbox => {
-                    if (checkbox.disabled) return true;
-
+                const results = await Promise.all(batch.map(checkbox => {
                     const row = checkbox.closest('tr');
-                    const itemType = row.dataset.itemType;
-                    const itemId = row.dataset.itemId;
-
-                    return createCoordinate(itemType, itemId, row, false);                    
-                });
-
-                await Promise.allSettled(promises);
-            };
+                    return createCoordinate(row.dataset.itemType, row.dataset.itemId, row, false);
+                }));
+                failed += results.filter(created => !created).length;
+            }
         } finally {
             hideLoading();
+        }
+        if (failed > 0) {
+            toast.error(`${failed} selected ${failed === 1 ? "coordinate" : "coordinates"} not created (see the rows).`);
         }
     }
 }
