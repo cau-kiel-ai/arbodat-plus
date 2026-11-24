@@ -43,7 +43,7 @@ function openLiteraturWindow (rowId, siteId, authors, publicationYear) {
 
     // Set values from migration
     document.getElementById("authorsFromMigration").textContent = `${authors}`;
-    document.getElementById("literaturePublicationYear").placeholder = `${publicationYear}`;
+    document.getElementById("publicationYearFromMigration").textContent = `${publicationYear}`;
     document.getElementById("literatureSiteId").value = siteId;
     
     // Show Popup ---------------------------------------------------
