@@ -96,14 +96,6 @@ public class LiteratureController {
         literature.setLongCitation(transferredLiterature.getLongCitation());
         literature.setLitAbstract(transferredLiterature.getLitAbstract());
 
-        // add site from migration update literature
-        if (transferredLiterature.getSiteList() != null) {
-            transferredLiterature.getSiteList()
-                    .stream()
-                    .findFirst()
-                    .ifPresent(site -> literature.getSiteList().add(site));
-        }
-
         // Handle authors -------------------------------------------
         Set<Author> authors = new HashSet<>();
 

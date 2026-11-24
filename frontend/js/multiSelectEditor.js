@@ -29,7 +29,9 @@
 // Needs jQuery and select2; styles see scss/_multiSelectEditor.scss.
 
 const multiSelectDefaultMatcher = $.fn.select2.defaults.defaults.matcher;
-const multiSelectUtils = $.fn.select2.amd.require("select2/utils");
+// Internal select2 API (check when upgrading select2): its data store, used to keep the scroll position select2 locks
+// while a list is open (revealAnchor). Accessed defensively: without it, a grown cell is just not scrolled into view.
+const multiSelectUtils = $.fn.select2.amd?.require?.("select2/utils");
 
 // Widest a column grows for its pills (px); more pills wrap into several lines
 const MULTI_SELECT_MAX_WIDTH = 500;
@@ -231,7 +233,7 @@ function attachMultiSelect(select, { anchor, column, placeholder, tags = false, 
         const delta = Math.min(rect.bottom - (view.top + holder.clientHeight), rect.top - view.top);
         if (delta <= 0) return;
         const y = holder.scrollTop + delta;
-        multiSelectUtils.StoreData(holder, "select2-scroll-position", { x: holder.scrollLeft, y });
+        multiSelectUtils?.StoreData(holder, "select2-scroll-position", { x: holder.scrollLeft, y });
         holder.scrollTop = y;
     };
 
@@ -344,6 +346,8 @@ function attachMultiSelect(select, { anchor, column, placeholder, tags = false, 
 
 // Wrapped pills: the row gets as high as needed (and back after closing). A table without a fixed height
 // (e.g. the migration tables, maxHeight) gets as high as its rows again; without a redraw, which would end the edit.
+// Internal Tabulator API (check when upgrading Tabulator): rowManager.adjustTableSize(blockRedraw). Accessed
+// defensively: without it, the row grows but a table with maxHeight cuts it.
 function fitRowHeight(cell) {
     cell.getRow().normalizeHeight?.();
     cell.getTable().rowManager?.adjustTableSize?.(true);

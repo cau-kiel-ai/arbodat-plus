@@ -129,9 +129,8 @@ async function buildLiteratureTable() {
                  }
                 : item);
 
-            const { authorList, ...literatureWithoutAuthorList } = literature;
-            // Only the ids of the sites (the backend only reads those; the nested sites couldn't always be read)
-            literatureWithoutAuthorList.siteList = (literature.siteList || []).map(site => ({ id: site?.id ?? site }));
+            // Without the sites: they are linked in the sites table / the migration (and the nested sites couldn't always be read)
+            const { authorList, siteList, ...literatureWithoutAuthorList } = literature;
 
             // Create FormData object
             const formData = new FormData();

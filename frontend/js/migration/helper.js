@@ -236,6 +236,8 @@ function filterListColumn(title, field) {
 // scrolled this changes the layout and the browser's scroll anchoring makes the page jump (e.g. scrolling up past the
 // sample coordinates). The migration tables are redrawn when their accordion is opened (shown.bs.collapse,
 // redrawMigrationTables), so the observer is not needed.
+// Internal Tabulator API (check when upgrading Tabulator): table.modules.resizeTable.visibilityObserver. Accessed
+// defensively: without it, the observer stays and the page can jump again.
 function stopRedrawWhenVisible(table) {
     const stop = () => table.modules?.resizeTable?.visibilityObserver?.disconnect();
     if (table.initialized) stop();
