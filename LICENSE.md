@@ -1,6 +1,6 @@
 # ArboDat+
 
-Copyright (c) 2026, Kiel University - Archaeoinformatics
+Copyright (c) 2026, Kiel University - Archaeoinformatics  
 Developed by Carina Knappe and Marten Ketelsen
 
 Redistribution and use in source and binary forms, with or without
