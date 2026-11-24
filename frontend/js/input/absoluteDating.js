@@ -531,7 +531,7 @@ function create_update_absoulteDating() {
                 .catch(error => {
                     console.error('Error during PUT request to update absolute dating:', error);
                     // 409: the laboratory number belongs to another dating (the backend says which)
-                    toast.error(error.response?.status === 409 ? getErrorMessage(error) : "action failed");
+                    toast.error([400, 409].includes(error.response?.status) ? getErrorMessage(error) : "action failed");
                 });
             });
 
@@ -553,7 +553,7 @@ function create_update_absoulteDating() {
             })
             .catch(error => {
                 console.error('Error during POST request to create absolute dating:', error);
-                toast.error(error.response?.status === 409 ? getErrorMessage(error) : "action failed");
+                toast.error([400, 409].includes(error.response?.status) ? getErrorMessage(error) : "action failed");
             });
         }        
 

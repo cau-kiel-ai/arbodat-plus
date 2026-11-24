@@ -357,11 +357,11 @@ function create_update_sample() {
                                 ? { id: coordinate_system_dropdown.value,
                                     label: coordinate_system_dropdown.selectedOptions[0].text }
                                 : null,
-            longitude: longitude_input.value,
-            latitude:  latitude_input.value,
-            altitude:  altitude_input.value,
-            longitudeWgs84: longitude_wgs84_input.value,
-            latitudeWgs84:  latitude_wgs84_input.value,
+            longitude: decimalOrText(longitude_input.value),
+            latitude:  decimalOrText(latitude_input.value),
+            altitude:  decimalOrText(altitude_input.value),
+            longitudeWgs84: decimalOrText(longitude_wgs84_input.value),
+            latitudeWgs84:  decimalOrText(latitude_wgs84_input.value),
         }
         // Fractions ---------------------------------------------
         payload.fractionAnalyzedList = getFractions();
@@ -415,7 +415,7 @@ function create_update_sample() {
                 })
                 .catch(error => {
                     console.error('Error during PUT request to update sample:', error);
-                    toast.error(error.response?.status === 409 ? getErrorMessage(error) : "action failed");
+                    toast.error([400, 409].includes(error.response?.status) ? getErrorMessage(error) : "action failed");
                 });
             });
         } else { // Create (POST) -----------------------------------------
@@ -434,7 +434,7 @@ function create_update_sample() {
             })
             .catch(error => {
                 console.error('Error during POST request to create sample:', error);
-                toast.error(error.response?.status === 409 ? getErrorMessage(error) : "action failed");
+                toast.error([400, 409].includes(error.response?.status) ? getErrorMessage(error) : "action failed");
             });
         }
 

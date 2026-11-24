@@ -284,11 +284,11 @@ function create_update_site() {
                                 ? { id: coordinate_system_dropdown.value,
                                     label: coordinate_system_dropdown.selectedOptions[0].text }
                                 : null,
-                latitude: lat_in,
-                longitude: lon_in,
-                altitude: alt_in,
-                latitudeWgs84: lat84_in,
-                longitudeWgs84: lon84_in,
+                latitude: decimalOrText(lat_in),
+                longitude: decimalOrText(lon_in),
+                altitude: decimalOrText(alt_in),
+                latitudeWgs84: decimalOrText(lat84_in),
+                longitudeWgs84: decimalOrText(lon84_in),
             }
         };
 
@@ -310,7 +310,7 @@ function create_update_site() {
                 })
                 .catch(error => {
                     console.error('Error during PUT request to update site:', error);
-                    toast.error(error.response?.status === 409 ? getErrorMessage(error) : "action failed");
+                    toast.error([400, 409].includes(error.response?.status) ? getErrorMessage(error) : "action failed");
                 });
             });
 
@@ -344,7 +344,7 @@ function create_update_site() {
             })
             .catch(error => {
                 console.error('Error during POST request to create site:', error);
-                toast.error(error.response?.status === 409 ? getErrorMessage(error) : "action failed");
+                toast.error([400, 409].includes(error.response?.status) ? getErrorMessage(error) : "action failed");
             });
         }
 
