@@ -22,7 +22,7 @@ import static org.junit.jupiter.api.Assertions.*;
 /** Laboratory + number identify one C14, dendro or other dating. */
 class LaboratoryNumberTest extends PostgresTest {
 
-    private static final String KIA = "https://example.org/c14-lab/kia";
+    private static final String KIA = "http://uri.gbv.de/terminology/nihk_c14_laboratory/kia";
 
     @Autowired AbsoluteDatingController controller;
     @Autowired LabNumberConstraints constraints;
@@ -36,7 +36,7 @@ class LaboratoryNumberTest extends PostgresTest {
         clearDatabase();
         data = tx.execute(status -> Fixtures.full(em));
         // The controller tells the dating kinds apart by the DANTE label of the method.
-        jdbc.update("UPDATE dating_method SET label = 'Radiocarbon Dating' WHERE id = 'https://example.org/dating-method/c14'");
+        jdbc.update("UPDATE dating_method SET label = 'Radiocarbon Dating' WHERE id = 'http://uri.gbv.de/terminology/arbodat_dating_method/c14'");
     }
 
     @Test
@@ -115,7 +115,7 @@ class LaboratoryNumberTest extends PostgresTest {
         ad.setSample(em.getReference(Sample.class, data.sample1()));
         ad.setLiteratureList(new HashSet<>());
         DatingMethod method = new DatingMethod();
-        method.setId("https://example.org/dating-method/c14");
+        method.setId("http://uri.gbv.de/terminology/arbodat_dating_method/c14");
         method.setLabel("Radiocarbon Dating");
         ad.setDatingMethod(method);
         C14Laboratory lab = new C14Laboratory();

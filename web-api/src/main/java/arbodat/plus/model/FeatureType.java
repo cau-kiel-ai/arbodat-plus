@@ -8,6 +8,7 @@ import java.util.Set;
 
 @Data
 @Entity
+@EntityListeners(VocabularyTermListener.class)
 @Table(name = "feature_type")
 public class FeatureType implements Serializable {
 

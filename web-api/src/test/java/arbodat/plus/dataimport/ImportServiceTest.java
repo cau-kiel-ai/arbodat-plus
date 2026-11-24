@@ -244,7 +244,7 @@ class ImportServiceTest extends PostgresTest {
     @Test
     void linksAndValueListsOnlyGrow() throws Exception {
         byte[] file = exportAll();
-        jdbc.update("DELETE FROM site_type_relation WHERE site_id = ? AND site_type_id = 'https://example.org/site-type/burial'", data.site1());
+        jdbc.update("DELETE FROM site_type_relation WHERE site_id = ? AND site_type_id = 'http://uri.gbv.de/terminology/arbodat_site_type/burial'", data.site1());
         jdbc.update("DELETE FROM activity_numbers WHERE site_id = ? AND activity_number = 'AN-2'", data.site1());
         jdbc.update("INSERT INTO activity_numbers (site_id, activity_number) VALUES (?, 'AN-local')", data.site1());
 
@@ -345,16 +345,29 @@ class ImportServiceTest extends PostgresTest {
     @Test
     void unknownVocabularyIsCreatedAndKnownKeepsItsLabels() throws Exception {
         byte[] file = exportAll();
-        jdbc.update("UPDATE tax_code SET label = 'Triticum sp.' WHERE id = 'https://example.org/tax-code/triticum'");
-        clearVocabulary("https://example.org/site-type/burial");
+        jdbc.update("UPDATE tax_code SET label = 'Triticum sp.' WHERE id = 'http://uri.gbv.de/terminology/arbodat_taxonomy/triticum'");
+        clearVocabulary("http://uri.gbv.de/terminology/arbodat_site_type/burial");
 
         PlanView plan = preview(file, null);
-        assertEquals(List.of("https://example.org/site-type/burial"), plan.newLookups().stream().map(PlanView.Lookup::id).toList());
+        assertEquals(List.of("http://uri.gbv.de/terminology/arbodat_site_type/burial"), plan.newLookups().stream().map(PlanView.Lookup::id).toList());
         assertTrue(plan.lookupLabelDiffs().stream().anyMatch(d -> d.field().equals("label") && d.existing().equals("Triticum sp.")));
 
         commit(file, plan, null);
-        assertEquals("Triticum sp.", jdbc.queryForObject("SELECT label FROM tax_code WHERE id = 'https://example.org/tax-code/triticum'", String.class));
-        assertEquals("Burial", jdbc.queryForObject("SELECT label FROM site_type WHERE id = 'https://example.org/site-type/burial'", String.class));
+        assertEquals("Triticum sp.", jdbc.queryForObject("SELECT label FROM tax_code WHERE id = 'http://uri.gbv.de/terminology/arbodat_taxonomy/triticum'", String.class));
+        assertEquals("Burial", jdbc.queryForObject("SELECT label FROM site_type WHERE id = 'http://uri.gbv.de/terminology/arbodat_site_type/burial'", String.class));
+    }
+
+    @Test
+    void anUnknownTermOutsideItsVocabularyBlocksTheImport() throws Exception {
+        String burial = "http://uri.gbv.de/terminology/arbodat_site_type/burial";
+        byte[] file = new String(exportAll(), java.nio.charset.StandardCharsets.UTF_8)
+                .replace(burial, "http://example.org/site-type/burial").getBytes(java.nio.charset.StandardCharsets.UTF_8);
+
+        PlanView plan = preview(file, null);
+        assertFalse(plan.canCommit());
+        assertTrue(plan.errors().stream().anyMatch(e -> e.code().equals("UNKNOWN_VOCABULARY_TERM")
+                && e.message().contains("http://example.org/site-type/burial")), plan.errors().toString());
+        assertEquals(0, count("site_type WHERE id LIKE 'http://example.org/%'"));
     }
 
     @Test

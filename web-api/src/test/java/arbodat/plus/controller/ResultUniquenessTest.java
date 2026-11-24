@@ -29,10 +29,10 @@ import static org.junit.jupiter.api.Assertions.*;
  */
 class ResultUniquenessTest extends PostgresTest {
 
-    private static final String TAX_CODE = "https://example.org/tax-code/triticum";
-    private static final String CF = "https://example.org/cf/cf";
-    private static final String REST_TYPE = "https://example.org/rest-type/grain";
-    private static final String STATE = "https://example.org/state/charred";
+    private static final String TAX_CODE = "http://uri.gbv.de/terminology/arbodat_taxonomy/triticum";
+    private static final String CF = "http://uri.gbv.de/terminology/arbodat_classification_confer/cf";
+    private static final String REST_TYPE = "http://uri.gbv.de/terminology/arbodat_rest_type/grain";
+    private static final String STATE = "http://uri.gbv.de/terminology/arbodat_result_condition/charred";
 
     @Autowired ResultController controller;
     @Autowired ResultMigrationService resultMigrationService;

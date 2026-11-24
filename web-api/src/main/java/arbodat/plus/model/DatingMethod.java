@@ -9,6 +9,7 @@ import java.util.Set;
 
 @Data
 @Entity
+@EntityListeners(VocabularyTermListener.class)
 @Table(name = "dating_method")
 public class DatingMethod implements Serializable {
 

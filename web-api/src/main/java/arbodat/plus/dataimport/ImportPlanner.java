@@ -10,6 +10,7 @@ import arbodat.plus.exchange.Field.*;
 import arbodat.plus.exchange.ValueType;
 import arbodat.plus.model.*;
 import arbodat.plus.service.ExcavationYears;
+import arbodat.plus.service.Vocabularies;
 import jakarta.persistence.EntityManager;
 import jakarta.persistence.PersistenceContext;
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
@@ -135,7 +136,10 @@ class ImportPlanner {
                             r.values.get("classificationConfer"), r.values.get("restType"), r.values.get("stateOfPreservation")));
         }
 
-        /** Vocabulary values: the URI is the identity. Unknown ones are created, known ones keep their labels. */
+        /**
+         * Vocabulary values: the URI is the identity. Unknown ones are created (if their URI belongs to the
+         * vocabulary, else the import is blocked), known ones keep their labels.
+         */
         void lookups(EntityType type) {
             Collection<ImportRecord> records = graph.of(type);
             if (records.isEmpty()) return;
@@ -144,6 +148,11 @@ class ImportPlanner {
             for (ImportRecord record : records) {
                 Object local = existing.get(record.id);
                 if (local == null) {
+                    // Created only as a term of its DANTE vocabulary (or a local ArboDat+ term of it)
+                    if (!Vocabularies.isAllowed(spec.entityClass(), String.valueOf(record.id))) {
+                        plan.errors.add(new Issue("UNKNOWN_VOCABULARY_TERM", record.key(), record.path,
+                                "'" + record.id + "' is not a term of the vocabulary for " + type + "."));
+                    }
                     plan.resolve(record, Resolution.create(record.id));
                     continue;
                 }

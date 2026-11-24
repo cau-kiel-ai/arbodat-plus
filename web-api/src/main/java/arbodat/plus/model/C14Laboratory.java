@@ -9,6 +9,7 @@ import java.util.Set;
 
 @Data
 @Entity
+@EntityListeners(VocabularyTermListener.class)
 @Table(name = "c14_laboratory")
 public class C14Laboratory implements Serializable {
 

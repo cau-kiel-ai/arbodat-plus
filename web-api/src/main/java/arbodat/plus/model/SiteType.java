@@ -9,6 +9,7 @@ import java.util.Set;
 
 @Data
 @Entity
+@EntityListeners(VocabularyTermListener.class)
 @Table(name = "site_type")
 public class SiteType implements Serializable {
 

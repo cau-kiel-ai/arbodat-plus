@@ -9,6 +9,7 @@ import java.util.Set;
 
 @Data
 @Entity
+@EntityListeners(VocabularyTermListener.class)
 @Table(name = "chronozone")
 public class Chronozone implements Serializable {
 

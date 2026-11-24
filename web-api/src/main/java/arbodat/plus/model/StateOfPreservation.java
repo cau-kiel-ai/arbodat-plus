@@ -8,6 +8,7 @@ import java.util.Set;
 
 @Data
 @Entity
+@EntityListeners(VocabularyTermListener.class)
 @Table(name = "state_of_preservation")
 public class StateOfPreservation {
 
