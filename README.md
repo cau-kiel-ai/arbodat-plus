@@ -55,7 +55,7 @@ arbodat-plus
 │   ├── DANTE-terminologies.md
 │   ├── data-migration-table-mapping.pdf
 │   ├── DEVELOPMENT.md
-│   ├── ERD.png
+│   ├── entity-relationship-diagram.svg
 │   └── INSTALL.md
 ├── frontend                 # web pages (HTML/JS/CSS) served by nginx
 ├── scripts                  # release version helpers
