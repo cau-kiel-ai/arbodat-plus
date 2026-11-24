@@ -93,13 +93,13 @@ function createNonMatchingTable(attribute, rows, section) {
         data: rows,
         index: "id",
         maxHeight: "70vh",
-        layout: "fitDataFill", // columns as wide as their content (no stretched last column)
+        layout: "fitData", // columns as wide as their content, the rows end after the last column (as in the explorer)
         placeholder: `no non-matching ${attribute}`,
         columns: [
             selectionColumn(),
-            filterTextColumn("Type", "type"),
-            filterTextColumn("Label", "label"),
-            filterListColumn("nonMatchingLabel", "nonMatchingLabel"),
+            // The label of the site / feature / sample / dating, its type as title (one type per attribute)
+            filterValuesColumn(rows[0]?.type ?? "label", "label"),
+            filterValuesColumn("nonMatchingLabel", "nonMatchingLabel"),
             {title: "danteLabels", field: "value", headerSort: false, minWidth: 220, maxWidth: 360,
                 tooltip: (e, cell) => cell.getElement().classList.contains("tabulator-editing") ? "" : escapeHtml(valueLabels(cell.getValue())),
                 editor: multiple ? multiSelectEditor : singleSelectEditor,
@@ -207,7 +207,8 @@ async function updateNonMatchingAttributes(table, row) {
     }
 
     // Summary --------------------------------------------------
-    if (items.length > 1 || skippedReasons.length > 0) {
+    // A message also for one row (a failed single row: its error, below)
+    if (items.length > 1 || skippedReasons.length > 0 || errors.length === 0) {
         let message = `${updated.length} ${updated.length === 1 ? "row" : "rows"} updated.`;
         if (skippedReasons.length > 0) {
             message += ` ${skippedReasons.length} selected skipped (${[...new Set(skippedReasons)].join(", ")}).`;

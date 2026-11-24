@@ -57,9 +57,9 @@ async function populateLabsAndNumbers(labAndNumberList) {
 
 const datingColumns = () => [
     selectionColumn(),
-    filterTextColumn("Site", "siteLabel"),
-    filterTextColumn("Feature", "featureLabel"),
-    filterTextColumn("Sample", "sampleLabel"),
+    filterValuesColumn("Site", "siteLabel"),
+    filterValuesColumn("Feature", "featureLabel"),
+    filterValuesColumn("Sample", "sampleLabel"),
     filterTextColumn("SubSample", "subSample"),
 ];
 
@@ -87,11 +87,11 @@ function createC14LabTable(rows) {
         data: rows,
         index: "id",
         maxHeight: "70vh",
-        layout: "fitDataFill", // columns as wide as their content (no stretched last column)
+        layout: "fitData", // columns as wide as their content, the rows end after the last column (as in the explorer)
         placeholder: "no C14 datings",
         columns: [
             ...datingColumns(),
-            {title: "labAndNumber", field: "labAndNumber", headerSort: false, formatter: "plaintext"},
+            filterTextColumn("labAndNumber", "labAndNumber"),
             {title: "C14 laboratory", field: "c14Laboratory", headerSort: false, minWidth: 200, maxWidth: 260,
                 tooltip: (e, cell) => c14Labels.get(cell.getValue()) ?? "", // long names are cut off in the cell
                 editor: "list", editorParams: { ...danteEditorParams("c14Laboratory"), clearable: true },
@@ -120,12 +120,12 @@ function createLabTable(rows) {
         data: rows,
         index: "id",
         maxHeight: "70vh",
-        layout: "fitDataFill", // columns as wide as their content (no stretched last column)
+        layout: "fitData", // columns as wide as their content, the rows end after the last column (as in the explorer)
         placeholder: "no dendrochronological / other datings",
         columns: [
             ...datingColumns(),
-            {title: "datingMethod", field: "datingMethod", headerSort: false, formatter: "plaintext"},
-            {title: "labAndNumber", field: "labAndNumber", headerSort: false, formatter: "plaintext"},
+            filterValuesColumn("datingMethod", "datingMethod"),
+            filterTextColumn("labAndNumber", "labAndNumber"),
             // Existing laboratory from the list, or a new one typed in
             {title: "laboratory (select or enter new)", field: "laboratory", headerSort: false, minWidth: 220,
                 editor: "list", editorParams: {
@@ -230,7 +230,8 @@ async function updateLabAndNumber(table, row) {
     }
 
     // Summary --------------------------------------------------
-    if (items.length > 1 || skippedReasons.length > 0) {
+    // A message also for one row (a failed single row: its error, below)
+    if (items.length > 1 || skippedReasons.length > 0 || errors.length === 0) {
         let message = `${updated.length} ${updated.length === 1 ? "dating" : "datings"} updated.`;
         if (skippedReasons.length > 0) {
             message += ` ${skippedReasons.length} selected skipped (${[...new Set(skippedReasons)].join(", ")}).`;

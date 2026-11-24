@@ -19,14 +19,12 @@ function addGroupToJSON(entry, rows, skippedReasons = [], removeRows = rows => r
     displayJSON();
     console.log(`${rows.length} row(s) added to JSON`);
 
-    if (rows.length > 1 || skippedReasons.length > 0) {
-        let message = `${rows.length} ${rows.length === 1 ? "row" : "rows"} added to JSON.`;
-        if (skippedReasons.length > 0) {
-            const reasons = [...new Set(skippedReasons)].join(", ");
-            message += ` ${skippedReasons.length} more with the same label skipped (${reasons}).`;
-        }
-        toast.success(message);
+    let message = `${rows.length} ${rows.length === 1 ? "row" : "rows"} added to JSON.`;
+    if (skippedReasons.length > 0) {
+        const reasons = [...new Set(skippedReasons)].join(", ");
+        message += ` ${skippedReasons.length} more with the same label skipped (${reasons}).`;
     }
+    toast.success(message);
 }
 
 // Results -------------------------------------------------------------------
@@ -209,24 +207,44 @@ function selectionColumn() {
             titleFormatterParams: { rowRange: "active" }, hozAlign: "center", headerSort: false, width: 40};
 }
 
-// Text column with a filter field in the header (site, feature, sample, ...)
-function filterTextColumn(title, field) {
+// Text column filtered by its values (site, feature, sample, ...): search in the existing values,
+// several can be chosen (pills, rows with one of them), as in the explorer (see js/multiSelectEditor.js)
+function filterValuesColumn(title, field) {
     return {title, field, headerSort: false, minWidth: 90, formatter: "plaintext",
-            headerFilter: "input", headerFilterPlaceholder: "filter"};
+            headerFilter: multiSelectFilter, headerFilterParams: { valuesLookup: true }, headerFilterFunc: anyOfFilter};
 }
 
-// Column with a dropdown filter in the header (the distinct values of the column)
+// Text column with a free text filter in the header (e.g. sub sample, ids)
+function filterTextColumn(title, field) {
+    return {title, field, headerSort: false, minWidth: 90, formatter: "plaintext",
+            headerFilter: "input", headerFilterPlaceholder: ""};
+}
+
+// Column with a dropdown filter in the header (the distinct values of the column, one of them; e.g. user role)
 function filterListColumn(title, field) {
     return {title, field, headerSort: false, formatter: "plaintext",
             headerFilter: "list", headerFilterParams: { valuesLookup: true, clearable: true, sort: "asc" },
-            headerFilterFunc: "=", headerFilterPlaceholder: "filter"};
+            headerFilterFunc: "=", headerFilterPlaceholder: ""};
 }
 
 // - counter: element for "x rows" / "x of y rows"
+// - no redraw whenever the table comes into view (see stopRedrawWhenVisible)
 // - rows hidden by a filter are deselected, so the bulk actions skip them
 // - a value edited in a selected row is copied to the other selected rows:
 //   copyFields = { field: canCopy(rowData) } (rows for which canCopy is false keep their value)
+// Tabulator redraws a table whenever it comes into view (IntersectionObserver of its resize module). While the page is
+// scrolled this changes the layout and the browser's scroll anchoring makes the page jump (e.g. scrolling up past the
+// sample coordinates). The migration tables are redrawn when their accordion is opened (shown.bs.collapse,
+// redrawMigrationTables), so the observer is not needed.
+function stopRedrawWhenVisible(table) {
+    const stop = () => table.modules?.resizeTable?.visibilityObserver?.disconnect();
+    if (table.initialized) stop();
+    else table.on("tableBuilt", stop);
+}
+
 function setupMigrationTable(table, { counter, copyFields = {} }) {
+    stopRedrawWhenVisible(table);
+
     table.on("cellEdited", cell => {
         const row = cell.getRow();
         const canCopy = copyFields[cell.getField()];

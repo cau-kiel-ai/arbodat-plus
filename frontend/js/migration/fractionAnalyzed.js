@@ -42,7 +42,7 @@ function createFractionTable(rows) {
         data: rows,
         index: "id",
         maxHeight: "70vh",
-        layout: "fitDataFill", // columns as wide as their content (no stretched last column)
+        layout: "fitData", // columns as wide as their content, the rows end after the last column (as in the explorer)
         placeholder: "no fractions analyzed",
         groupHeader: (value, count, data, group) => {
             const allSelected = group.getRows().every(row => row.isSelected());
@@ -53,9 +53,9 @@ function createFractionTable(rows) {
         },
         columns: [
             selectionColumn(),
-            filterTextColumn("Site", "siteLabel"),
-            filterTextColumn("Feature", "featureLabel"),
-            filterTextColumn("Sample", "sampleLabel"),
+            filterValuesColumn("Site", "siteLabel"),
+            filterValuesColumn("Feature", "featureLabel"),
+            filterValuesColumn("Sample", "sampleLabel"),
             {title: "fractionAnalyzed", field: "fractionAnalyzed", headerSort: false, formatter: "plaintext"},
             {title: "modifiedFraction", field: "modifiedFraction", headerSort: false, formatter: "plaintext"},
             {title: "orgOrMin", field: "orgOrMin", headerSort: false, minWidth: 90,
@@ -334,8 +334,9 @@ async function createFractionsAnalyzed(items, skippedReasons = []) {
     }
 
     // Summary --------------------------------------------------
-    if (items.length > 1 || skippedReasons.length > 0 || existing.length > 0) {
-        let message = `${created.length} fractions analyzed created.`;
+    // A message also for one row (a failed single row: its error, below)
+    if (items.length > 1 || skippedReasons.length > 0 || existing.length > 0 || errors.length === 0) {
+        let message = `${created.length} ${created.length === 1 ? "fraction analyzed" : "fractions analyzed"} created.`;
         if (existing.length > 0) {
             message += ` ${existing.length} already existed.`;
         }

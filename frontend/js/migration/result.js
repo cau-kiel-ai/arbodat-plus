@@ -126,14 +126,14 @@ function createResultTable(element, counter, rows, site) {
         data: rows,
         index: "id",
         maxHeight: "70vh",
-        layout: "fitDataFill", // columns as wide as their content (no stretched last column)
+        layout: "fitData", // columns as wide as their content, the rows end after the last column (as in the explorer)
         placeholder: "no results",
         columns: [
             selectionColumn(),
             {title: "Feature", field: "featureLabel", headerSort: false, formatter: "plaintext"},
             {title: "Sample",  field: "sampleLabel",  headerSort: false, formatter: "plaintext"},
 
-            filterListColumn("taxCode", "taxCode"),
+            filterValuesColumn("taxCode", "taxCode"),
             {title: "dante taxCode", field: "danteTaxCode", headerSort: false, minWidth: 160,
                 editable: cell => cell.getRow().getData().needsTaxCode && !!site.taxonomyUri,
                 editor: "list",
@@ -152,10 +152,10 @@ function createResultTable(element, counter, rows, site) {
 
             {title: "cf", field: "cf", headerSort: false, formatter: "plaintext"},
 
-            filterListColumn("restType", "restType"),
+            filterValuesColumn("restType", "restType"),
             danteColumn("dante restType", "danteRestType", "needsRestType", "restType"),
 
-            filterListColumn("stateOfPreservation", "stateOfPreservation"),
+            filterValuesColumn("stateOfPreservation", "stateOfPreservation"),
             danteColumn("dante stateOfPreservation", "danteStateOfPreservation", "needsStateOfPreservation", "stateOfPreservation"),
 
             {title: "Create", headerSort: false, hozAlign: "center", width: 80, // as wide as the button
@@ -337,7 +337,8 @@ async function createResults(site, items, skippedReasons = []) {
     }
 
     // Summary --------------------------------------------------
-    if (items.length > 1 || skippedReasons.length > 0) {
+    // A message also for one row (a failed single row: its error, below)
+    if (items.length > 1 || skippedReasons.length > 0 || errors.length === 0) {
         let message = `${done.length} ${done.length === 1 ? "result" : "results"} created.`;
         if (skippedReasons.length > 0) {
             message += ` ${skippedReasons.length} selected skipped (${[...new Set(skippedReasons)].join(", ")}).`;

@@ -17,7 +17,7 @@ function populateSites(sites) {
         data: rows,
         index: "id",
         maxHeight: "70vh",
-        layout: "fitDataFill", // columns as wide as their content (no stretched last column)
+        layout: "fitData", // columns as wide as their content, the rows end after the last column (as in the explorer)
         placeholder: "no sites",
         // Migrated / already existing sites can't be selected any more (checkbox disabled; see also rowSelected below)
         selectableRowsCheck: row => row.getData().status === "open",
@@ -27,10 +27,10 @@ function populateSites(sites) {
         },
         columns: [
             selectionColumn(),
-            filterTextColumn("Site", "label"),
+            filterValuesColumn("Site", "label"),
             {title: "status", field: "status", headerSort: false, minWidth: 140,
                 formatter: cell => escapeHtml(SITE_STATUS_LABELS[cell.getValue()] ?? ""),
-                headerFilter: "list", headerFilterPlaceholder: "filter",
+                headerFilter: "list", headerFilterPlaceholder: "",
                 headerFilterParams: { values: { open: "not migrated", ...SITE_STATUS_LABELS }, clearable: true },
                 headerFilterFunc: "="},
         ],
@@ -69,28 +69,28 @@ document.addEventListener("shown.bs.collapse", event => {
 // [list in the migration response, title, columns]
 const EXISTING_LISTS = [
     ["existingSiteList", "Not migrated, already existing sites and additionally added research projects", [
-        filterTextColumn("site", "label"),
+        filterValuesColumn("site", "label"),
         filterTextColumn("site id", "id"),
         {title: "research projects", field: "researchProjectNames", headerSort: false, formatter: cell => escapeHtml((cell.getValue() ?? []).join(", "))},
         {title: "added research projects", field: "addedResearchProjectNames", headerSort: false, formatter: cell => escapeHtml((cell.getValue() ?? []).join(", "))},
     ]],
     ["existingFeatureList", "Not migrated, already existing features of the selected sites", [
-        filterTextColumn("feature", "label"),
+        filterValuesColumn("feature", "label"),
         filterTextColumn("feature id", "id"),
-        filterTextColumn("site", "siteLabel"),
+        filterValuesColumn("site", "siteLabel"),
     ]],
     ["existingSampleList", "Not migrated, already existing samples of the selected sites", [
-        filterTextColumn("sample", "label"),
+        filterValuesColumn("sample", "label"),
         filterTextColumn("sample id", "id"),
-        filterTextColumn("site", "siteLabel"),
-        filterTextColumn("feature", "featureLabel"),
+        filterValuesColumn("site", "siteLabel"),
+        filterValuesColumn("feature", "featureLabel"),
     ]],
     ["existingAbsoluteDatingList", "Not migrated, already existing datings of the selected sites", [
-        filterTextColumn("sub sample", "subSample"),
+        filterValuesColumn("sub sample", "subSample"),
         filterTextColumn("absolute dating id", "id"),
-        filterTextColumn("site", "siteLabel"),
-        filterTextColumn("feature", "featureLabel"),
-        filterTextColumn("sample", "sampleLabel"),
+        filterValuesColumn("site", "siteLabel"),
+        filterValuesColumn("feature", "featureLabel"),
+        filterValuesColumn("sample", "sampleLabel"),
     ]],
 ];
 
@@ -122,7 +122,7 @@ function populateExistingLists(response) {
             data: rows,
             index: "rowId",
             maxHeight: "50vh",
-            layout: "fitDataFill",
+            layout: "fitData",
             columns,
         });
         const counter = section.querySelector("[data-counter]");
@@ -132,6 +132,7 @@ function populateExistingLists(response) {
         };
         table.on("dataFiltered", () => setTimeout(updateCounter));
         table.on("dataProcessed", updateCounter);
+        stopRedrawWhenVisible(table);
         existingTables.set(list, table);
     });
 

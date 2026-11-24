@@ -116,17 +116,17 @@ function createCoordinateTable(type, rows) {
         data: rows,
         index: "id",
         maxHeight: "70vh",
-        layout: "fitDataFill", // columns as wide as their content (no stretched last column)
+        layout: "fitData", // columns as wide as their content, the rows end after the last column (as in the explorer)
         placeholder: isSample ? "no sample coordinates" : "no site coordinates",
         columns: [
             selectionColumn(),
-            filterTextColumn("Site", "siteLabel"),
-            ...(isSample ? [filterTextColumn("Feature", "featureLabel"), filterTextColumn("Sample", "sampleLabel")] : []),
+            filterValuesColumn("Site", "siteLabel"),
+            ...(isSample ? [filterValuesColumn("Feature", "featureLabel"), filterValuesColumn("Sample", "sampleLabel")] : []),
             numberColumn(isSample ? "lon/x" : "lon", "longitude"),
             numberColumn(isSample ? "lat/y" : "lat", "latitude"),
             ...(isSample ? [{title: "z", field: "zcoordinate", headerSort: false, formatter: "plaintext"}] : []),
             isSample ? altitudeColumn : numberColumn("alt", "altitude"),
-            filterListColumn("coordinateSystem", "arbodatCoordinateSystem"),
+            filterValuesColumn("coordinateSystem", "arbodatCoordinateSystem"),
             {title: "dante coordinateSystem", field: "coordinateSystem", headerSort: false, minWidth: 220, maxWidth: 320,
                 tooltip: (e, cell) => cell.getElement().classList.contains("tabulator-editing") ? "" : escapeHtml(systemLabels.get(cell.getValue()) ?? ""),
                 editor: singleSelectEditor, editorParams: danteEditorParams("coordinateSystem"),
@@ -284,7 +284,8 @@ async function createCoordinates(table, row) {
     }
 
     // Summary --------------------------------------------------
-    if (items.length > 1 || skippedReasons.length > 0) {
+    // A message also for one row (a failed single row: its error, below)
+    if (items.length > 1 || skippedReasons.length > 0 || errors.length === 0) {
         let message = `${created.length} ${created.length === 1 ? "coordinate" : "coordinates"} created.`;
         if (skippedReasons.length > 0) {
             message += ` ${skippedReasons.length} selected skipped (${[...new Set(skippedReasons)].join(", ")}).`;

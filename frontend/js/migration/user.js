@@ -74,15 +74,15 @@ function createUserTable(rows) {
         data: rows,
         index: "id",
         maxHeight: "70vh",
-        layout: "fitDataFill", // columns as wide as their content (no stretched last column)
+        layout: "fitData", // columns as wide as their content, the rows end after the last column (as in the explorer)
         placeholder: "no users",
         columns: [
             selectionColumn(),
-            filterTextColumn("Site", "siteLabel"),
-            filterTextColumn("Feature", "featureLabel"),
-            filterTextColumn("Sample", "sampleLabel"),
+            filterValuesColumn("Site", "siteLabel"),
+            filterValuesColumn("Feature", "featureLabel"),
+            filterValuesColumn("Sample", "sampleLabel"),
             filterListColumn("userRole", "userRole"),
-            filterListColumn("userLabel", "userLabel"),
+            filterValuesColumn("userLabel", "userLabel"),
             {title: "Users", field: "users", headerSort: false, minWidth: 220,
                 editor: multiSelectEditor, editorParams: () => ({ values: userOptions }),
                 formatter: cell => {
@@ -216,7 +216,8 @@ async function updateWithUsers(row) {
     }
 
     // Summary --------------------------------------------------
-    if (items.length > 1 || skippedReasons.length > 0) {
+    // A message also for one row (a failed single row: its error, below)
+    if (items.length > 1 || skippedReasons.length > 0 || errors.length === 0) {
         let message = `${updated.length} ${updated.length === 1 ? "row" : "rows"} updated.`;
         if (skippedReasons.length > 0) {
             message += ` ${skippedReasons.length} selected skipped (${[...new Set(skippedReasons)].join(", ")}).`;

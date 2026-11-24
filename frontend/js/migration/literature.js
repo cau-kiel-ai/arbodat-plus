@@ -73,11 +73,11 @@ function createLiteratureTable(rows) {
         data: rows,
         index: "id",
         maxHeight: "70vh",
-        layout: "fitDataFill", // columns as wide as their content (no stretched last column)
+        layout: "fitData", // columns as wide as their content, the rows end after the last column (as in the explorer)
         placeholder: "no literature",
         columns: [
             selectionColumn(),
-            filterTextColumn("Site", "siteLabel"),
+            filterValuesColumn("Site", "siteLabel"),
             filterTextColumn("author", "author"),
             filterTextColumn("publicationYear", "publicationYear"),
             {title: "literature", field: "literature", headerSort: false, minWidth: 260, maxWidth: MULTI_SELECT_MAX_WIDTH,
@@ -214,7 +214,8 @@ async function updateLiterature(row) {
     }
 
     // Summary --------------------------------------------------
-    if (items.length > 1 || skippedReasons.length > 0) {
+    // A message also for one row (a failed single row: its error, below)
+    if (items.length > 1 || skippedReasons.length > 0 || errors.length === 0) {
         let message = `${updated.length} ${updated.length === 1 ? "row" : "rows"} updated.`;
         if (skippedReasons.length > 0) {
             message += ` ${skippedReasons.length} selected skipped (${[...new Set(skippedReasons)].join(", ")}).`;
