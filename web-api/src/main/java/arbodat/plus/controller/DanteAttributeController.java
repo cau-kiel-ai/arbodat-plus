@@ -9,8 +9,6 @@ import org.springframework.web.bind.annotation.*;
 
 import java.util.*;
 
-//@CrossOrigin(origins = "http://127.0.0.1:5500")
-@CrossOrigin(origins = "*") // Allow requests from all domains
 @RestController
 @RequestMapping("/dante_attributes")
 public class DanteAttributeController {
@@ -121,7 +119,7 @@ public class DanteAttributeController {
     public List<StateOfPreservation> getAllStateOfPreservation() { return stateOfPreservationRepository.findAll(); }
 
     @PostMapping
-    public void updateDanteAttribute(@RequestBody Map<String, Object> danteAttributes) {
+    public synchronized void updateDanteAttribute(@RequestBody Map<String, Object> danteAttributes) {
 
         danteAttributes.forEach((attribute, values) -> {
             if (values instanceof List<?> list) {

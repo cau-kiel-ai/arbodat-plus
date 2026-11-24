@@ -3,12 +3,14 @@ let jsonData = [];
 function displayJSON() {
     document.getElementById("jsonDisplay").textContent = JSON.stringify(jsonData, (key, value) => {
         // These attributes are not displayed in the JSON
-        if (key === "auxiliaryId" || key === "item" || key === "itemId" || key === "siteId" || 
-            key === "sampleId" || key === "absoluteDatingId" || key === "number") {
+        if (key === "auxiliaryId" || key === "item" || key === "items" || key === "itemId" || key === "itemIds" ||
+            key === "siteId" || key === "sampleId" || key === "absoluteDatingId" || key === "number") {
             return undefined;
         }
         return value;
     }, 4);
+    // Nothing to download while no attribute has been added
+    document.getElementById("downloadJSONButton").disabled = jsonData.length === 0;
 }
 
 // Display JSON when loading the page
@@ -24,5 +26,6 @@ function downloadJSON() {
     a.download = "nonMatchingLabels.json";
     a.click();
 
-    URL.revokeObjectURL(url);
+    // Revoke later: WebKit (macOS app window) cancels downloads whose blob URL is already revoked.
+    setTimeout(() => URL.revokeObjectURL(url), 60000);
 }

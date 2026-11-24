@@ -1,13 +1,22 @@
 package arbodat.plus.controller;
 
+import arbodat.plus.dto_migration.BulkDanteAttributeItem;
+import arbodat.plus.dto_migration.BulkItemStatus;
 import arbodat.plus.dto_migration.MigrationResponse;
 import arbodat.plus.model.ResearchProject;
+import arbodat.plus.service.LabelTakenException;
 import arbodat.plus.service.MigrationService;
+import arbodat.plus.service.NonMatchingAttributeMigrationService;
 import com.healthmarketscience.jackcess.Database;
 import com.healthmarketscience.jackcess.DatabaseBuilder;
 import com.healthmarketscience.jackcess.Row;
 import com.healthmarketscience.jackcess.Table;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.dao.DataAccessException;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
@@ -17,14 +26,35 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 
-//@CrossOrigin(origins = "http://127.0.0.1:5500")
-@CrossOrigin(origins = "*") // Allow requests from all domains
 @RestController
 @RequestMapping("/migration")
 public class MigrationController {
 
+    private static final Logger log = LoggerFactory.getLogger(MigrationController.class);
+
     @Autowired
     private MigrationService migrationService;
+
+    @Autowired
+    private NonMatchingAttributeMigrationService nonMatchingAttributeMigrationService;
+
+    /**
+     * Sets the DANTE values of many non-matching attributes (non-matching attributes accordion of the migration).
+     * Every item gets its own status ("updated" or "error"), so one bad row doesn't stop the others.
+     */
+    @PutMapping("/nonMatchingAttributes/bulk")
+    public List<BulkItemStatus> updateNonMatchingAttributes(@RequestBody List<BulkDanteAttributeItem> items) {
+        try {
+            return nonMatchingAttributeMigrationService.updateAll(items);
+        } catch (DataAccessException e) {
+            // The transaction is rolled back -> none of the items is updated
+            log.error("Bulk update of non-matching attributes failed", e);
+            String message = e.getMostSpecificCause().getMessage();
+            return items.stream()
+                    .map(item -> BulkItemStatus.error(item.getClientId(), message))
+                    .toList();
+        }
+    }
 
     /**
      * Endpoint for upload .mdb file to get its site list.
@@ -37,28 +67,26 @@ public class MigrationController {
 
         List<String> sites = new ArrayList<>();
 
+        // Save .mdb file as tempFile on server
+        File dataFile = File.createTempFile("uploadedData", ".mdb");
         try {
-            // Save .mdb file as tempFile on server
-            File dataFile = File.createTempFile("uploadedData", ".mdb");
             file.transferTo(dataFile);
 
             // open site table in .mdb file
-            Database db = DatabaseBuilder.open(new File(dataFile.getAbsolutePath()));
-            Table table = db.getTable("Projekte");
-            if (table == null) {
-                throw new IllegalArgumentException("table 'Projekte' doesn't exist");
-            }
+            try (Database db = DatabaseBuilder.open(dataFile)) {
+                Table table = db.getTable("Projekte");
+                if (table == null) {
+                    throw new IllegalArgumentException("table 'Projekte' doesn't exist");
+                }
 
-            // iterate through table
-            for (Row row : table) {
-                sites.add(row.getString("Projekt")); // add siteLabel
+                // iterate through table
+                for (Row row : table) {
+                    sites.add(row.getString("Projekt")); // add siteLabel
+                }
             }
-
+        } finally {
             // Delete tempFile
             dataFile.delete();
-
-        } catch (Exception e) {
-            e.printStackTrace();
         }
         return sites;
     }
@@ -85,29 +113,24 @@ public class MigrationController {
                                          @RequestPart List<ResearchProject> researchProjectList,
                                          @RequestPart List<String> siteList) throws Exception {
 
-        // Init migration response
-        MigrationResponse migrationResponse = new MigrationResponse();
+        // Save .mdb files as tempFiles on server
+        File dataFile = File.createTempFile("uploadedData", ".mdb");
+        File strukDataFile = File.createTempFile("uploadedStrukData", ".mdb");
+        MigrationResponse migrationResponse;
 
         try {
-            // Save .mdb files as tempFiles on server
-            File dataFile = File.createTempFile("uploadedData", ".mdb");
             files[0].transferTo(dataFile);
-
-            File strukDataFile = File.createTempFile("uploadedStrukData", ".mdb");
             files[1].transferTo(strukDataFile);
 
             // Call MigrationService with path to the tempFile and all other transferred parameters
-            migrationResponse =  migrationService.migrateData(dataFile.getAbsolutePath(),
-                                                              strukDataFile.getAbsolutePath(),
-                                                              researchProjectList,
-                                                              siteList);
-
+            migrationResponse = migrationService.migrateData(dataFile.getAbsolutePath(),
+                                                             strukDataFile.getAbsolutePath(),
+                                                             researchProjectList,
+                                                             siteList);
+        } finally {
             // Delete tempFiles
             dataFile.delete();
             strukDataFile.delete();
-
-        } catch (Exception e) {
-            e.printStackTrace();
         }
 
         // For Testing
@@ -115,18 +138,41 @@ public class MigrationController {
         return migrationResponse;
     }
 
+    /**
+     * Returns the reason of a failed request to the frontend, instead of an empty result.
+     */
+    // E.g. a new research project with the name of an existing one
+    @ExceptionHandler(LabelTakenException.class)
+    public ResponseEntity<String> handleLabelTaken(LabelTakenException e) {
+        return ResponseEntity.status(HttpStatus.CONFLICT).body(e.getMessage());
+    }
+
+    @ExceptionHandler(IllegalArgumentException.class)
+    public ResponseEntity<String> handleInvalidInput(IllegalArgumentException e) {
+        log.error("Migration request rejected", e);
+        return ResponseEntity.badRequest().body(e.getMessage());
+    }
+
+    @ExceptionHandler(Exception.class)
+    public ResponseEntity<String> handleFailure(Exception e) {
+        log.error("Migration failed", e);
+        return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                .body(e.getClass().getSimpleName() + ": " + e.getMessage());
+    }
+
 //    @PostMapping
 //    public String parseJSON (JSON) {
     // ToDo: Dies ist eine parsing function -> danach die schon bestehenden controller vom import nutzen
 
+        // One entry covers ALL rows with the same attribute and nonMatchingLabel.
         // JSONs:
         // const data = {
         //         attribute: attribute,
         //         nonMatchingLabel: nonMatchingLabel,
-        //         itemId: itemId
+        //         itemIds: [itemId, ...]
         // };
 
-        // 'itemId'     'attribute'
+        // 'itemIds'    'attribute'
         // -----------------------------------
         // site:        siteType
         //              naturalUnit
@@ -149,52 +195,48 @@ public class MigrationController {
         //              restType
         //              stateOfPreservation
 
-        // ToDo: update 'attribute' vom item mithilfe von 'itemId' mit 'nonMatchingLabel'
+        // ToDo: update 'attribute' vom jedem item aus 'itemIds' mit 'nonMatchingLabel'
 
 
-        // JSONs with Item:       --------------------------------------------------------
+        // JSONs with Items:      --------------------------------------------------------
+        // One entry covers all rows with the same nonMatching_* value(s); every row has its own element in 'items'.
 
         // const data = {
         //          itemType: "result",
-        //          auxiliaryId: item.id,
-        //          item: item.result,
-        //          nonMatching_taxCode: nonMatchingLabel
+        //          nonMatching_taxCode: { nonMatching_taxCode: label, taxonomy: taxonomy } *(optional)
         //          nonMatching_cf                  *(optional)
         //          nonMatching_restType            *(optional)
         //          nonMatching_stateOfPreservation *(optional)
+        //          items: [result, ...]   // sample only contains the id
         // };
-        // ToDO: result item gibt es noch nicht -> soll neu angelegt werden. 'auxiliaryId' kann ignoriert werden.
+        // ToDO: result items gibt es noch nicht -> sollen neu angelegt werden.
 
         //    data = {
         //        itemType: "coordinateSite",
-        //        siteId: item.id,
-        //        item: { latitude:  latitude,
-        //                longitude: longitude,
-        //                altitude:  altitude,
-        //                remarks:   remarks
-        //               },
-        //        nonMatching_coordinateSystem: nonMatchingLabel
+        //        nonMatching_coordinateSystem: nonMatchingLabel,
+        //        items: [{ siteId:         siteId,
+        //                  latitude:       latitude,
+        //                  longitude:      longitude,
+        //                  altitude:       altitude,
+        //                  latitudeWgs84:  latitudeWgs84,
+        //                  longitudeWgs84: longitudeWgs84,
+        //                  remarks:        remarks
+        //                }, ...]
         //    };
         //    data = {
         //        itemType: "coordinateSample",
-        //        sampleId: item.id,
-        //        item: { latitude:  latitude,
-        //                longitude: longitude,
-        //                altitude:  altitude,
-        //                remarks:   remarks
-        //               },
-        //        nonMatching_coordinateSystem: nonMatchingLabel
+        //        nonMatching_coordinateSystem: nonMatchingLabel,
+        //        items: [{ sampleId: sampleId, ...same fields as above }, ...]
         //    }
-        // ToDO: coordinate item gibt es noch nicht -> soll neu angelegt
+        // ToDO: coordinate items gibt es noch nicht -> sollen neu angelegt
         //       und mit site/sample verknüpft werden (gibt es schon controller in site und sample!)
 
         //    data = {
         //        itemType: "C14Dating",
-        //        absoluteDatingId: item.absoluteDatingId,
-        //        number: number,
-        //        nonMatching_C14LabCode: newC14LabCode
+        //        nonMatching_C14LabCode: newC14LabCode,
+        //        items: [{ absoluteDatingId: absoluteDatingId, number: number }, ...]
         //    }
-        // ToDo: update absoluteDating.C14Dating mit 'C14LabCode' + 'number'
+        // ToDo: update absoluteDating.C14Dating mit 'C14LabCode' + 'number' (für jedes item)
 
 //    }
 }

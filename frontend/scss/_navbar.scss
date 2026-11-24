@@ -1,0 +1,107 @@
+/* ---------------- navbar (shared, see components/app-navbar.js) ---------------- */
+
+// Width from which the entries are shown inline; below it they collapse into the burger menu.
+$navbar-breakpoint: 782px !default;
+$navbar-divider-color: #000 !default;
+
+// Distance between the burger button and the screen edge when there is no scrollbar
+// A classic scrollbar takes ~15px, so the padding shrinks by the scrollbar's width, see .container-fluid.
+$navbar-edge-gap: 71px !default;
+
+app-navbar {
+    display: block;
+    flex-shrink: 0;
+    position: sticky;
+    top: 0;
+    z-index: 1020;
+    font-family: arial;
+
+    .navbar {
+        --bs-navbar-padding-y: 0px;
+        --bs-navbar-color: white;
+        --bs-navbar-hover-color: white;
+        background-color: #776c78;
+    }
+
+    // 100vw includes the scrollbar, 100% (of the full-width navbar) does not, so the difference is the scrollbar's width
+    .container-fluid {
+        padding-right: calc(#{$navbar-edge-gap} - (100vw - 100%));
+    }
+
+    .navbar-brand {
+        padding: 0;
+        margin-top:    3px;
+        margin-bottom: 11px;
+        margin-right: 11px;
+
+        img {
+            display: block;
+            height: 48px;
+        }
+    }
+
+    .navbar-collapse {
+        margin-bottom: 6px;
+    }
+
+    .navbar-toggler {
+        margin-top: -4px;
+    }
+
+    .navbar-nav {
+        --bs-nav-link-padding-y: 0.25rem;
+    }
+
+    .nav-link {
+        padding-left: 4px;
+        &:hover,
+        &.active {
+            background: #b4adb5;
+        }
+    }
+
+    .nav-item + .nav-item {
+        border-top: 1px solid $navbar-divider-color;
+    }
+
+    // expanded layout: logo and entries in one row
+    @media (min-width: $navbar-breakpoint) {
+        .navbar {
+            flex-wrap: nowrap;
+            justify-content: flex-start;
+        }
+
+        .navbar-brand {
+            margin-top:   -8px;
+            margin-bottom: 0px;
+            margin-right:  0px;
+        }
+
+        .navbar-toggler {
+            display: none;
+        }
+
+        .navbar-collapse {
+            display: flex !important;
+            flex-basis: auto;
+
+            margin-top:   24px;
+            margin-left:  12px;
+            margin-right: 12px;
+        }
+
+        .navbar-nav {
+            flex-direction: row;
+        }
+
+        .nav-link {
+            padding-right: var(--bs-navbar-nav-link-padding-x);
+            padding-left: var(--bs-navbar-nav-link-padding-x);
+        }
+
+        .nav-item + .nav-item {
+            border-top: 0px;
+            border-left: 1px solid $navbar-divider-color;
+        }
+    }
+}

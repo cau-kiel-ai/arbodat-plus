@@ -4,30 +4,27 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     
-    <title>ArboDat+ Migration</title>
+    <title>ArboDat+ | Data Migration</title>
 
     <link href="img/favicon.png" rel="icon">
     <link href="css/migration.min.css" rel="stylesheet">
+    <script src="components/app-footer.js"></script>
+    <script src="components/app-navbar.js"></script>
 
     <!-- bootstrap -->
-    <script
-      src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"
-      integrity="sha384-YvpcrYf0tY3lHB60NNkmXc5s9fDVZLESaAA55NDzOxhy9GkcIdslK1eN7N6jIeHz"
-      crossorigin="anonymous"
-      >
-    </script>
+    <script src="vendor/bootstrap@5.3.8/dist/js/bootstrap.bundle.min.js"></script>
     <!-- axios -->
-    <script src="https://unpkg.com/axios@1.8.4/dist/axios.min.js"></script>
+    <script src="vendor/axios@1.21.0/dist/axios.min.js"></script>
     <!-- jquery -->
-    <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.7.1/jquery.min.js"></script>
+    <script src="vendor/jquery@3.7.1/dist/jquery.min.js"></script>
     <!-- proj4js -->
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/proj4js/2.15.0/proj4.js"></script>
+    <script src="vendor/proj4@2.22.0/dist/proj4.js"></script>
     <!-- select2 -->
-    <link
-      href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css"
-      rel="stylesheet"
-    />
-    <script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
+    <link href="vendor/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
+    <script src="vendor/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
+    <!-- tabulator (results table) -->
+    <link href="vendor/tabulator-tables@6.7.1/dist/css/tabulator.min.css" rel="stylesheet" />
+    <script src="vendor/tabulator-tables@6.7.1/dist/js/tabulator.min.js"></script>
 
     <!-- ResearchProject Dropdown style -->
     <style>
@@ -175,6 +172,31 @@
         font-weight: 200;
         line-height: 24px;
       }
+      /* keep chips clear of the clear-all × */
+      .select2-container .select2-selection--multiple.select2-selection--clearable {
+        padding-right: 36px;
+      }
+      /* Select2 dropdowns above a table (e.g. results taxonomy) */
+      .table-filter-select .select2-container {
+        min-width: 110px;
+      }
+      .table-filter-select .select2-container .select2-selection--single {
+        height: 34px !important;
+      }
+      .table-filter-select .select2-container .select2-selection--single .select2-selection__rendered {
+        padding: 4px 8px;
+        font-size: 13px;
+      }
+      .table-filter-select .select2-container .select2-selection--single .select2-selection__arrow {
+        height: 32px;
+      }
+      .table-filter-select .select2-container .select2-selection--single .select2-selection__clear {
+        transform: translateX(10%) translateY(-2px);
+      }
+      /* The dropdown list may be wider than a narrow column */
+      .table-filter-dropdown {
+        min-width: 220px;
+      }
     </style>
 
   </head>
@@ -186,44 +208,121 @@
         <div class="spinner"></div>
     </div>
     
-    <header class="header">
-      <h1> <img src="img/logo_arbodat_plus.png" alt="logo_arbodat_plus"> </h1>
-    </header>
+    <!-- Create Fraction Analyzed Popup (top level: it is opened from the Results accordion) -->
+    <div id="fractionAnalyzedModal" class="modal">
+      <div class="modal-content">
+        <span class="close">&times;</span>
+        <h2>Create new Fraction</h2>
+        No fraction analyzed was found for this sample in the 'Fractions Analyzed' table.
+        Create it here to continue with the result.
+        <br><br>
+
+        <form id="fractionAnalyzedModalForm" role="form">
+          <fieldset>
+            <legend>Fraction</legend>
+
+            <div class="row">
+              <div class="col-25"></div>
+              <div class="col-75" style="margin-bottom: 10px;">
+                <span id="fractionAnalyzedModalInfo"></span>
+              </div>
+            </div>
+
+            <!-- fraction analyzed -->
+            <div class="row">
+              <div class="col-25">
+                <label for="fractionAnalyzedModalSelect">fraction analyzed: *</label>
+              </div>
+              <div class="col-75">
+                <select id="fractionAnalyzedModalSelect" required>
+                  <option value="" hidden selected></option>
+                  <option value="yes">yes</option>
+                  <option value="no">no</option>
+                  <option value="partly">partly</option>
+                </select>
+              </div>
+            </div>
+
+            <!-- orgOrMin -->
+            <div class="row">
+              <div class="col-25">
+                <label>organic / minerals: *</label>
+              </div>
+              <div class="col-75">
+                <div class="form-check form-check-inline">
+                  <label class="form-check-label" for="fractionAnalyzedModalOrg">ORG</label>
+                  <input class="form-check-input" type="radio" name="fractionAnalyzedModalOrgOrMin" id="fractionAnalyzedModalOrg" value="org" required>
+                </div>
+                <div class="form-check form-check-inline">
+                  <label class="form-check-label" for="fractionAnalyzedModalMin">MIN</label>
+                  <input class="form-check-input" type="radio" name="fractionAnalyzedModalOrgOrMin" id="fractionAnalyzedModalMin" value="min" required>
+                </div>
+              </div>
+            </div>
+
+            <!-- sieve size -->
+            <div class="row">
+              <div class="col-25">
+                <label for="fractionAnalyzedModalSieveSize">sieve size [mm]: *</label>
+              </div>
+              <div class="col-75">
+                <input type="number" step="0.01" id="fractionAnalyzedModalSieveSize" required>
+              </div>
+            </div>
+
+            <button
+              type="button"
+              id="fractionAnalyzedModalSubmitButton"
+              class="MySubmitButton"
+            >
+              create
+            </button>
+          </fieldset>
+        </form>
+      </div>
+    </div>
     
-    <!-- Container for File Upload -->
-    <div class="container-md" style="margin-top: 120px;">
-      <div class="card mx-auto" style="max-width: 500px; padding: 20px; box-shadow: 0px 4px 8px rgba(0, 0, 0, 0.1);">
+    <app-navbar></app-navbar>
+    
+    <div class="container-md">
+      <p style="margin-bottom: 32px;">
+        Migrate data from legacy MS Access ArboDat into ArboDat+.
+        Upload the two Access files 'ArchBotDaten.mdb' and 'ArchBotStrukDat.mdb', then work through the accordions from top to bottom:
+        Select research projects and the sites to migrate, then create or update data records and match the entries to the central DANTE thesauri.
+        Attributes that are not in the thesauri are collected in the JSON box at the bottom and can be sent to us for review.
+      </p>
+
+      <!-- File Upload -->
+      <div class="card mx-auto" style="max-width: 648px; padding: 20px; margin-bottom: 56px; box-shadow: 0px 4px 8px rgba(0, 0, 0, 0.1);">
         <h2 class="text-center">File Upload</h2>
         <form id="fileUploadForm">
             <div class="mb-3">
               <label for="dataFile" class="form-label">Select 'ArchBotDaten.mdb' file</label>
-              <input type="file" id="dataFile" class="form-control">
+              <input type="file" id="dataFile" class="form-control" accept=".mdb">
             </div>
             <div class="mb-3" style="margin-bottom: 20px !important;">
               <label for="strukDataFile" class="form-label">Select 'ArchBotStrukDat.mdb' file</label>
-              <input type="file" id="strukDataFile" class="form-control">
+              <input type="file" id="strukDataFile" class="form-control" accept=".mdb">
             </div>
             <div class="text-center">
-              <button type="button" class="btn btn-primary" onclick="getSites()">Upload</button>
+              <button type="button" id="uploadButton" class="btn btn-primary" onclick="getSites()" disabled>Upload</button>
             </div>
         </form>
       </div>
-    </div>
 
-    <!-- Accordion -->
-    <div class="container-md">
+      <!-- Accordion -->
       <div class="accordion" id="accordionPanels">
         
         <!-- Research Projects -->
         <div class="accordion-item">
           <h2 class="accordion-header">
-            <button class="accordion-button" type="button" data-bs-toggle="collapse" data-bs-target="#panelsStayOpen-collapseOne" aria-expanded="false" aria-controls="panelsStayOpen-collapseOne">
+            <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#panelsStayOpen-collapseOne" aria-expanded="false" aria-controls="panelsStayOpen-collapseOne">
               Research Projects
             </button>
           </h2>
           <div id="panelsStayOpen-collapseOne" class="accordion-collapse collapse">
             <div class="accordion-body">
-              Select existing research projects (by clicking in the 'project name' field) or create new ones to migrate sites corresponding to them.
+              Select existing research projects (by clicking in the 'project name' field) or create new ones and add them to migrate sites corresponding to them.
               <br><br>
 
               <form id="research_project">
@@ -261,7 +360,7 @@
 
                     <div class="row">
                       <div class="col-25">
-                        <label for="license" data-tooltip="Please choose from the list." >license:</label>
+                        <label for="licenseDropdown" data-tooltip="Please choose from the list." >license:</label>
                       </div>
                       <div class="col-75">
                         <select id="licenseDropdown" style="width: 100%;">
@@ -292,16 +391,6 @@
                       </div>
                     </div>
 
-                    <div class="row">
-                      <div class="col-25">
-                        <label for="exportFileName">export file name:</label>
-                      </div>
-                      <div class="col-75">
-                        <input type="text" id="exportFileName" autocomplete="off">
-                      </div>
-                  </div>
-
-
                   <!-- Button to add research project-->
                   <div style="margin-top: 20px;" class="text-center">
                     <button type="button" class="btn btn-primary" id="addResearchProjectButton">Add Research Project</button>
@@ -328,8 +417,6 @@
                   const licenseId = licenseDropdown ? licenseDropdown.value : null;
                   const licenseLabel = licenseDropdown ? licenseDropdown.options[licenseDropdown.selectedIndex].getAttribute("data-label") : null;
 
-                  let exportFileName = document.getElementById("exportFileName").value;
-
                   // Check if projectName is provided (required)
                   if (!projectName) {
                       toast.info("Project name is required.");
@@ -347,7 +434,6 @@
                   // Set attributes to null if empty
                   funder = funder || null;
                   authorisationNumber = authorisationNumber || null;
-                  exportFileName = exportFileName || null;
 
                   // Create a JSON object to store the data
                   const projectData = {
@@ -355,8 +441,7 @@
                       projectName: projectName,
                       funder: funder,
                       authorisationNumber: authorisationNumber,
-                      license: licenseId ? { id: licenseId, label: licenseLabel } : null,
-                      exportFileName: exportFileName
+                      license: licenseId ? { id: licenseId, label: licenseLabel } : null
                   };
 
                   // Save object into the researchProjects array
@@ -376,7 +461,7 @@
 
                   // Add project name and delete button
                   itemBox.innerHTML = `
-                      <span>${projectName}</span>
+                      <span>${escapeHtml(projectName)}</span>
                       <button
                           type="button"
                           style="
@@ -388,7 +473,7 @@
                               border: none;
                           "
                           onclick="deleteProject(this)"
-                          data-name="${projectName}"
+                          data-name="${escapeHtml(projectName)}"
                           aria-label="Remove Research Project"
                       >
                           &#10005;
@@ -405,7 +490,6 @@
                   document.getElementById("authorisationNumber").readOnly = false;
                   document.getElementById("licenseDropdown").disabled = false;
                   $('#licenseDropdown').val(null).trigger('change');
-                  document.getElementById("exportFileName").readOnly = false;
                 });
 
                 function deleteProject(deleteIcon) {
@@ -429,40 +513,34 @@
         <!-- Site Selection -->
         <div class="accordion-item">
           <h2 class="accordion-header">
-            <button class="accordion-button" type="button" data-bs-toggle="collapse" data-bs-target="#panelsStayOpen-collapseTwo" aria-expanded="false" aria-controls="panelsStayOpen-collapseTwo">
+            <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#panelsStayOpen-collapseTwo" aria-expanded="false" aria-controls="panelsStayOpen-collapseTwo">
               Site Selection
             </button>
           </h2>
           <div id="panelsStayOpen-collapseTwo" class="accordion-collapse collapse">
             <div class="accordion-body">              
               <p>
-                Select sites to be migrated for the added research projects.<br>
-                - To select or deselect a site use the checkbox on the right. To select or deselect <u>all</u> sites use the checkbox at the top right of a table.<br><br>
+                Select sites to be migrated corresponding to the added research projects above.<br>
+                - To select or deselect a site use the checkbox on the left. To select or deselect <u>all</u> sites use the checkbox at the top left of the table.<br>
+                - To filter sites by label and/or status use the fields in the table header.<br><br>
                 - Sites that have the same label and already assigned to any added research project in the database will not be migrated (these sites will be listed below).
                 If the site to migrate contains more research projects than the existing site in the database, the additional research projects will be added to the existing site.<br>                
                 - Features, samples and datings related to the selected sites, that have the same label and are already assigned to the same elements in the database will not be migrated (these features, samples and datings will be listed below).
               </p>
 
               <form id="siteSelectionForm">
-                <table class="table table-striped">
-                  <thead>
-                    <tr>
-                      <th scope="col">Site</th>
-                      <th scope="col" style="text-align: right; padding-right: 8px;">
-                        Select
-                        <input type="checkbox" onclick="toggleAllCheckboxes(this, 'siteTableBody')" style="margin-left: 10px;">
-                      </th>
-
-                    </tr>
-                  </thead>
-                  <tbody id="siteTableBody">
-                    <!-- Rows will be dynamically added here populateSites function -->
-                  </tbody>
-                </table>
+                <div class="d-flex flex-wrap align-items-center gap-3 mb-2">
+                  <span id="siteSelectionCounter" class="small text-muted"></span>
+                </div>
+                <!-- Tabulator, created by populateSites (siteSelection.js) -->
+                <div id="siteSelectionTable" class="migration-result-table"></div>
                 <!-- Button -->
-                <div class="text-center">
+                <div class="text-center mt-3">
                   <button type="button" class="btn btn-primary" onclick="handleMigrateSites()" > Migrate Sites </button>
                 </div>
+
+                <!-- Not migrated, already existing sites / features / samples / datings (siteSelection.js) -->
+                <div id="existingTables"></div>
 
                 <script>
                   function handleMigrateSites() {
@@ -482,38 +560,32 @@
         <!-- Literature -->
         <div class="accordion-item">
           <h2 class="accordion-header">
-            <button class="accordion-button" type="button" data-bs-toggle="collapse" data-bs-target="#panelsStayOpen-collapseFour" aria-expanded="false" aria-controls="panelsStayOpen-collapseFour">
+            <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#panelsStayOpen-collapseFour" aria-expanded="false" aria-controls="panelsStayOpen-collapseFour">
               Literature
             </button>
           </h2>          
           <div id="panelsStayOpen-collapseFour" class="accordion-collapse collapse">
             <div class="accordion-body">
               <p>
-                List of literature for the selected sites.<br>
+                List of literature references of the selected sites (author and publicationYear from ArboDat).<br>
+                - Link literature by clicking into the 'literature' cell, searching by typing and selecting literature (several are possible), then 'Update'. The literature is added to the literature list of the site.<br>
+                - If a literature does not exist yet, create it with 'Create' in the row.<br>
+                - To select literature or update several rows simultaneously select multiple rows.<br>
+                - To select or deselect a row use the checkbox on the left. To select or deselect <u>all</u> rows use the checkbox at the top left of a table.<br>
+                - To filter rows by site, author and/or publicationYear use the fields in the table header.
               </p>
 
-                <!-- Literature Table -->
-                <table class="table table-striped">
-                  <thead>
-                      <tr>
-                          <th>Site</th>
-                          <th>author</th>
-                          <th>publicationYear</th>
-                          <th>Create Literature</th>
-                      </tr>
-                  </thead>
-                  <tbody id="literatureTableBody">
-                      <!-- Rows will be dynamically added here by populateLiterature function -->
-                  </tbody>
-                </table>
+                <div class="d-flex flex-wrap align-items-center gap-3 mb-2">
+                  <span id="literatureCounter" class="small text-muted"></span>
+                </div>
+                <!-- Tabulator, created by populateLiterature (literature.js) -->
+                <div id="literatureTable" class="migration-result-table"></div>
 
                 <!-- Literature Popup -->
                 <div id="literaturModal" class="modal">
                   <div class="modal-content">
                     <span class="close">&times;</span>
                     <h2>Create new Literature</h2>
-                    When a new literature is created, it is automatically linked to the corresponding site. To link an existing literature to this site, simply select the literature (by clicking in the 'title' field) and 'update' at the bottom.
-                    <br><br>
 
                     <!-- Author -->
                     <form id="authorForm" role="form">
@@ -571,8 +643,6 @@
                         <legend>Literature</legend>
 
                         <input type="hidden" id="literatureId">
-                        <input type="hidden" id="literatureSiteId">
-                        <input type="hidden" id="literatureRowId">
                         
                         <!-- title -->
                         <div class="row">
@@ -588,6 +658,13 @@
                         
                         <!-- publication year -->
                         <div class="row">
+                          <div class="col-25"></div>
+                          <div class="col-75" style="margin-bottom: 10px; margin-top: 16px;">
+                            <span id="publicationYearFromMigration"></span>
+                          </div>
+                        </div>
+
+                        <div class="row">
                           <div class="col-25">
                             <label for="literaturePublicationYear">publication year:</label>
                           </div>
@@ -597,35 +674,14 @@
                         </div>
                         
                         <!-- authors -->
-                        <div
-                          class="row"
-                          style="
-                            border: 0.5px solid #ccc;
-                            border-left: none;
-                            border-radius: 0 4px 4px 0;
-                            margin-top: 12px;
-                            padding-bottom: 6px;
-                            padding-top: 6px;
-                            margin-right: auto;
-                          "
-                        >
+                        <div class="row">
                           <div class="col-25">
-                            <label for="literatureAuthors" data-tooltip="Add authors from the list.">authors:</label>
+                            <label for="literatureAuthors" data-tooltip="Select authors from the list.">authors:</label>
                           </div>
 
-                          <div class="col-75" style="padding-left: 14px; display:flex; gap:10px; align-items:center;">                      
-                            <select id="literatureAuthors"></select>
-                            <!-- Button to add author -->
-                            <button type="button"
-                                    class="btn btn-primary"
-                                    id="addAuthorButton">
-                              Add
-                            </button>
+                          <div class="col-75">
+                            <select id="literatureAuthors" multiple style="width: 100%;"></select>
                           </div>
-
-                          <!-- Container to display added Authors -->
-                          <div class="col-25"></div>
-                          <div class="col-75" id="literatureAuthorContainer" style="padding-left: 14px; margin-top: 0px;"></div>
                         </div>
 
                         <!-- DOI -->
@@ -680,298 +736,26 @@
           </div>
         </div>
 
-        <!-- Dante Attributes -->
+        <!-- Non-matching Attributes -->
         <div class="accordion-item">
           <h2 class="accordion-header">
-            <button class="accordion-button" type="button" data-bs-toggle="collapse" data-bs-target="#panelsStayOpen-collapseFive" aria-expanded="false" aria-controls="panelsStayOpen-collapseFive">
+            <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#panelsStayOpen-collapseFive" aria-expanded="false" aria-controls="panelsStayOpen-collapseFive">
               Non-matching Attributes
             </button>
           </h2>
           <div id="panelsStayOpen-collapseFive" class="accordion-collapse collapse">
             <div class="accordion-body">
               <p>
-                List of non-matching Attributes.<br>
-                - Update attributes by selecting 'danteLabels' from the dropdowns.<br>
-                - If attributes you are looking for are not in the central thesauri lists (dropdowns), you can use the ‘Add to JSON’ option to save non matching attributes at the bottom of the page.<br>
-                - To select danteLabels or update attributes in several rows simultaneously select multiple rows.<br>
-                - To select or deselect a row use the checkbox on the left. To select or deselect <u>all</u> rows use the checkbox at the top left of a table.
+                List of non-matching Attributes (nonMatchingLabel from ArboDat).<br>
+                - Update attributes by selecting 'danteLabels' from the dropdowns, searching by typing and selecting labels, then 'Update'.<br>
+                - If attributes you are looking for are not in the central thesauri lists (dropdowns), you can use the ‘Add to JSON’ option to save the nonMatchingLabels at the bottom of the page.<br>
+                - To select danteLabels or update labels in several rows simultaneously select multiple rows.<br>
+                - To select or deselect a row use the checkbox on the left. To select or deselect <u>all</u> rows use the checkbox at the top left of a table.<br>
+                - To filter rows by entity label (site/feature/sample/dating) and/or nonMatchingLabel use the fields in the table header.
               </p>
-              </p>
 
-              <form id="danteAttributesForm">
-                   
-                <table class="table table-striped">
-                  <caption style="caption-side: top;">
-                    siteType (select multiple items by using the shift key)
-                  </caption>
-                  <thead>
-                      <tr>
-                          <th>
-                            <input type="checkbox" onclick="toggleAllCheckboxes(this, 'siteTypeTableBody')">
-                          </th>
-                          <th>Type</th>
-                          <th>Label</th>
-                          <th>nonMatchingLabel</th>
-                          <th style="min-width: 200px;">danteLabels</th>
-                          <th></th> <!-- updateAttribute -->
-                      </tr>
-                  </thead>
-                  <tbody id="siteTypeTableBody">
-                      <!-- Rows will be dynamically added here by populateNonMatchingDanteAttributes function -->
-                  </tbody>
-                </table>
-
-                <table class="table table-striped">
-                  <caption style="caption-side: top;">
-                    naturalUnit
-                  </caption>
-                  <thead>
-                      <tr>
-                          <th>
-                            <input type="checkbox" onclick="toggleAllCheckboxes(this, 'naturalUnitTableBody')">
-                          </th>
-                          <th>Type</th>
-                          <th>Label</th>
-                          <th>nonMatchingLabel</th>
-                          <th style="min-width: 200px;">danteLabels</th>
-                          <th></th> <!-- updateAttribute -->
-                      </tr>
-                  </thead>
-                  <tbody id="naturalUnitTableBody">
-                      <!-- Rows will be dynamically added here by populateNonMatchingDanteAttributes function -->
-                  </tbody>
-                </table>
-
-                <table class="table table-striped">
-                  <caption style="caption-side: top;">
-                    featureType
-                  </caption>
-                  <thead>
-                      <tr>
-                          <th>
-                            <input type="checkbox" onclick="toggleAllCheckboxes(this, 'featureTypeTableBody')">
-                          </th>
-                          <th>Type</th>
-                          <th>Label</th>
-                          <th>nonMatchingLabel</th>
-                          <th style="min-width: 200px;">danteLabels</th>
-                          <th></th> <!-- updateAttribute -->
-                      </tr>
-                  </thead>
-                  <tbody id="featureTypeTableBody">
-                      <!-- Rows will be dynamically added here by populateNonMatchingDanteAttributes function -->
-                  </tbody>
-                </table>
-
-                <table class="table table-striped">
-                  <caption style="caption-side: top;">
-                    preservationCondition
-                  </caption>
-                  <thead>
-                      <tr>
-                          <th>
-                            <input type="checkbox" onclick="toggleAllCheckboxes(this, 'preservationConditionTableBody')">
-                          </th>
-                          <th>Type</th>
-                          <th>Label</th>
-                          <th>nonMatchingLabel</th>
-                          <th style="min-width: 200px;">danteLabels</th>
-                          <th></th> <!-- updateAttribute -->
-                      </tr>
-                  </thead>
-                  <tbody id="preservationConditionTableBody">
-                      <!-- Rows will be dynamically added here by populateNonMatchingDanteAttributes function -->
-                  </tbody>
-                </table>
-
-                <table class="table table-striped">
-                  <caption style="caption-side: top;">
-                    sampleType
-                  </caption>
-                  <thead>
-                      <tr>
-                          <th>
-                            <input type="checkbox" onclick="toggleAllCheckboxes(this, 'sampleTypeTableBody')">
-                          </th>
-                          <th>Type</th>
-                          <th>Label</th>
-                          <th>nonMatchingLabel</th>
-                          <th style="min-width: 200px;">danteLabels</th>
-                          <th></th> <!-- updateAttribute -->
-                      </tr>
-                  </thead>
-                  <tbody id="sampleTypeTableBody">
-                      <!-- Rows will be dynamically added here by populateNonMatchingDanteAttributes function -->
-                  </tbody>
-                </table>
-
-                <table class="table table-striped">
-                  <caption style="caption-side: top;">
-                    chronozone
-                  </caption>
-                  <thead>
-                      <tr>
-                          <th>
-                            <input type="checkbox" onclick="toggleAllCheckboxes(this, 'chronozoneTableBody')">
-                          </th>
-                          <th>Type</th>
-                          <th>Label</th>
-                          <th>nonMatchingLabel</th>
-                          <th style="min-width: 200px;">danteLabels</th>
-                          <th></th> <!-- updateAttribute -->
-                      </tr>
-                  </thead>
-                  <tbody id="chronozoneTableBody">
-                      <!-- Rows will be dynamically added here by populateNonMatchingDanteAttributes function -->
-                  </tbody>
-                </table>
-
-                <!-- <table class="table table-striped">
-                  <caption style="caption-side: top;">
-                    archaeologicalDating
-                  </caption>
-                  <thead>
-                      <tr>
-                          <th>
-                            <input type="checkbox" onclick="toggleAllCheckboxes(this, 'archaeologicalDatingTableBody')">
-                          </th>
-                          <th>Type</th>
-                          <th>Label</th>
-                          <th>nonMatchingLabel</th>
-                          <th style="min-width: 200px;">danteLabels</th>
-                          <th></th>
-                      </tr>
-                  </thead>
-                  <tbody id="archaeologicalDatingTableBody">
-                  </tbody>
-                </table>
-
-                <table class="table table-striped">
-                  <caption style="caption-side: top;">
-                    culturalGroup
-                  </caption>
-                  <thead>
-                    <tr>
-                      <th>
-                        <input type="checkbox" onclick="toggleAllCheckboxes(this, 'culturalGroupTableBody')">
-                      </th>
-                      <th>Type</th>
-                      <th>Label</th>
-                      <th>nonMatchingLabel</th>
-                      <th style="min-width: 200px;">danteLabels</th>
-                      <th></th>
-                    </tr>
-                  </thead>
-                  <tbody id="culturalGroupTableBody">
-                  </tbody>
-                </table> -->
-
-                <table class="table table-striped">
-                  <caption style="caption-side: top;">
-                    seedsAndFruits
-                  </caption>
-                  <thead>
-                    <tr>
-                      <th>
-                        <input type="checkbox" onclick="toggleAllCheckboxes(this, 'seedsAndFruitsTableBody')">
-                      </th>
-                      <th>Type</th>
-                      <th>Label</th>
-                      <th>nonMatchingLabel</th>
-                      <th style="min-width: 200px;">danteLabels</th>
-                      <th></th> <!-- updateAttribute -->
-                    </tr>
-                  </thead>
-                  <tbody id="seedsAndFruitsTableBody">
-                      <!-- Rows will be dynamically added here by populateNonMatchingDanteAttributes function -->
-                  </tbody>
-                </table>
-
-                <table class="table table-striped">
-                  <caption style="caption-side: top;">
-                    charcoalInvestigated
-                  </caption>
-                  <thead>
-                      <tr>
-                          <th>
-                            <input type="checkbox" onclick="toggleAllCheckboxes(this, 'charcoalInvestigatedTableBody')">
-                          </th>
-                          <th>Type</th>
-                          <th>Label</th>
-                          <th>nonMatchingLabel</th>
-                          <th style="min-width: 200px;">danteLabels</th>
-                          <th></th> <!-- updateAttribute -->
-                      </tr>
-                  </thead>
-                  <tbody id="charcoalInvestigatedTableBody">
-                      <!-- Rows will be dynamically added here by populateNonMatchingDanteAttributes function -->
-                  </tbody>
-                </table>
-
-                <table class="table table-striped">
-                  <caption style="caption-side: top;">
-                    woodSubfossile
-                  </caption>
-                  <thead>
-                      <tr>
-                          <th>
-                            <input type="checkbox" onclick="toggleAllCheckboxes(this, 'woodSubfossileTableBody')">
-                          </th>
-                          <th>Type</th>
-                          <th>Label</th>
-                          <th>nonMatchingLabel</th>
-                          <th style="min-width: 200px;">danteLabels</th>
-                          <th></th> <!-- updateAttribute -->
-                      </tr>
-                  </thead>
-                  <tbody id="woodSubfossileTableBody">
-                      <!-- Rows will be dynamically added here by populateNonMatchingDanteAttributes function -->
-                  </tbody>
-                </table>
-
-                <table class="table table-striped">
-                  <caption style="caption-side: top;">
-                    material
-                  </caption>
-                  <thead>
-                      <tr>
-                          <th>
-                            <input type="checkbox" onclick="toggleAllCheckboxes(this, 'materialTableBody')">
-                          </th>
-                          <th>Type</th>
-                          <th>Label</th>
-                          <th>nonMatchingLabel</th>
-                          <th style="min-width: 200px;">danteLabels</th>
-                          <th></th> <!-- updateAttribute -->
-                      </tr>
-                  </thead>
-                  <tbody id="materialTableBody">
-                      <!-- Rows will be dynamically added here by populateNonMatchingDanteAttributes function -->
-                  </tbody>
-                </table>
-
-                <table class="table table-striped">
-                  <caption style="caption-side: top;">
-                    datingMethod
-                  </caption>
-                  <thead>
-                      <tr>
-                          <th>
-                            <input type="checkbox" onclick="toggleAllCheckboxes(this, 'datingMethodTableBody')">
-                          </th>
-                          <th>Type</th>
-                          <th>Label</th>
-                          <th>nonMatchingLabel</th>
-                          <th style="min-width: 200px;">danteLabels</th>
-                          <th></th> <!-- updateAttribute -->
-                      </tr>
-                  </thead>
-                  <tbody id="datingMethodTableBody">
-                      <!-- Rows will be dynamically added here by populateNonMatchingDanteAttributes function -->
-                  </tbody>
-                </table>
-
-              </form>
+              <!-- One Tabulator per attribute with rows, created by populateNonMatchingDanteAttributes (nonMatchingDanteAttributes.js) -->
+              <div id="nonMatchingAttributeTables"></div>
 
             </div>
           </div>
@@ -980,118 +764,69 @@
         <!-- Coordinates -->
         <div class="accordion-item">
           <h2 class="accordion-header">
-            <button class="accordion-button" type="button" data-bs-toggle="collapse" data-bs-target="#panelsStayOpen-collapseSix" aria-expanded="false" aria-controls="panelsStayOpen-collapseSix">
+            <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#panelsStayOpen-collapseSix" aria-expanded="false" aria-controls="panelsStayOpen-collapseSix">
               Coordinates
             </button>
           </h2>
           <div id="panelsStayOpen-collapseSix" class="accordion-collapse collapse">
             <div class="accordion-body">
               <p>
-                List of site and sample coordinates for the selected sites.<br>
-                - To create coordinates select 'dante coordinateSystem'.<br>
+                List of site and sample coordinates for the selected sites (lon, lat, alt, x, y, z, coordinateSystem and remarks from ArboDat).<br>
+                - Create coordinates by entering lon, lat, alt (optional), 'dante coordinateSystem', then 'Create'.<br>
                 - If a coordinate system you are looking for is not in the central thesauri list (dropdown), you can use the ‘Add to JSON’ option to save the 'coordinateSystem' at the bottom of the page.<br>
-                - Before using the ‘Add to JSON’ option, please fill in all applicable fields(lon, lat,	alt, lon WGS84,	lat WGS84,	remarks).<br>
+                - Before using the ‘Add to JSON’ option, please fill in all applicable fields (lon, lat, alt, lon WGS84, lat WGS84 and remarks).<br>
                 - The 'altitude' and 'z coordinate' from the former database are displayed. But the new database only uses the altitude value.<br>
                 - The longitude and latitude WGS 84 fields are computed and filled in automatically (except for the coordinate systems 'DHDN / 3-degree Gauss' and 'local').<br>
                 - If ‘local’ is selected as coordinate system, this can be described in the ‘remarks’ text field.<br>
                 - To select coordinate systems or create coordinates in several rows simultaneously select multiple rows.<br>
-                - To select or deselect a row use the checkbox on the left. To select or deselect <u>all</u> rows use the checkbox at the top left of a table.
+                - To select or deselect a row use the checkbox on the left. To select or deselect <u>all</u> rows use the checkbox at the top left of a table.<br>
+                - To filter rows by site, feature, sample and/or coordinateSystem use the fields in the table header.
               </p>
 
               <form>
-                Site coordinates
-                <table class="table table-striped">
-                  <thead>
-                      <tr>
-                        <th>
-                          <input type="checkbox" onclick="toggleAllCheckboxes(this, 'siteCoordinateTableBody')">
-                        </th>
-                        <th>Site</th>
-                        <th style="min-width: 100px;">lon</th>
-                        <th style="min-width: 100px;">lat</th>
-                        <th style="min-width: 100px;">alt</th>
-                        <th>coordinateSystem</th>
-                        <th>dante coordinateSystem</th>
-                        <th style="min-width: 100px;">lon WGS84</th>
-                        <th style="min-width: 100px;">lat WGS84</th>
-                        <th style="min-width: 105px;">remarks</th>
-                        <th>Create Coordinate</th>
-                      </tr>
-                  </thead>
-                  <tbody id="siteCoordinateTableBody">
-                      <!-- Rows will be dynamically added here by populateCoordinates function -->
-                  </tbody>
-                </table>
+                <div class="d-flex flex-wrap align-items-center gap-3 mb-2">
+                  <strong>Site coordinates</strong>
+                  <span id="siteCoordinateCounter" class="small text-muted"></span>
+                </div>
+                <!-- Tabulator, created by populateCoordinates (coordinates.js) -->
+                <div id="siteCoordinateTable" class="migration-result-table"></div>
 
-                <br>Sample coordinates
-                <table class="table table-striped">
-                  <thead>
-                      <tr>
-                        <th>
-                          <input type="checkbox" onclick="toggleAllCheckboxes(this, 'sampleCoordinateTableBody')">
-                        </th>
-                        <th>Site<br>Feature<br>Sample</th>
-                        <th style="min-width: 100px;">lon/x</th>
-                        <th style="min-width: 100px;">lat/y</th>
-                        <th style="min-width: 100px;">alt</th>
-                        <th>z</th>
-                        <th>coordinateSystem</th>
-                        <th>dante coordinateSystem</th>
-                        <th style="min-width: 100px;">lon WGS84</th>
-                        <th style="min-width: 100px;">lat WGS84</th>
-                        <th style="min-width: 105px;">remarks</th>
-                        <th>Create Coordinate</th>
-                      </tr>
-                  </thead>
-                  <tbody id="sampleCoordinateTableBody">
-                      <!-- Rows will be dynamically added here by populateCoordinates function -->
-                  </tbody>
-                </table>
-
+                <div class="d-flex flex-wrap align-items-center gap-3 mb-2 mt-4">
+                  <strong>Sample coordinates</strong>
+                  <span id="sampleCoordinateCounter" class="small text-muted"></span>
+                </div>
+                <!-- Tabulator, created by populateCoordinates (coordinates.js) -->
+                <div id="sampleCoordinateTable" class="migration-result-table"></div>
               </form>
 
             </div>
           </div>
         </div>
 
-        <!-- Employees -->
+        <!-- Team -->
         <div class="accordion-item">
           <h2 class="accordion-header">
-            <button class="accordion-button" type="button" data-bs-toggle="collapse" data-bs-target="#panelsStayOpen-collapseSeven" aria-expanded="false" aria-controls="panelsStayOpen-collapseSeven">
-              Employees
+            <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#panelsStayOpen-collapseSeven" aria-expanded="false" aria-controls="panelsStayOpen-collapseSeven">
+              Team
             </button>
           </h2>
           <div id="panelsStayOpen-collapseSeven" class="accordion-collapse collapse">
             <div class="accordion-body">
               <p>
-                List of employees at the selected sites.<br>
-                - Update users by selecting existing user OR creating new ones first if they are missing.<br>
-                - To select multiple users use the shift key.<br>
-                - To select users in several rows simultaneously select multiple rows.<br>
-                - To update with selected users in several rows simultaneously select multiple rows.<br>
-                - To select or deselect a row use the checkbox on the left. To select or deselect <u>all</u> rows use the checkbox at the top left of a table.
+                List of users at the selected sites (userRole and userLabel from ArboDat).<br>
+                - Update users by selecting existing users or 'Create' new ones first if they are missing.<br>
+                - To select users click into the 'Users' cell, search by typing and click on the users (several users are possible), then 'Update'.<br>
+                - To select users or update several rows simultaneously select multiple rows.<br>
+                - To select or deselect a row use the checkbox on the left. To select or deselect <u>all</u> rows use the checkbox at the top left of a table.<br>
+                - To filter rows by site, feature, sample, userRole and/or userLabel use the fields in the table header.
               </p>
 
-              <!-- User Table -->
-              <table class="table table-striped">
-                <thead>
-                    <tr>
-                      <th>
-                        <input type="checkbox" onclick="toggleAllCheckboxes(this, 'userTableBody')">
-                      </th>
-                      <th>Site<br>Feature<br>Sample</th>
-                      <th>userRole</th>
-                      <th>userLabel</th>
-                      <th style="min-width: 250px;">Select Users</th>
-                      <th style="min-width: 130px;">Update with selected Users</th>
-                      <th style="min-width: 90px;">Create new User</th>
-                    </tr>
-                </thead>
-                <tbody id="userTableBody">
-                    <!-- Rows will be dynamically added here by populateUsers function -->
-                </tbody>
-              </table>
-              
+              <div class="d-flex flex-wrap align-items-center gap-3 mb-2">
+                <span id="userCounter" class="small text-muted"></span>
+              </div>
+              <!-- Tabulator, created by populateUsers (user.js) -->
+              <div id="userTable" class="migration-result-table"></div>
+
               <!-- User Popup -->
               <div id="userModal" class="modal">
                 <div class="modal-content">
@@ -1201,35 +936,14 @@
                           </div>
                         </div>
 
-                        <div
-                          class="row"
-                          style="
-                            border: 0.5px solid #ccc;
-                            border-left: none;
-                            border-radius: 0 4px 4px 0;
-                            margin-top: 12px;
-                            padding-bottom: 6px;
-                            padding-top: 6px;
-                            margin-right: auto;
-                          "
-                        >
+                        <div class="row">
                           <div class="col-25">
-                            <label for="userInstitutions" data-tooltip="Add institutions from the list.">institutions:</label>
+                            <label for="userInstitutions" data-tooltip="Select institutions from the list.">institutions:</label>
                           </div>
 
-                          <div class="col-75" style="padding-left: 14px; display:flex; gap:10px; align-items:center;">
-                            <select id="userInstitutions"></select>
-                            <!-- Button to add institution -->
-                            <button type="button"
-                                    class="btn btn-primary"
-                                    id="addInstitutionButton">
-                              Add
-                            </button>
+                          <div class="col-75">
+                            <select id="userInstitutions" multiple style="width: 100%;"></select>
                           </div>
-
-                          <!-- Container to display added institutions -->
-                          <div class="col-25"></div>
-                          <div class="col-75" id="institutionContainer" style="padding-left: 14px; margin-top: 0px;"></div>
                         </div>
 
                         <button
@@ -1253,7 +967,7 @@
         <!-- Fractions Analyzed -->
         <div class="accordion-item">
           <h2 class="accordion-header">
-            <button class="accordion-button" type="button" data-bs-toggle="collapse" data-bs-target="#panelsStayOpen-collapseEight" aria-expanded="false" aria-controls="panelsStayOpen-collapseEight">
+            <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#panelsStayOpen-collapseEight" aria-expanded="false" aria-controls="panelsStayOpen-collapseEight">
               Fractions Analyzed
             </button>
           </h2>
@@ -1261,34 +975,33 @@
             <div class="accordion-body">
 
               <form id="fractionAnalyzedForm">
-                <p>
-                  List of the fractions analyzed from the samples taken at the selected sites.<br>
-                  - To sort the rows by sieveSize click on 'sieveSize' in the table header.<br>
+                <p style="margin-bottom: 0px;">
+                  List of the fractions analyzed from the samples taken at the selected sites (fractionAnalyzed, modifiedFraction, orgOrMin and sieveSize from ArboDat).<br>
+                  - Please check that 'orgOrMin' and 'sieveSize' are correct, then 'Create'. These values can be edited.<br>
                   - To edit orgOrMin and sieveSize in several rows simultaneously select multiple rows.<br>
                   - To create fraction analyzed in several rows simultaneously select multiple rows.<br>
-                  - To select or deselect a row use the checkbox on the left. To select or deselect <u>all</u> rows use the checkbox at the top left of a table.
+                  - To select or deselect a row use the checkbox on the left. To select or deselect <u>all</u> rows use the checkbox at the top left of a table.<br>
+                  - To sort the rows by sieveSize click on 'sieveSize' in the table header.<br>
+                  - To filter rows by site, feature and/or sample use the fields in the table header.
                 </p>
-                
-                <table class="table table-striped">
-                  <thead>
-                      <tr>
-                        <th>
-                          <input type="checkbox" onclick="toggleAllCheckboxes(this, 'fractionAnalyzedTableBody')">
-                        </th>
-                        <th>Site<br>Feature<br>Sample</th>
-                        <th>fractionAnalyzed</th>
-                        <th>modifiedFraction</th>
-                        <th>orgOrMin</th>
-                        <th id="sieveSizeHeader" style="cursor:pointer;">sieveSize</th>
-                        <th>Create Fraction Analyzed</th>
-                      </tr>
-                  </thead>
-                  <tbody id="fractionAnalyzedTableBody">
-                      <!-- Rows will be dynamically added here by populateFractionsAnalyzed function -->
-                  </tbody>
-                </table>
+
+                <div class="d-flex flex-wrap align-items-center gap-3 mb-2">
+                  <label class="d-flex align-items-center gap-2 mb-0">
+                    group rows by
+                    <select id="fractionAnalyzedGroupBy" class="form-select form-select-sm w-auto">
+                      <option value="">-</option>
+                      <option value="orgOrMinAndSieveSize">orgOrMin and sieveSize</option>
+                      <option value="sieveSize">sieveSize</option>
+                    </select>
+                  </label>
+                  <span id="fractionAnalyzedCounter" class="small text-muted"></span>
+                </div>
+
+                <!-- Tabulator, created by populateFractionsAnalyzed (fractionAnalyzed.js) -->
+                <div id="fractionAnalyzedTable" class="migration-result-table"></div>
 
               </form>
+
             </div>
           </div>
         </div>
@@ -1296,7 +1009,7 @@
         <!-- Labs and Numbers -->
         <div class="accordion-item">
           <h2 class="accordion-header">
-            <button class="accordion-button" type="button" data-bs-toggle="collapse" data-bs-target="#panelsStayOpen-collapseNine" aria-expanded="false" aria-controls="panelsStayOpen-collapseNine">
+            <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#panelsStayOpen-collapseNine" aria-expanded="false" aria-controls="panelsStayOpen-collapseNine">
               Labs and Numbers
             </button>
           </h2>
@@ -1304,56 +1017,27 @@
             <div class="accordion-body">
               <form id="LabAndNumberForm">
                 <p>
-                  List of laboratories and numbers from the datings of the selected sites.<br>
-                  - To update datings select a laboratory and set a number.<br>
-                  - If a C14Laboratory you are looking for is not in the central thesauri list (dropdown), you can use the ‘Add to JSON’ option to save a new C14 laboratory code at the bottom of the page.<br>
-                  - To create/select laboratories in several rows simultaneously select multiple rows.<br>
-                  - To update datings in several rows simultaneously select multiple rows.<br>
-                  - To select or deselect a row use the checkbox on the left. To select or deselect <u>all</u> rows use the checkbox at the top left of a table.
+                  List of laboratories and numbers from the datings of the selected sites (labAndNumber from ArboDat).<br>
+                  - To update datings select a laboratory and set a number, then 'Update'.<br>
+                  - If a C14Laboratory you are looking for is not in the central thesauri list (dropdown), you can use the ‘Add to JSON’ option to save a 'new C14 laboratory' at the bottom of the page.<br>
+                  - To create/select laboratories or update datings in several rows simultaneously select multiple rows.<br>
+                  - To select or deselect a row use the checkbox on the left. To select or deselect <u>all</u> rows use the checkbox at the top left of a table.<br>
+                  - To filter rows by site, feature, sample, subSample, datingMethod and/or labAndNumber use the fields in the table header.
                 </p>
 
-                C14 Dating
-                <table class="table table-striped">
-                  <thead>
-                      <tr>
-                          <th>
-                            <input type="checkbox" onclick="toggleAllCheckboxes(this, 'C14LabAndNumberTableBody')">
-                          </th>
-                          <th>Site<br>Feature<br>Sample<br>SubSample</th>
-                          <th>labAndNumber</th>
-                          <th style="width: 35%;">Select C14Laboratory</th>
-                          <th>New C14Laboratory</th>
-                          <th style="min-width: none 110px;">Set Number</th>
-                          <th style="width: 85px;">Update Dating</th>
-                      </tr>
-                  </thead>
-                  <tbody id="C14LabAndNumberTableBody">
-                      <!-- Rows will be dynamically added here by populateLabsAndNumbers function -->
-                  </tbody>
-                </table>
+                <div class="d-flex flex-wrap align-items-center gap-3 mb-2">
+                  <strong>C14 Dating</strong>
+                  <span id="C14LabAndNumberCounter" class="small text-muted"></span>
+                </div>
+                <!-- Tabulator, created by populateLabsAndNumbers (labsAndNumbers.js) -->
+                <div id="C14LabAndNumberTable" class="migration-result-table"></div>
 
-                <br>
-
-                <datalist id="lab_list"></datalist>
-
-                <table class="table table-striped">
-                  <thead>
-                      <tr>
-                          <th>
-                            <input type="checkbox" onclick="toggleAllCheckboxes(this, 'LabAndNumberTableBody')">
-                          </th>
-                          <th>Site<br>Feature<br>Sample<br>SubSample</th>
-                          <th>datingMethod</th>
-                          <th>labAndNumber</th>
-                          <th>Create/Select Laboratory</th>
-                          <th style="width: 100px;">Set Number</th>
-                          <th style="width: 85px;">Update Dating</th>
-                      </tr>
-                  </thead>
-                  <tbody id="LabAndNumberTableBody">
-                      <!-- Rows will be dynamically added here by populateLabsAndNumbers function -->
-                  </tbody>
-                </table>
+                <div class="d-flex flex-wrap align-items-center gap-3 mb-2 mt-4">
+                  <strong>Dendrochronology and other datings</strong>
+                  <span id="LabAndNumberCounter" class="small text-muted"></span>
+                </div>
+                <!-- Tabulator, created by populateLabsAndNumbers (labsAndNumbers.js) -->
+                <div id="LabAndNumberTable" class="migration-result-table"></div>
 
               </form>
             </div>
@@ -1363,7 +1047,7 @@
         <!-- Results -->
         <div class="accordion-item">
           <h2 class="accordion-header">
-            <button class="accordion-button" type="button" data-bs-toggle="collapse" data-bs-target="#panelsStayOpen-collapseTen" aria-expanded="false" aria-controls="panelsStayOpen-collapseTen">
+            <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#panelsStayOpen-collapseTen" aria-expanded="false" aria-controls="panelsStayOpen-collapseTen">
               Results
             </button>
           </h2>
@@ -1372,13 +1056,13 @@
 
               <form id="resultForm">
                 <p>
-                  List of results for the selected sites.<br>
+                  List of results for the selected sites (taxCode, cf, restType and stateOfPreservation from ArboDat).<br>
                   - To create results 'select Taxonomy' for the corresponding site and, if dropdowns are available, select options from them.<br>
-                  - Before you can select a 'dante taxCode' you have to 'select Taxonomy'.<br>
                   - If attributes you are looking for are not in the central thesauri lists (dropdowns), you can use the ‘Add to JSON’ option to save non matching attributes at the bottom of the page.<br>
-                  - Before using the ‘Add to JSON’ option, please fill in all applicable fields(dante taxCode, dante restType, dante stateOfPreservation).<br>
+                  - Before using the ‘Add to JSON’ option, please fill in all applicable fields (dante taxCode, dante restType, dante stateOfPreservation).<br>
                   - To select dropdown options or create results in several rows simultaneously select multiple rows.<br>
-                  - To select or deselect a row use the checkbox on the left. To select or deselect <u>all</u> rows use the checkbox at the top left of a table.
+                  - To select or deselect a row use the checkbox on the left. To select or deselect <u>all</u> rows use the checkbox at the top left of a table.<br>
+                  - To filter rows by taxCode, restType and/or stateOfPreservation use the fields in the table header.
                 </p>
                 
                 <!-- Tables will be dynamically added here by migrateSites -> populateResults function -->
@@ -1389,20 +1073,18 @@
         </div>
 
       </div>
-    </div>
 
-    <!-- Container for JSON -->
-    <div class="container-md">
-      <div class="card mx-auto" style="max-width: 680px; padding: 20px; box-shadow: 0px 4px 8px rgba(0, 0, 0, 0.1);">
+      <!-- JSON -->
+      <div class="card mx-auto" style="max-width: 648px; padding: 20px; margin-top: 56px; box-shadow: 0px 4px 8px rgba(0, 0, 0, 0.1);">
         <h2 class="text-center">JSON</h2>
-        <p>If you add custom attributes which are not in the central thesauri lists (dropdowns), 
+        <p>If you add custom attributes which are not in the central thesauri lists, 
           they will be saved here in JSON format. You can download this file and 
           <a href="contact.html" target="_blank">send it to us</a> for review, 
           so that new items can be added to the official lists in the future. </p>
         <pre id="jsonDisplay" class="bg-light p-3 border rounded" style="height: 200px; overflow-y: auto;"></pre>
         
         <div class="text-center">
-          <button type="button" class="btn btn-primary" onclick="downloadJSON()">Download JSON</button>
+          <button type="button" id="downloadJSONButton" class="btn btn-primary" onclick="downloadJSON()" disabled>Download</button>
         </div>
 
       </div>
@@ -1410,18 +1092,32 @@
 
     <!------------------------------- Scripts -------------------------------->
     <!-- DANTE attributes -->
+    <script src="js/displayOrder.js"></script>
     <script src="js/danteAttributes/fetchDanteAttribute.js"></script>
     <script src="js/danteAttributes/populateDanteDropdown.js"></script>
+    <script src="js/danteAttributes/danteListEditor.js"></script>
     <script src="js/danteAttributes/updateBackendDanteAttributes.js"></script>
     
     <!-- general -->
     <script src="js/formatService.js"></script>
+    <script src="js/labelSort.js"></script>
+    <script src="js/input/multi-select.js"></script>
     <script src="js/transformCoordinatesToWGS84.js"></script>
     <script src="js/loadingSpinner.js"></script>
+    <script src="js/escapeHtml.js"></script>
+    <script src="js/multiSelectEditor.js"></script>
     <script src="js/toast.js"></script>
+    <script src="js/stickyAccordion.js"></script>
+    <script src="js/confirm.js"></script>
 
-    <!-- migration specific -->    
+    <!-- Tabulator helpers (newTabulator, textFormatter) -->
+    <script src="js/explorer/helper.js"></script>
+
+    <!-- migration specific -->
+    <!-- shared by the accordion scripts below (e.g. placeholderFormatter while they load) -->
+    <script src="js/migration/helper.js"></script>
     <script src="js/migration/getSites.js"></script>
+    <script src="js/migration/siteSelection.js"></script>
     <script src="js/migration/researchProject-dropdown.js"></script>
     <script src="js/migration/migrateSites.js"></script>
     <script src="js/migration/literature.js"></script>
@@ -1432,28 +1128,19 @@
     <script src="js/migration/labsAndNumbers.js"></script>
     <script src="js/migration/result.js"></script>
     <script src="js/migration/displayAndDownload-JSON.js"></script>
-    <script src="js/migration/helper.js"></script>    
     
     <!-- input -->
     <script src="js/input/institution.js"></script>
     <script src="js/input/institution-dropdown.js"></script>
-    <script src="js/input/institution-boxes.js"></script>
     <script src="js/input/user.js"></script>
     <script src="js/input/user-dropdown.js"></script>
     <script src="js/input/author.js"></script>
     <script src="js/input/author-dropdown.js"></script>
-    <script src="js/input/author-boxes.js"></script>
     <script src="js/input/literature.js"></script>
     <script src="js/input/literature-dropdown.js"></script>
     <!------------------------------------------------------------------------>
 
-    <footer>
-      <ul>
-        <li><a href="license.html" target="_blank">License</a></li>
-        <li>Version 4.0.0</li>
-        <li><a href="contact.html" target="_blank">Contact<strong> ☏ </strong></a></li>
-      </ul>
-    </footer>
+    <app-footer></app-footer>
     
   </body>
 </html>

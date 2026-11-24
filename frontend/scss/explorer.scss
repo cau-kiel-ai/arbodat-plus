@@ -1,0 +1,411 @@
+html, body {
+    height: 100%;
+    margin: 0;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+    font-family: arial;
+}
+
+.table-wrapper {
+    display: flex;
+    flex-direction: column;
+    flex: 1;
+
+    padding: 1em 2em 2em 2em;
+    box-sizing: border-box;
+
+    overflow: hidden;
+    min-height: 0;
+}
+
+.button-container {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 1em;
+}
+
+.deleteButton {
+    width: auto;
+    height: 35px;
+    cursor: pointer;
+    border-radius: 5px;
+    border-color:  #f2f2f2;
+    background-color: rgb(241, 34, 34);
+    color: #FFFFFF;
+}
+
+.deleteButton.hidden {
+    visibility: hidden;
+}
+
+.exportButton {
+    width: auto;
+    height: 30px;
+    cursor: pointer;
+    border-radius: 5px;
+    background-color: rgb(28, 182, 209);
+    border-color:  #f2f2f2;
+    color: #FFFFFF;
+}
+
+.table-container {
+    display: flex;
+    flex: 1;
+    min-height: 0;
+    overflow: hidden;
+}
+
+#table {
+    flex: 1;
+    min-height: 0;
+}
+
+.dropdown-container {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    margin: 0 auto;
+}
+
+/* ------------ Select2 --------------- */
+
+.dropdown-container .select2-container--default {
+    .select2-selection--single {
+        height: auto;
+        border: 2px solid #ccc;
+        border-radius: 4px;
+
+        .select2-selection__rendered {
+            padding: 4px 20px 4px 6px;
+            line-height: normal;
+
+            // empty placeholder has no line box, keep the same height as with a selection
+            .select2-selection__placeholder::before {
+                content: "\00a0";
+            }
+        }
+
+        .select2-selection__arrow {
+            height: 100%;
+        }
+    }
+}
+
+// dropdown is appended to body, so these cannot be nested in .dropdown-container
+.select2-container--default .select2-dropdown {
+    .select2-results > .select2-results__options {
+        max-height: 400px;
+    }
+
+    // left align options (select2 indents options nested in a group)
+    .select2-results__option .select2-results__option {
+        padding-left: 7px;
+    }
+
+    // groups without labels, separated by a light grey band
+    .select2-results__group {
+        display: none;
+    }
+
+    .select2-results__option--group + .select2-results__option--group {
+        border-top: 6px solid #eee;
+    }
+}
+
+/* ------------ Input types --------------- */
+
+input[type=text], input[type=email], select, textarea {
+    width: 100%;
+    padding: 12px;
+    border: 2px solid #ccc;
+    border-radius: 4px;
+    resize: vertical;
+}
+
+input[type=int], input[type=number] {
+    width: 30%;
+    padding: 12px;
+    border: 2px solid #ccc;
+    border-radius: 4px;
+    resize: vertical;
+}
+
+input[type=checkbox] {
+    border: 2px solid #ccc;
+    border-radius: 4px;
+    margin-top: 1.5%;
+    margin-left: 0%;
+}
+
+input[type=radio] {
+    border: 2px solid #ccc;
+    border-radius: 4px;
+    margin-top: 15px;
+    margin-left: 0%;
+}
+
+/* ------------ fancy stuff --------------- */
+
+button:hover{
+    text-decoration: underline;
+    background-color: #b4adb5;
+    cursor:pointer;
+}
+
+@media screen and (max-width: 1200px) {
+
+    .container-md{
+        color: #5D535E;
+        width: 95%;
+        margin-bottom: 5%;
+    }
+
+
+}
+
+@media screen and (max-width: 800px) {
+
+    .container-md{
+        color: #5D535E;
+        width: 95%;
+        margin-bottom: 5%;
+    }
+
+
+}
+
+@media screen and (max-width: 720px) {
+
+    .container-md{
+        color: #5D535E;
+        width: 95%;
+        margin-bottom: 5%;
+    }
+
+    fieldset .col-25, fieldset .col-75 {
+        width: 100%;
+        margin-top: 0;
+    }
+
+
+}
+
+@import '../vendor/bootstrap@5.3.8/scss/bootstrap';
+@import 'footer';
+@import 'multiSelectEditor';
+
+// Number cells and number filters of the tables: typed only, without the spin buttons
+.tabulator input[type=number] {
+    appearance: textfield;
+    -moz-appearance: textfield;
+
+    &::-webkit-outer-spin-button,
+    &::-webkit-inner-spin-button {
+        -webkit-appearance: none;
+        margin: 0;
+    }
+}
+@import 'navbar';
+
+// Center the "select row" checkbox in the header of the row selection column
+.tabulator .tabulator-header .tabulator-col.selectionColumn {
+    align-items: center;
+    justify-content: center;
+}
+
+
+// Dating table: cells of a dating type that does not match the row's dating method
+.tabulator .tabulator-row .tabulator-cell.dating-na {
+    background-color: #cecece;
+}
+
+
+// Fractions popup of the sample table (own class names: Bootstrap's .modal has different markup)
+.fraction-cell {
+    cursor: pointer;
+}
+
+.fraction-modal {
+    display: none;
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.5);
+    z-index: 100000;
+
+    &.open {
+        display: block;
+    }
+
+    .fraction-modal-content {
+        position: absolute;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        max-height: 80vh;
+        width: 850px;
+        max-width: 95vw;
+        overflow-y: auto;
+        background: white;
+        padding: 20px;
+        border-radius: 10px;
+        box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+        font-family: arial;
+    }
+
+    #fractionModalSample {
+        margin-bottom: 15px;
+
+        .fraction-modal-sample-name {
+            display: inline-block;
+            width: 70px; // values of site, feature and sample start at the same point
+        }
+    }
+
+    .fraction-modal-close {
+        position: absolute;
+        top: 10px;
+        right: 15px;
+        font-size: 30px;
+        cursor: pointer;
+    }
+
+    // same layout as the fraction fieldset of input.html
+    fieldset {
+        border-radius: 5px;
+        background-color: white;
+        overflow: visible;
+
+        // note shown while there are no fraction boxes
+        &:empty::before {
+            content: "no fractions";
+            color: #776c78;
+        }
+    }
+
+    label {
+        padding: 12px 12px 12px 0;
+        display: inline-block;
+    }
+
+    // Bootstrap's grid is imported here: neutralise its .row (flex, negative margins, gutter padding on children)
+    .row {
+        display: flow-root; // contains its floated columns, so a short row can't pull the next one up beside it
+        margin: 0;
+        overflow: visible;
+
+        > * {
+            padding: 0;
+            margin-top: 0;
+        }
+    }
+
+    .col-25 {
+        float: left;
+        width: 35%;
+        margin-top: 6px;
+    }
+
+    .col-75 {
+        float: left;
+        width: 64%;
+        margin-top: 6px;
+    }
+
+    select, input[type=number] {
+        padding: 12px;
+        border: 2px solid #ccc;
+        border-radius: 4px;
+    }
+
+    select {
+        width: 100%;
+    }
+
+    // "fraction analyzed" (select2, see sample-fraction-boxes.js): as tall as the number inputs
+    .select2-container .select2-selection--single {
+        display: flex;
+        align-items: center;
+        height: auto;
+        min-height: 46px;
+        border: 2px solid #ccc;
+        border-radius: 4px;
+
+        .select2-selection__rendered {
+            padding: 0 12px;
+            line-height: normal;
+        }
+
+        .select2-selection__clear {
+            order: 2;
+            margin-left: auto;
+            margin-right: 12px;
+            font-size: 24px;
+            font-weight: 200;
+        }
+    }
+
+    input[type=number] {
+        width: 30%;
+    }
+
+    // Bootstrap's .form-check floats the radio into a left gutter: put it inline next to its label instead
+    .form-check {
+        display: inline-block;
+        min-height: 0;
+        padding-left: 0;
+        margin: 0 1rem 0 0;
+
+        .form-check-input {
+            float: none;
+            margin: 0 0 0 4px;
+            vertical-align: middle;
+        }
+    }
+
+    legend {
+        float: none;
+        width: auto;
+        margin-bottom: 24px;
+        margin-top: 6px;
+    }
+
+    #one_fraction {
+        margin-bottom: 10px;
+        padding: 12px;
+        line-height: 75%;
+        border: 2px #ccc solid;
+        background-color: rgb(240, 248, 246);
+        border-radius: 5px;
+        overflow: auto;
+
+        // remove-fraction button (inline-styled in sample-fraction-boxes.js)
+        .Remove {
+            float: right;
+            cursor: pointer;
+            border-radius: 5px;
+            background-color: rgb(37, 16, 193);
+            color: #FFFFFF;
+        }
+    }
+
+    .fraction-modal-button {
+        height: 42px;
+        padding: 0 10px;
+        margin-top: 10px;
+        margin-right: 10px;
+        cursor: pointer;
+        border-radius: 5px;
+        background-color: rgb(37, 16, 193);
+        color: #FFFFFF;
+    }
+
+    .fraction-modal-save {
+        float: right;
+        margin-right: 0;
+    }
+}

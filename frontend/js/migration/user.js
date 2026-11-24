@@ -1,121 +1,132 @@
-let userDropdowns = [];
+// Team accordion: one Tabulator (only the visible rows are rendered), the rows are plain objects (see toUserRow).
+// Each row is a role of a site (siteDirector, archaeologist, botanist) or the botanical determination of a sample,
+// with the name from ArboDat (userLabel) and the users of ArboDat+ chosen for it.
 
-function populateUsers(userList) {
-    const tableBody = document.getElementById("userTableBody");
+let userTable = null;
+let userRowCounter = 0;
 
-    // Create lines
-    userList.forEach(item => {
+// Users of ArboDat+: [{ value: id, label: name }] (reloaded after a user is created in the popup)
+let userOptions = [];
 
-        const row = document.createElement("tr");
-        row.dataset.type     = item.type;
-        row.dataset.id       = item.id;
-        row.dataset.userRole = item.userRole;
-        
-        // Add columns
-        row.innerHTML = `
-            <td><input type="checkbox"></td>
-            <td></td>
-            <td>${item.userRole}</td>
-            <td>${item.userLabel}</td>
-            <td></td>
-            <td>
-                <button id="updateButton_${item.id}_${item.userRole}" type="button">Update</button>
-            </td>
-            <td>
-                <button type="button"
-                        onclick="openUserWindow('${item.userLabel}')">
-                        Create
-                </button>
-            </td>
-        `;
+// Row which opened the user popup (the user created there is chosen in it)
+let userWindowRowId = null;
 
-        // Set textContent of second cell depending on item type
-        const secondTd = row.children[1];
-        if (item.type == "site") {
-            secondTd.textContent = item.label;
-        }
-        if (item.type == "sample") {
-            secondTd.innerHTML = `${item.siteLabel}<br>${item.featureLabel}<br>${item.label}`;
-        }
+// Rows per bulk request (requests are sent one after another)
+const USER_CHUNK_SIZE = 500;
 
-        const dropdown = document.createElement("select");
-        dropdown.id = `userDropdown_${item.id}_${item.userRole}`;
-        dropdown.multiple = true;
-        dropdown.style    = "width: 100%"
-        dropdown.onchange = function () {   
-            updateCheckedDropdownsMultiple(
-                Array.from(this.selectedOptions).map(option => option.value),
-                'userTableBody',
-                'userDropdown_'
-            );
-        };
-        const dropdownCell = row.children[4];
-        dropdownCell.appendChild(dropdown);
-
-        // Select2 Multi-select boxes (pillbox) -----------
-        $(document).ready(function() {
-            $(`#userDropdown_${item.id}_${item.userRole}`).select2({
-                placeholder: 'select',
-                allowClear: true,
-            });
-        }); // ------------------------------------
-
-        tableBody.appendChild(row);
-
-        userDropdowns.push(dropdown);
-
-        const updateButton = document.getElementById(`updateButton_${item.id}_${item.userRole}`);
-        updateButton.addEventListener('click', function () {
-            const selectedIds = Array.from(dropdown.selectedOptions).map(option => option.value);
-            updateWithUser(item.type, item.id, JSON.stringify(selectedIds), item.userRole, row);
-        });
-    });
-
-    fetchUsers();
+function toUserRow(item) {
+    const isSample = item.type === "sample";
+    return {
+        id:           `user_${++userRowCounter}`,
+        type:         item.type, // site or sample
+        entityId:     item.id,
+        siteLabel:    isSample ? item.siteLabel : item.label,
+        featureLabel: isSample ? item.featureLabel : "",
+        sampleLabel:  isSample ? item.label : "",
+        userRole:     item.userRole,
+        userLabel:    item.userLabel,
+        users:        [], // ids of the chosen users
+        error:        "", // reason, if the last 'Update' failed
+    };
 }
 
-function fetchUsers() {
-    // Send a GET request to get all users
-    fetch('http://localhost:8080/users', {
-        method: 'GET',
-        headers: {
-            'Content-Type': 'application/json',
-        },
-    })
-    .then(response => {
-        if (!response.ok) {
-            throw new Error('Network response was not ok ' + response.statusText);
-        }
-        return response.json();
-    })
-    .then(data => {
-        
-        // Empty user dropdowns
-        userDropdowns.forEach(dropdown => {
-            dropdown.options.length = 0;
-        });
-        
-        data.forEach(user => {
-            
-            const userName = formatName(user);
+async function populateUsers(userList) {
+    await fetchUsers();
 
-            userDropdowns.forEach(dropdown => {
+    const rows = userList.map(toUserRow);
 
-                // Create option
-                const option = document.createElement('option');
-                option.value = user.id;
-                option.textContent = userName;
-
-                dropdown.appendChild(option);
-            });
-        });
-    })
-    .catch(error => {
-        console.error('Error:', error);
-    });
+    // Sites migrated later: add the rows to the table
+    if (userTable) {
+        userTable.addData(rows);
+        return;
+    }
+    userTable = createUserTable(rows);
 }
 
-function openUserWindow (userLabel) {
+// Users of ArboDat+ (also called by the user popup, see js/input/user.js, after a user was created)
+async function fetchUsers() {
+    try {
+        const users = (await axios.get("api/users")).data;
+        userOptions = sortPeople(users).map(user => ({ value: user.id, label: formatName(user) })); // sorted by name
+    } catch (error) {
+        console.error("Error during user GET request: ", error);
+    }
+    // Show the names of the reloaded users
+    if (userTable?.initialized) userTable.redraw(true);
+}
+
+// Called by the user popup after a user was created: it is chosen in the row which opened the popup
+// (and in the other selected rows, if that row is selected); it is saved with 'Update'
+async function onUserCreated() {
+    const known = new Set(userOptions.map(option => option.value));
+    await fetchUsers();
+    const created = userOptions.map(option => option.value).filter(id => !known.has(id));
+    await chooseInRows(userTable, userWindowRowId, "users", created);
+}
+
+function createUserTable(rows) {
+    const userNames = ids => ids
+        .map(id => userOptions.find(option => option.value === id)?.label)
+        .filter(Boolean)
+        .join(", ");
+
+    const table = newTabulator(document.getElementById("userTable"), {
+        data: rows,
+        index: "id",
+        maxHeight: "70vh",
+        layout: "fitData", // columns as wide as their content, the rows end after the last column (as in the explorer)
+        placeholder: "no users",
+        columns: [
+            selectionColumn(),
+            filterValuesColumn("Site", "siteLabel"),
+            filterValuesColumn("Feature", "featureLabel"),
+            filterValuesColumn("Sample", "sampleLabel"),
+            filterListColumn("userRole", "userRole"),
+            filterValuesColumn("userLabel", "userLabel"),
+            {title: "Users", field: "users", headerSort: false, minWidth: 220,
+                editor: multiSelectEditor, editorParams: () => ({ values: userOptions }),
+                formatter: cell => {
+                    const names = userNames(cell.getValue() ?? []);
+                    return names ? escapeHtml(names) : `<span class="migration-result-placeholder">select</span>`;
+                },
+                // not while the editor is open
+                tooltip: (e, cell) => cell.getElement().classList.contains("tabulator-editing") ? "" : escapeHtml(userNames(cell.getValue() ?? [])),
+            },
+            {title: "Update", headerSort: false, hozAlign: "center", width: 80, // as wide as the button
+                formatter: cell => {
+                    const error = cell.getRow().getData().error;
+                    return `<button type="button">Update</button>
+                            ${error ? `<div class="text-danger small text-wrap">${escapeHtml(error)}</div>` : ""}`;
+                },
+                cellClick: (e, cell) => {
+                    if (e.target.closest("button")) updateWithUsers(cell.getRow());
+                },
+            },
+            {title: "New user", headerSort: false, hozAlign: "center", width: 90, // as wide as the button
+                formatter: () => `<button type="button">Create</button>`,
+                cellClick: (e, cell) => {
+                    if (e.target.closest("button")) openUserWindow(cell.getRow());
+                },
+            },
+        ],
+    });
+    setupMigrationTable(table, {
+        counter: document.getElementById("userCounter"),
+        copyFields: { users: () => true },
+    });
+    return table;
+}
+
+// Tabulator can't measure itself in a collapsed accordion -> redraw when it is opened
+document.addEventListener("shown.bs.collapse", event => {
+    if (event.target.id === "panelsStayOpen-collapseSeven" && userTable) {
+        userTable.redraw();
+    }
+});
+
+function openUserWindow (row) {
+    const userLabel = row.getData().userLabel;
+    userWindowRowId = row.getData().id;
 
     // Reset institutionForm
     document.getElementById("institutionForm").reset();
@@ -124,19 +135,17 @@ function openUserWindow (userLabel) {
 
     // Reset userForm
     document.getElementById('userForm').reset();
-    $('#userInstitutions').val(null).trigger('change');
-    window.institutionList = [];
-    document.getElementById("institutionContainer").innerHTML = "";
+    clearMultiSelect('#userInstitutions');
     document.getElementById("userId").value = '';
     document.getElementById("userSubmitButton").innerHTML = "create";
 
     // Set userLabel from migration ---------------------------------
     document.getElementById("usersFromMigration").textContent = `${userLabel}`;
-    
+
     // Show Popup ---------------------------------------------------
-    const userModal = document.getElementById("userModal");    
+    const userModal = document.getElementById("userModal");
     userModal.style.display = "block";
-    
+
     const closeButton = userModal.querySelector(".close");
     closeButton.onclick = function() {
         userModal.style.display = "none";
@@ -148,86 +157,74 @@ function openUserWindow (userLabel) {
     }
 }
 
-async function updateWithUser(type, id, userIds, userRole, row, triggerNext=true) {
-    if (userIds && userIds !== "[]") {
-        let url = null;        
-        if (type == "site") {
-            url = `http://localhost:8080/sites/${id}/updateEmployees/${userRole}`;
-        } 
-        else if (type == "sample") {
-            url = `http://localhost:8080/samples/${id}/updateBotanicalDeterminationBy`;
-        }
+// Update ---------------------------------------------------------------------------------------
 
-        try {
-            const response = await fetch(
-                url,
-                {
-                    method: 'PUT',
-                    headers: {
-                        'Content-Type': 'application/json'
-                    },
-                    body: userIds
-                }
-            );
-            if (!response.ok) {
-                throw new Error(`HTTP Error! Status: ${response.status}`);
-            }
-            const data = await response.text();
-            console.log(data);
-
-            row.remove();            
-            if (triggerNext) { updateCheckedUsers(); }
-            return true;
-
-        } catch (error) {
-            console.error('Error:', error);
-            alert("Failed to update User.");
-        }
-
-    } else {
-        if (triggerNext) {
-            toast.info("Select at least one employee.");
-        }
-        return false;
-    }    
+function buildUserItem(data) {
+    if (!data.users || data.users.length === 0) {
+        return { reason: "no user selected", message: "Select at least one employee." };
+    }
+    return { item: { clientId: data.id, type: data.type, id: data.entityId, userRole: data.userRole, userIds: data.users } };
 }
 
-async function updateCheckedUsers() {
-    const tableBody = document.getElementById('userTableBody');
-    if (tableBody) {
-        const checkboxes = Array.from(tableBody.querySelectorAll('input[type="checkbox"]:checked'));
-        const concurrencyLimit = 100;
-        showLoading();
-        try {
-            for (let i = 0; i < checkboxes.length; i += concurrencyLimit) {
-                const batch = checkboxes.slice(i, i + concurrencyLimit);
+// 'Update' button: sets the users of the clicked row and of all other selected rows
+async function updateWithUsers(row) {
+    const data = row.getData();
 
-                const promises = batch.map(async checkbox => {
-                    if (checkbox.disabled) return true;
+    const clicked = buildUserItem(data);
+    if (!clicked.item) {
+        toast.info(clicked.message);
+        return;
+    }
 
-                    const row = checkbox.closest('tr');
-
-                    const type = row.dataset.type;
-                    const id = row.dataset.id;
-                    const userRole = row.dataset.userRole;
-                    const userIds = Array.from(
-                        row.querySelector('select').selectedOptions
-                    ).map(option => option.value);
-
-                    return updateWithUser(
-                        type,
-                        id,
-                        JSON.stringify(userIds),
-                        userRole,
-                        row,
-                        triggerNext = false
-                    );
-                });
-
-                await Promise.allSettled(promises);
-            };
-        } finally {
-            hideLoading();
+    const items = [clicked.item];
+    const skippedReasons = [];
+    userTable.getSelectedData().forEach(other => {
+        if (other.id === data.id) return;
+        const entry = buildUserItem(other);
+        if (entry.item) {
+            items.push(entry.item);
+        } else {
+            skippedReasons.push(entry.reason);
         }
+    });
+
+    const updated = [];
+    const errors = [];
+    showLoading();
+    try {
+        for (let i = 0; i < items.length; i += USER_CHUNK_SIZE) {
+            const chunk = items.slice(i, i + USER_CHUNK_SIZE);
+            try {
+                const response = await axios.put("api/users/assignments/bulk", chunk);
+                response.data.forEach(status => {
+                    if (status.status === "updated") updated.push(status.clientId);
+                    else errors.push({ id: status.clientId, error: status.message || "failed" });
+                });
+            } catch (error) {
+                console.error("Error during bulk update of the team: ", error);
+                const message = getErrorMessage(error);
+                chunk.forEach(item => errors.push({ id: item.clientId, error: message }));
+            }
+        }
+
+        if (updated.length > 0) await deleteTableRows(userTable, updated);
+        if (errors.length > 0)  await updateTableRows(userTable, errors);
+    } finally {
+        hideLoading();
+    }
+
+    // Summary --------------------------------------------------
+    // A message also for one row (a failed single row: its error, below)
+    if (items.length > 1 || skippedReasons.length > 0 || errors.length === 0) {
+        let message = `${updated.length} ${updated.length === 1 ? "row" : "rows"} updated.`;
+        if (skippedReasons.length > 0) {
+            message += ` ${skippedReasons.length} selected skipped (${[...new Set(skippedReasons)].join(", ")}).`;
+        }
+        if (errors.length > 0) {
+            message += ` ${errors.length} failed (see the rows).`;
+        }
+        (errors.length > 0 ? toast.error : toast.success)(message);
+    } else if (errors.length > 0) {
+        toast.error("Failed to update User: " + errors[0].error);
     }
 }

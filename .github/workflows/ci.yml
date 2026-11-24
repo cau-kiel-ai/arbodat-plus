@@ -1,0 +1,125 @@
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches: [develop, main]
+
+permissions:
+  contents: read
+
+jobs:
+  web-api-build:
+    # gradle bootJar in the same gradle:8.8-jdk17 image the prod Dockerfile uses
+    runs-on: ubuntu-26.04
+    container: gradle:8.8-jdk17
+    steps:
+      - uses: actions/checkout@v7
+      - run: gradle bootJar --no-daemon
+        working-directory: web-api
+
+  smoke:
+    # Builds both images from source (not GHCR) and brings up the full stack, then checks it actually answers requests.
+    runs-on: ubuntu-26.04
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Start the stack
+        run: |
+          echo "DATABASE_PASSWORD=ci-smoke-test" > .env
+          docker compose --profile prod up -d --build --wait --wait-timeout 300
+
+      - name: Check it actually answers requests
+        run: |
+          set -euo pipefail
+          # Wait for web-api to finish startup
+          for i in $(seq 1 60); do
+            code=$(curl -s -o /dev/null -w '%{http_code}' 'http://localhost:8480/api/results?page=0&size=1')
+            [ "$code" = 200 ] && break
+            sleep 1
+          done
+          curl -fsS http://localhost:8480/healthz
+          curl -fsS http://localhost:8480/version.json
+          curl -fsS 'http://localhost:8480/api/results?page=0&size=1' | grep -q '"content"'
+          echo "OK: healthz, version.json and /api/results all responded."
+
+      - name: Show logs on failure
+        if: failure()
+        run: docker compose --profile prod logs
+
+      - name: Tear down
+        if: always()
+        run: docker compose --profile prod down
+
+  frontend-vendor:
+    # frontend/vendor/ is committed, generated output: it must match package-lock.json (run `npm run vendor`).
+    runs-on: ubuntu-26.04
+    defaults:
+      run:
+        working-directory: frontend
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 24
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+      - run: npm ci
+      - run: npm run vendor
+      - name: Vendored libraries are committed and current
+        run: |
+          # status (not diff) so that new, untracked files are caught too
+          changes=$(git status --porcelain -- vendor '*.html' 'scss/*.scss')
+          if [ -n "$changes" ]; then
+            echo "::error::frontend/vendor is out of date - run 'npm run vendor' in frontend/ and commit the result"
+            echo "$changes"
+            exit 1
+          fi
+      - run: npm audit --omit=dev --audit-level=high
+
+  desktop:
+    # Tauri app: lint + tests on every OS it ships for; type checks and binding drift once (Linux).
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-26.04, macos-latest, windows-latest]
+    runs-on: ${{ matrix.os }}
+    defaults:
+      run:
+        working-directory: desktop
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Linux libraries for Tauri
+        if: runner.os == 'Linux'
+        run: sudo apt-get update && sudo apt-get install -y libwebkit2gtk-4.1-dev libxdo-dev librsvg2-dev
+
+      - uses: pnpm/action-setup@v6
+        with:
+          package_json_file: desktop/package.json
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 24
+          cache: pnpm
+          cache-dependency-path: desktop/pnpm-lock.yaml
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm check
+        if: runner.os == 'Linux'
+      - run: pnpm build # tauri embeds dist/ at compile time
+
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          components: rustfmt, clippy
+      - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: desktop/src-tauri
+      - run: cargo fmt --check
+        if: runner.os == 'Linux'
+        working-directory: desktop/src-tauri
+      - run: cargo clippy --locked --all-targets -- -D warnings
+        working-directory: desktop/src-tauri
+      - run: cargo test --locked
+        working-directory: desktop/src-tauri
+      - name: Generated TypeScript bindings are committed and current
+        if: runner.os == 'Linux'
+        run: git diff --exit-code -- src/lib/bindings

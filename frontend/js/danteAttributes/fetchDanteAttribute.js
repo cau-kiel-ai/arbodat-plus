@@ -60,7 +60,23 @@ let cachedTaxCodesForURI = new Map(); //   Key       value
 // ----------------------------------------
 
 
-async function fetchDanteAttribute(attribute) {
+// A DANTE request which hangs (instead of failing) must not block the page forever
+const DANTE_TIMEOUT_MS = 30000;
+
+// Running requests per attribute: callers which ask for the same attribute at the same time
+// (e.g. one per table row) share one request instead of each sending its own
+const pendingDanteRequests = new Map(); // attribute -> promise
+
+function fetchDanteAttribute(attribute) {
+    if (!pendingDanteRequests.has(attribute)) {
+        const request = loadDanteAttribute(attribute)
+            .finally(() => pendingDanteRequests.delete(attribute));
+        pendingDanteRequests.set(attribute, request);
+    }
+    return pendingDanteRequests.get(attribute);
+}
+
+async function loadDanteAttribute(attribute) {
 
     // Set URL based on attribute if (attribute_loaded == false)
     //                            else return
@@ -70,7 +86,7 @@ async function fetchDanteAttribute(attribute) {
         // researchProject --------------------------
         case ("license"):
             if (cachedLicenses_loaded == false) {
-                url = "http://api.dante.gbv.de/voc/license/top?properties=narrower,notation"
+                url = "https://api.dante.gbv.de/voc/license/top?properties=narrower,notation"
                 break;
             } else {
                 return;
@@ -79,7 +95,7 @@ async function fetchDanteAttribute(attribute) {
         // site -------------------------------------
         case "taxonomy":
             if (cachedTaxonomies_loaded == false) {
-                url = "http://api.dante.gbv.de/voc/arbodat_taxonomy/top"
+                url = "https://api.dante.gbv.de/voc/arbodat_taxonomy/top"
                 break;
             } else {
                 return;
@@ -104,7 +120,7 @@ async function fetchDanteAttribute(attribute) {
         // coordinate -------------------------------
         case "coordinateSystem":
             if (cachedCoordinateSystems_loaded == false) {
-                url = "http://api.dante.gbv.de/voc/arbodat_coordinate_reference_system/top?properties=narrower,notation";
+                url = "https://api.dante.gbv.de/voc/arbodat_coordinate_reference_system/top?properties=narrower,notation";
                 break;
             } else {
                 return;
@@ -113,7 +129,7 @@ async function fetchDanteAttribute(attribute) {
         // feature --------------------------------------
         case ("featureType"):
             if (cachedFeatureTypes_loaded == false) {
-                url = "http://api.dante.gbv.de/voc/arbodat_feature_type/top?properties=narrower,altLabel";
+                url = "https://api.dante.gbv.de/voc/arbodat_feature_type/top?properties=narrower,altLabel";
                 break;
             } else {
                 return;
@@ -121,7 +137,7 @@ async function fetchDanteAttribute(attribute) {
 
         case ("preservationCondition"):
             if (cachedPreservationConditions_loaded == false) {
-                url = "http://api.dante.gbv.de/voc/arbodat_preservation_condition/top?properties=narrower,altLabel";
+                url = "https://api.dante.gbv.de/voc/arbodat_preservation_condition/top?properties=narrower,altLabel";
                 break;
             } else {
                 return;
@@ -130,7 +146,7 @@ async function fetchDanteAttribute(attribute) {
         // sample ---------------------------------------
         case ("sampleType"):
             if (cachedSampleTypes_loaded == false) {
-                url = "http://api.dante.gbv.de/voc/arbodat_sample_type/top?properties=narrower,altLabel";
+                url = "https://api.dante.gbv.de/voc/arbodat_sample_type/top?properties=narrower,altLabel";
                 break;
             } else {
                 return;
@@ -138,7 +154,7 @@ async function fetchDanteAttribute(attribute) {
 
         case ("chronozone"):
             if (cachedChronozones_loaded == false) {                
-                url = "http://api.dante.gbv.de/voc/arbodat_chronozone/top?properties=narrower";
+                url = "https://api.dante.gbv.de/voc/arbodat_chronozone/top?properties=narrower";
                 break;
             } else {
                 return;
@@ -150,7 +166,7 @@ async function fetchDanteAttribute(attribute) {
         case ("charcoalInvestigated"):
         case ("woodSubfossile"):
             if (cachedSampleInvestigated_loaded == false) {
-                url = "http://api.dante.gbv.de/voc/arbodat_sample_investigated/top?properties=narrower,altLabel";
+                url = "https://api.dante.gbv.de/voc/arbodat_sample_investigated/top?properties=narrower,altLabel";
                 break;
             } else {
                 return;
@@ -159,7 +175,7 @@ async function fetchDanteAttribute(attribute) {
         // absoluteDating -------------------------------
         case ("material"):
             if (cachedMaterials_loaded == false) {
-                url = "http://api.dante.gbv.de/voc/arbodat_dated_material/top?properties=narrower";
+                url = "https://api.dante.gbv.de/voc/arbodat_dated_material/top?properties=narrower";
                 break;
             } else {
                 return;
@@ -167,7 +183,7 @@ async function fetchDanteAttribute(attribute) {
 
         case ("datingMethod"):
             if (cachedDatingMethods_loaded == false) {
-                url = "http://api.dante.gbv.de/voc/arbodat_dating_method/top?properties=narrower,altLabel";
+                url = "https://api.dante.gbv.de/voc/arbodat_dating_method/top?properties=narrower,altLabel";
                 break;
             } else {
                 return;
@@ -176,7 +192,7 @@ async function fetchDanteAttribute(attribute) {
         // C14Dating ------------------------------------
         case "c14Laboratory":
             if (cachedC14Laboratories_loaded == false) {
-                url = "http://api.dante.gbv.de/voc/nihk_c14_laboratory/top?properties=notation,narrower";
+                url = "https://api.dante.gbv.de/voc/nihk_c14_laboratory/top?properties=notation,narrower";
                 break;
             } else {
                 return;
@@ -185,7 +201,7 @@ async function fetchDanteAttribute(attribute) {
         // result ---------------------------------------
         case ("stateOfPreservation"):
             if (cachedStateOfPreservation_loaded == false) {
-                url = "http://api.dante.gbv.de/voc/arbodat_result_condition/top?properties=narrower,altLabel";
+                url = "https://api.dante.gbv.de/voc/arbodat_result_condition/top?properties=narrower,altLabel";
                 break;
             } else {
                 return;
@@ -201,7 +217,7 @@ async function fetchDanteAttribute(attribute) {
 
         case ("classificationConfer"):
             if (cachedClassificationConfers_loaded == false) {
-                url = "http://api.dante.gbv.de/voc/arbodat_classification_confer/top?properties=narrower,altLabel";
+                url = "https://api.dante.gbv.de/voc/arbodat_classification_confer/top?properties=narrower,altLabel";
                 break;
             } else {
                 return;
@@ -215,7 +231,21 @@ async function fetchDanteAttribute(attribute) {
 
     // Send GET request and cache vocabulary of attribute
     try {        
-        const response = await axios.get(url);
+        const response = await axios.get(url, { timeout: DANTE_TIMEOUT_MS });
+        const displayOrder = await loadDisplayOrder(); // custom order of hierarchical dropdowns (displayOrder.js)
+
+        // Local entries which are added to the vocabularies below (assigned in the cases)
+        let unknown_entry,
+            notChosen_entry,
+            otherAnthropogenicDeposit_entry,
+            otherNaturalSediment_entry,
+            otherRuralSetting_entry,
+            otherSettlement_entry,
+            otherPlaceOfCult_entry,
+            otherTypeOfFeature_entry,
+            otherRitualFeature_entry,
+            others_entry,
+            other_entry;
 
         // - Cache Atributes
         // - add local entries
@@ -405,6 +435,7 @@ async function fetchDanteAttribute(attribute) {
                 cachedFeatureTypes.push(otherRitualFeature_entry);
                 // ------------------------------------------------------------
 
+                applyDisplayOrder("featureType", cachedFeatureTypes, displayOrder);
                 cachedFeatureTypes_loaded = true;
                 break;
 
@@ -527,6 +558,7 @@ async function fetchDanteAttribute(attribute) {
                 cachedDatingMethods.push(other_entry);
                 // ------------------------------------------------------------
 
+                applyDisplayOrder("datingMethod", cachedDatingMethods, displayOrder);
                 cachedDatingMethods_loaded = true;
                 break;
 
@@ -564,15 +596,22 @@ async function fetchDanteAttribute(attribute) {
                 cachedStateOfPreservation.push(notChosen_entry);
                 // ------------------------------------------------------------
 
+                applyDisplayOrder("stateOfPreservation", cachedStateOfPreservation, displayOrder);
                 cachedStateOfPreservation_loaded = true;
                 break;
 
             case ("restType"):
                 cachedRestTypes = response.data;
                 
-                // Add local entries ------------------------------------------
+                // Add local entries (grouped under the guide term 'ArboDat+_restType') ----
+                const localRestTypeGroup = {
+                    uri: "ArboDat+_restType",
+                    prefLabel: {en: "ArboDat+_restType"},
+                    type: ["http://vocab.getty.edu/ontology#GuideTerm"]
+                }
                 unknown_entry =   {
                     uri: "ArboDat+_restType_unknown",
+                    ancestors: [localRestTypeGroup],
                     prefLabel: {en: "unknown"},
                     altLabel: {
                         de: ["unbekannt"],
@@ -582,6 +621,7 @@ async function fetchDanteAttribute(attribute) {
                 }
                 notChosen_entry =   {
                     uri: "ArboDat+_restType_notChosen",
+                    ancestors: [localRestTypeGroup],
                     prefLabel: {en: "not chosen"},
                     altLabel: {
                         de: ["nicht gewählt"],
@@ -594,11 +634,13 @@ async function fetchDanteAttribute(attribute) {
                 cachedRestTypes.push(notChosen_entry);
                 // ------------------------------------------------------------
 
+                applyDisplayOrder("restType", cachedRestTypes, displayOrder);
                 cachedRestTypes_loaded = true;
                 break;
 
             case ("classificationConfer"):
                 cachedClassificationConfers = response.data;
+                applyDisplayOrder("classificationConfer", cachedClassificationConfers, displayOrder);
                 cachedClassificationConfers_loaded = true;
                 break;              
             // ------------------------------------------          
@@ -609,39 +651,58 @@ async function fetchDanteAttribute(attribute) {
         }
 
     } catch (error) {
-        console.error('Error during dante vocabulary fetch: ', error);
+        console.error('Error during GET request to load dante vocabulary: ', error);
     }
 }
 
+// The whole arbodat_taxonomy vocabulary is downloaded once and grouped by taxonomy,
+// so choosing another taxonomy does not download it again
+let allTaxCodesRequest = null; // promise -> true if the download succeeded
+
 async function fetchDanteTaxCodes(uri) {
 
-    if (!cachedTaxCodesForURI.has(uri)) {        
-        // Send GET request and cache taxCodes for corresponding uri
-        try {
-            let taxCodes = [];
+    if (cachedTaxCodesForURI.has(uri)) return;
 
-            let response = [];
-            let partialResponse = [];
-            let offset = 0;
-            do {
-                partialResponse = await axios.get(`https://api.dante.gbv.de/search?voc=arbodat_taxonomy&limit=1000&offset=${offset}&sort&query=*&properties=notation,hiddenLabel,ancestors`);
-                response.push(...partialResponse.data);
-                offset += 1000;
-            } while (partialResponse.data.length > 0)
-            
-            for (let i = 0; i < response.length; i++) {
-                const item = response[i];
-                
-                // check if ancestors of item equals corresponding taxonomy
-                if (item.ancestors && item.ancestors[0] && item.ancestors[0].uri == uri) {
-                    taxCodes.push(item)
-                }
+    if (!allTaxCodesRequest) {
+        allTaxCodesRequest = loadAllTaxCodes();
+    }
+    const loaded = await allTaxCodesRequest;
+
+    if (!loaded) {
+        allTaxCodesRequest = null; // try again on the next call
+    } else if (!cachedTaxCodesForURI.has(uri)) {
+        cachedTaxCodesForURI.set(uri, []); // taxonomy without tax codes
+    }
+}
+
+async function loadAllTaxCodes() {
+    try {
+        let response = [];
+        let partialResponse = [];
+        let offset = 0;
+        do {
+            partialResponse = await axios.get(`https://api.dante.gbv.de/search?voc=arbodat_taxonomy&limit=1000&offset=${offset}&sort&query=*&properties=notation,hiddenLabel,ancestors`, { timeout: DANTE_TIMEOUT_MS });
+            response.push(...partialResponse.data);
+            offset += 1000;
+        } while (partialResponse.data.length > 0)
+
+        // Group taxCodes by their taxonomy (first ancestor)
+        const taxCodesForURI = new Map();
+        for (let i = 0; i < response.length; i++) {
+            const item = response[i];
+            const taxonomyUri = item.ancestors?.[0]?.uri;
+            if (!taxonomyUri) continue;
+
+            if (!taxCodesForURI.has(taxonomyUri)) {
+                taxCodesForURI.set(taxonomyUri, []);
             }
-
-            cachedTaxCodesForURI.set(uri, taxCodes);
-
-        } catch (error) {
-            console.error('Error during tax code fetch: ', error);
+            taxCodesForURI.get(taxonomyUri).push(item);
         }
+        taxCodesForURI.forEach((taxCodes, taxonomyUri) => cachedTaxCodesForURI.set(taxonomyUri, taxCodes));
+        return true;
+
+    } catch (error) {
+        console.error('Error during GET request to load tax code: ', error);
+        return false;
     }
 }

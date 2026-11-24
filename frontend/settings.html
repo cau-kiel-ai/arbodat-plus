@@ -1,0 +1,157 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+      <meta charset="UTF-8">
+      <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+      <title>ArboDat+ | Settings</title>
+
+      <link href="img/favicon.png" rel="icon">
+      <link href="css/input.min.css" rel="stylesheet">
+      <script src="components/app-footer.js"></script>
+      <script src="components/app-navbar.js"></script>
+
+      <!-- bootstrap -->
+      <script src="vendor/bootstrap@5.3.8/dist/js/bootstrap.bundle.min.js"></script>
+      <!-- axios -->
+      <script src="vendor/axios@1.21.0/dist/axios.min.js"></script>
+      <!-- jquery -->
+      <script src="vendor/jquery@3.7.1/dist/jquery.min.js"></script>
+      <!-- Select2 -->
+      <link href="vendor/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
+      <script src="vendor/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
+      <!-- SortableJS -->
+      <script src="vendor/sortablejs@1.15.7/Sortable.min.js"></script>
+
+      <!-- select2 -->
+      <style>
+        .select2-container .select2-selection--single {
+          display: flex;
+          align-items: center;
+          height: 52px !important;
+          border: 2px solid #ccc;
+          border-radius: 4px;
+        }
+        .select2-container .select2-selection--multiple {
+          border: 2px solid #ccc;
+          min-height: 52px;
+        }
+        .select2-container .select2-selection--single .select2-selection__rendered {
+          order: 1;
+          padding: 12px;
+          font-size: 16px;
+          color: #000000;
+        }
+        .select2-container .select2-selection--single .select2-selection__clear {
+          order: 2;
+          margin-left: auto;
+          transform: translateX(50%);
+          font-size: 24px;
+          font-weight: 200;
+          line-height: 24px;
+        }
+        .select2-container .select2-selection--multiple .select2-selection__clear {
+          font-size: 24px;
+          font-weight: 200;
+          line-height: 24px;
+        }
+        .col-75 {
+          position: relative;
+        }
+
+        /* custom order lists (drag & drop) */
+        .order-list {
+          list-style: none;
+          margin: 0;
+          padding: 0;
+        }
+        .order-list .order-list {
+          padding-left: 32px;
+        }
+        .order-item {
+          display: flex;
+          align-items: center;
+          gap: 8px;
+          margin-top: 4px;
+          padding: 6px 10px;
+          border: 1px solid #ccc;
+          border-radius: 4px;
+          background: #fff;
+        }
+        .order-item.guide {
+          font-weight: bold;
+          background: #f5f5f5;
+        }
+        .order-handle {
+          cursor: grab;
+          color: #888;
+          user-select: none;
+        }
+        .order-label {
+          flex: 1;
+        }
+        .order-badge {
+          padding: 0 8px;
+          border-radius: 8px;
+          background: #2510c1;
+          color: #fff;
+          font-size: 12px;
+        }
+        .order-move {
+          border: none;
+          background: none;
+          cursor: pointer;
+          font-size: 16px;
+          line-height: 1;
+        }
+        .order-reset {
+          margin: 0 0 4px;
+          border: none;
+          background: none;
+          cursor: pointer;
+          color: #2510c1;
+          text-decoration: underline;
+        }
+        .sortable-ghost {
+          opacity: 0.4;
+        }
+      </style>
+  </head>
+
+  <body>
+
+    <app-navbar></app-navbar>
+
+    <div class="container-md">
+      <h2 style="margin-bottom: 8px;">Default values and custom order</h2>
+      <p style="margin-bottom: 24px;">
+        In these accordions, default values for DANTE attribute fields in the create forms in 'Data Input' can be set.
+        They apply to the whole installation. Empty fields have no default.
+        Below some fields the order of their options can be customized.
+      </p>
+
+      <!-- Accordion, filled by js/settings/settings.js -->
+      <div class="accordion" id="settingsAccordion"></div>
+
+      <button type="button" id="saveDefaultValuesButton" class="MySubmitButton" disabled style="width: unset; padding-left: 10px; padding-right: 10px; float: right; margin-top: 20px; height: 42px; cursor: pointer; border-radius: 5px; background-color: #2510c1; color: #fff;">save</button>
+    </div>
+
+    <!------------------------------- Scripts -------------------------------->
+    <!-- DANTE attributes -->
+    <script src="js/displayOrder.js"></script>
+    <script src="js/danteAttributes/fetchDanteAttribute.js"></script>
+    <script src="js/danteAttributes/populateDanteDropdown.js"></script>
+    <script src="js/danteAttributes/updateBackendDanteAttributes.js"></script>
+    <script>updateBackendDanteAttributes()</script>
+
+    <script src="js/escapeHtml.js"></script>
+    <script src="js/toast.js"></script>
+    <script src="js/stickyAccordion.js"></script>
+    <script src="js/defaultValues.js"></script>
+    <script src="js/settings/settings.js"></script>
+    <!------------------------------------------------------------------------>
+
+    <app-footer></app-footer>
+
+  </body>
+</html>

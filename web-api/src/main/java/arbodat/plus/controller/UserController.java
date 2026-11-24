@@ -1,19 +1,28 @@
 package arbodat.plus.controller;
 
+import arbodat.plus.dto_migration.BulkItemStatus;
+import arbodat.plus.dto_migration.BulkUserItem;
 import arbodat.plus.model.*;
 import arbodat.plus.repository.InstitutionRepository;
 import arbodat.plus.repository.ResearchProjectRepository;
 import arbodat.plus.repository.UserRepository;
+import arbodat.plus.service.TeamMigrationService;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.dao.DataAccessException;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.*;
 
-//@CrossOrigin(origins = "http://127.0.0.1:5500")
-@CrossOrigin(origins = "*") // Allow requests from all domains
 @RestController
 @RequestMapping("/users")
 public class UserController {
+
+    private static final Logger log = LoggerFactory.getLogger(UserController.class);
+
+    @Autowired
+    TeamMigrationService teamMigrationService;
 
     @Autowired
     UserRepository userRepository;
@@ -100,5 +109,23 @@ public class UserController {
 
         userRepository.delete(user);
         return "user is deleted";
+    }
+
+    /**
+     * Sets the users of many site roles / samples (team accordion of the migration).
+     * Every item gets its own status ("updated" or "error"), so one bad row doesn't stop the others.
+     */
+    @PutMapping("/assignments/bulk")
+    public List<BulkItemStatus> assignAll(@RequestBody List<BulkUserItem> items) {
+        try {
+            return teamMigrationService.assignAll(items);
+        } catch (DataAccessException e) {
+            // The transaction is rolled back -> none of the items is updated
+            log.error("Bulk update of the team failed", e);
+            String message = e.getMostSpecificCause().getMessage();
+            return items.stream()
+                    .map(item -> BulkItemStatus.error(item.getClientId(), message))
+                    .toList();
+        }
     }
 }

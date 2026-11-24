@@ -1,0 +1,301 @@
+let researchProjectTable;
+
+async function buildResearchProjectTable() {
+    const build = tableBuild;
+    const container = document.getElementById("table");
+    const spinner = document.getElementById('tableSpinner');
+    const tableContainer = document.querySelector('.table-container');
+    container.innerHTML = "";
+    spinner.style.display = 'block';
+    tableContainer.style.display = 'none';
+
+    // GET research projects ----------------------------------------------------
+    let researchProjects = [];
+    try {
+        const response = await axios.get("api/research_projects");
+        researchProjects = sortResearchProjects(response.data);
+    } catch (error) {
+        console.error("Error loading research projects:", error);
+    }
+
+    // GET sites ----------------------------------------------------------------
+    let sites = [];
+    try {
+        const response = await axios.get("api/sites");
+        sites = sortSites(response.data);
+    } catch (error) {
+        console.error("Error loading sites:", error)
+    }
+
+    function formatSites(sites, siteList) {
+        if (!siteList) return "";
+
+        // HTML download
+        if (!Array.isArray(siteList)) return siteList;
+
+        return siteList
+            .map(id => {
+                const site = sites.find(site => site.id === id)
+                return site?.label ?? id ?? "";
+            })
+            .filter(Boolean)
+            .join(", ");
+    }
+
+    function formatLicense(licenseId){
+        if (!licenseId) return "";
+        const license = cachedLicenses.find(license => license.uri === licenseId) || null;
+        return license?.prefLabel.en ?? licenseId;
+    }
+
+    // Dropdowns of the DANTE columns (same entries and order as on the input page, see danteListEditor.js)
+    await loadDanteListOptions(["license"]);
+    await loadDanteDownloadRecords(["license"]);
+
+    // Create Table -------------------------------------------------------------
+    // Another table was chosen while the data was loading: this one is not shown
+    if (!isCurrentBuild(build)) return;
+
+    researchProjectTable = newTabulator("#table", {
+        height:"100%",
+        data: researchProjects,
+        columns:[
+            {cssClass:"selectionColumn", formatter:"rowSelection", titleFormatter:"rowSelection", titleFormatterParams:{
+                rowRange:"active" //only toggle the values of the active filtered rows
+            }, hozAlign:"center", headerSort:false},
+            {title:"id", field:"id", headerFilter:true, headerSort:false},
+            {title:"*project name", field:"projectName", titleDownload:"projectName", validator: ["required"], editor:"input", headerFilter:true, headerSortTristate:true, sorter: compareLabels},
+            {title:"funder", field:"funder", editor:"input", headerFilter:true, headerSortTristate:true},
+            {title:"authorisation number", field:"authorisationNumber", titleDownload:"authorisationNumber", editor:"input", headerFilter:true, headerSortTristate:true},
+            {title:"license", titleDownload:"license", field:"license.id", headerSort:false,
+                editor: singleSelectEditor, editorParams: danteEditorParams("license", { none: true }),
+                headerFilter: multiSelectFilter, headerFilterParams: { valuesInData: true,
+                    values: cachedLicenses.map(license => ({
+                        value: license.uri,
+                        label: license.prefLabel.en
+                    })),
+                    multiselect:true
+                },
+                headerFilterFunc: function(headerValue, rowValue) {
+                    if (!headerValue || (Array.isArray(headerValue) && headerValue.length === 0)) {
+                        return true;
+                    }
+                    return headerValue.includes(rowValue);
+                },
+                formatter: textFormatter(cell => formatLicense(cell.getValue())),
+                accessorDownload: value => formatLicense(value),
+            },
+            {title:"site list (multiple selection)", titleDownload:"siteList", field: "siteList", headerSortTristate:true,
+                // Many sites: the column stays narrow (the text is cut, the tooltip shows all), the pills wrap
+                maxWidth: MULTI_SELECT_MAX_WIDTH,
+                tooltip: (e, cell) => cell.getElement().classList.contains("tabulator-editing") ? "" : escapeHtml(formatSites(sites, cell.getValue())),
+                mutator: function(value) {
+                    // Map site objects only to site id
+                    return Array.isArray(value) ? value.map(site => site.id? site.id : site) : [];
+                },
+                editor: multiSelectEditor, editorParams:{
+                    values: sites.map(item => ({                        
+                        value: item.id,
+                        label: item.label + " ("+ item.researchProjectList.map(rp => rp.projectName) + ")"
+                    })),
+                    autocomplete:false,
+                    multiselect:true,
+                    emptyValue:[]
+                },
+                headerFilter: multiSelectFilter, headerFilterParams: {
+                    values: sites.map(item => ({
+                        value: item.id,
+                        label: item.label + " ("+ item.researchProjectList.map(rp => rp.projectName) + ")"
+                    })),
+                    multiselect: true
+                },
+                headerFilterFunc: function(headerValue, rowValue){
+                    return headerValue.every(val => rowValue.includes(val));
+                },
+                sorter: formattedSorter(value => formatSites(sites, value)),
+                formatter: textFormatter(cell => formatSites(sites, cell.getValue())),
+                accessorDownload: value => formatSites(sites, value),
+            }
+        ],
+        initialSort: [
+            {column: "projectName", dir: "asc"}
+        ]
+    });
+
+
+    // Hide spinner
+    spinner.style.display = 'none';
+    // Show table
+    tableContainer.style.display = 'flex';
+
+    activeTable = "researchProjectTable";
+
+
+    // PUT: update research project ---------------------------------------------
+    researchProjectTable.on("cellEdited", async function(cell){
+
+        const editedField = cell.getField();
+        const newValue = cell.getValue();
+
+        const selectedRows = await getRowsToUpdate(researchProjectTable, cell, "research project", "research projects");
+        if (!selectedRows) return;
+        selectedRows.forEach(row => {
+            
+            // Create payload
+            const researchProject = JSON.parse(JSON.stringify(row.getData()));
+            setNestedValue(researchProject, editedField, newValue); // other selected rows do not contain the new value yet
+            const researchProjectId = researchProject.id;
+            // Map site ids back to site objects
+            const siteListAsObjects = (researchProject.siteList || []).map(site => typeof site === "string" ? { id: site } : site);
+            const payload = {
+                ...researchProject,
+                siteList: siteListAsObjects
+            };
+    
+            axios.put(`api/research_projects/${researchProjectId}`, JSON.stringify(payload), {
+                headers: {
+                    "Content-Type": 'application/json'
+                }
+            })
+            .then(async response => {
+                console.log(response.data);
+                
+                // Update table ---------------------------------------
+                if(row !== cell.getRow()) { // skip the edited line
+                    if (editedField === "license.id") {
+                        const licenseObject = cachedLicenses.find(item => item.uri === newValue);
+                        if (licenseObject) {
+                            row.update({ license: { id: licenseObject.uri, label: licenseObject.prefLabel.en } });
+                        }
+                    } else {
+                        updateRowField(row, editedField, newValue);
+                    }
+                } // --------------------------------------------------
+            })
+            .catch(error => handleUpdateError(cell, row, "research project", error));
+        });
+        
+        // update site list headerFilterParams ----------------
+        // GET sites
+        try {
+            const response = await axios.get("api/sites");
+            sites = sortSites(response.data);
+        } catch (error) {
+            console.error("Error loading sites:", error)
+        }
+
+        // Generate new headerFilterParams values
+        const updatedSiteValues = sites.map(item => ({
+            value: item.id,
+            label: `${item.label} (${item.researchProjectList.map(rp => rp.projectName).join(", ")})`
+        }));
+
+        // Get column
+        const siteListColumn = researchProjectTable.getColumn("siteList");
+
+        // Set new editorParams and headerFilterParams values
+        siteListColumn.updateDefinition({
+            editorParams: {
+                values: updatedSiteValues,
+                autocomplete: false,
+                multiselect: true,
+                emptyValue: []
+            },
+            headerFilterParams: {
+                values: updatedSiteValues
+            }
+        });
+    });
+
+
+    // Delete rows --------------------------------------------------------------
+    const deleteButton = document.getElementById("deleteRows-button");
+    
+    // Only show deleteButton if at least one row is selected
+    researchProjectTable.on("rowSelectionChanged", function(rows){
+        deleteButton.classList.toggle("hidden", rows.length === 0);
+    });
+
+    // onclick (not addEventListener): the button is shared by all tables
+    deleteButton.onclick = async function() {
+        const selectedRows = researchProjectTable.getSelectedRows();
+        if (!await confirmDelete("research project", selectedRows.length)) return;
+
+        selectedRows.forEach(row => {
+            // Get id
+            const researchProjectId = row.getData().id;
+
+            axios.delete(`api/research_projects/${researchProjectId}`)
+            .then(async response => {
+                console.log(response.data);
+                await row.delete();
+                // Deleting a row does not fire rowSelectionChanged
+                deleteButton.classList.toggle("hidden", researchProjectTable.getSelectedRows().length === 0);
+            })
+            .catch(error => {
+                handleDeleteError("research project", error);
+            });            
+        });
+    };
+
+}
+
+// Export table -----------------------------------------------------------------
+document.getElementById("download-json").addEventListener("click", function(){
+    if (activeTable === "researchProjectTable") {
+        const rawData = researchProjectTable.getData("active");
+        
+        const transformed = rawData.map(row => {
+            return {
+                id: row.id,
+                projectName: row.projectName,
+                funder: row.funder,
+                authorisationNumber: row.authorisationNumber,
+                license: danteDownloadRecord("license", row.license?.id),
+                siteList: (row.siteList || []).map(siteId => {
+                    const siteValues = researchProjectTable.getColumn("siteList").getDefinition().editorParams.values;
+                    const site = siteValues.find(s => s.value === siteId);
+                    const cleanLabel = site?.label.replace(/\s*\(.*\)$/, "") ?? ""; // Regex to clip " (project names)"
+                    return { id: siteId, label: cleanLabel };
+                }),
+            };
+        });
+
+        const blob = new Blob([JSON.stringify(transformed, null, 4)], { type: "application/json" });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement("a");
+        a.href = url;
+        a.download = "ArboDat+_Download_ResearchProjects.json";
+        a.click();
+        // Revoke later: WebKit (macOS app window) cancels downloads whose blob URL is already revoked.
+        setTimeout(() => URL.revokeObjectURL(url), 60000);
+    }
+});
+
+document.getElementById("download-csv").addEventListener("click", function(){
+    if (activeTable === "researchProjectTable") {
+        researchProjectTable.download(
+            "csv",
+            "ArboDat+_Download_ResearchProjects.csv"
+        );        
+    }
+});
+
+document.getElementById("download-xlsx").addEventListener("click", function(){
+    if (activeTable === "researchProjectTable") {
+        researchProjectTable.download(
+            "xlsx",
+            "ArboDat+_Download_ResearchProjects.xlsx",
+            {sheetName:"ArboDat+ Research Projects"}
+        );
+    }
+});
+
+document.getElementById("download-html").addEventListener("click", function(){
+    if (activeTable === "researchProjectTable") {
+        researchProjectTable.download(
+            "html",
+            "ArboDat+_Download_ResearchProjects.html"
+        );
+    }
+});

@@ -20,6 +20,9 @@ public class ResearchProjectService {
     @Autowired
     LicenseRepository licenseRepository;
 
+    @Autowired
+    LabelUniqueness labelUniqueness;
+
     public List<ResearchProject> create(List<ResearchProject> transferredResearchProjectList) {
 
         List<ResearchProject> researchProjectList = new ArrayList<>();
@@ -38,6 +41,7 @@ public class ResearchProjectService {
 
             // Create new research project if it doesn't exist,
             if (transferredResearchProject.getId() == null) {
+                labelUniqueness.checkResearchProject(transferredResearchProject.getProjectName(), null);
                 researchProject = researchProjectRepository.save(transferredResearchProject);
 
             // else get existing one

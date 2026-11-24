@@ -2,14 +2,18 @@ package arbodat.plus.controller;
 
 import arbodat.plus.model.*;
 import arbodat.plus.repository.*;
+import arbodat.plus.service.ExcavationYears;
+import arbodat.plus.service.LabelTakenException;
+import arbodat.plus.service.LabelUniqueness;
+import org.springframework.dao.DataIntegrityViolationException;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 import java.util.UUID;
 
-//@CrossOrigin(origins = "http://127.0.0.1:5500")
-@CrossOrigin(origins = "*") // Allow requests from all domains
 @RestController
 @RequestMapping("/features")
 public class FeatureController {
@@ -26,6 +30,9 @@ public class FeatureController {
     @Autowired
     SampleRepository sampleRepository;
 
+    @Autowired
+    LabelUniqueness labelUniqueness;
+
 //    @Autowired
 //    ArchaeologicalDatingRepository archaeologicalDatingRepository;
 //
@@ -39,6 +46,12 @@ public class FeatureController {
 
     @PostMapping
     public String create(@RequestBody Feature transferredFeature) {
+
+        // Label must be unique within the site, excavation years valid (before anything is saved)
+        if (transferredFeature.getId() == null) {
+            labelUniqueness.checkFeature(transferredFeature.getLabel(), idOf(transferredFeature.getSite()), null);
+            transferredFeature.setExcavationYears(ExcavationYears.checked(transferredFeature.getExcavationYears()));
+        }
 
         // Handle feature type
         if (transferredFeature.getFeatureType() != null) {
@@ -102,11 +115,19 @@ public class FeatureController {
         Feature feature = featureRepository.findById(featureId)
                 .orElseThrow(() -> new IllegalArgumentException("invalid feature id: " + featureId));
 
+        // Label must be unique within the (new) site, excavation years valid
+        labelUniqueness.checkFeature(transferredFeature.getLabel(), idOf(transferredFeature.getSite()), featureId);
+        List<Integer> excavationYears = ExcavationYears.checked(transferredFeature.getExcavationYears());
+
         // update attributes
         feature.setLabel(transferredFeature.getLabel());
-        feature.setExcavationYears(transferredFeature.getExcavationYears());
+        feature.setExcavationYears(excavationYears);
         feature.setExcavationArea(transferredFeature.getExcavationArea());
         feature.setBuildingContext(transferredFeature.getBuildingContext());
+        // description only applies to features in a building context
+        feature.setBuildingContextDescription(Boolean.TRUE.equals(transferredFeature.getBuildingContext())
+                ? transferredFeature.getBuildingContextDescription()
+                : null);
         feature.setFeatureCondition(transferredFeature.getFeatureCondition());
         feature.setRemarksFeature(transferredFeature.getRemarksFeature());
 
@@ -185,5 +206,29 @@ public class FeatureController {
         featureRepository.save(feature);
 
         return "feature is updated with new preservationCondition";
+    }
+
+    private static UUID idOf(Site site) {
+        return site == null ? null : site.getId();
+    }
+
+    @ExceptionHandler(ExcavationYears.InvalidExcavationYearException.class)
+    public ResponseEntity<String> handleInvalidExcavationYear(ExcavationYears.InvalidExcavationYearException e) {
+        return ResponseEntity.badRequest().body(e.getMessage());
+    }
+
+    @ExceptionHandler(LabelTakenException.class)
+    public ResponseEntity<String> handleLabelTaken(LabelTakenException e) {
+        return ResponseEntity.status(HttpStatus.CONFLICT).body(e.getMessage());
+    }
+
+    // E.g. another request saved the same label between the check and the save
+    @ExceptionHandler(DataIntegrityViolationException.class)
+    public ResponseEntity<String> handleDataIntegrityViolation(DataIntegrityViolationException e) {
+        String cause = String.valueOf(e.getMostSpecificCause().getMessage());
+        return ResponseEntity.status(HttpStatus.CONFLICT)
+                .body(cause.contains(Feature.UNIQUE_LABEL)
+                        ? "The feature could not be saved: its label is already used in this site."
+                        : "The feature could not be saved: " + cause);
     }
 }

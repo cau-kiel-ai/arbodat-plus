@@ -15,8 +15,8 @@ document.addEventListener("DOMContentLoaded", () => {
     const feature_condition_checkbox = document.getElementById("feature_condition");
     const preservation_condition_dropdown = document.getElementById("preservation_condition");
     const feature_type_dropdown = document.getElementById("feature_type");
-    const excavation_years_selectpicker = document.getElementById("excavation_years");
     const building_context_checkbox = document.getElementById("building_context");
+    const building_context_description_input = document.getElementById("building_context_description");
     const remarks_textarea = document.getElementById("remarks_feature");
     // ---------------------------------------------------------------------------------------
 
@@ -43,7 +43,7 @@ document.addEventListener("DOMContentLoaded", () => {
         adjustDropdownWidth();
 
         // Send a GET request to get all items
-        fetch('http://localhost:8080/features', { // Customise here
+        fetch('api/features', { // Customise here
             method: 'GET',
             headers: {
                 'Content-Type': 'application/json',
@@ -103,8 +103,11 @@ document.addEventListener("DOMContentLoaded", () => {
             feature_condition_checkbox.checked = false;
             $('#preservation_condition').val(null).trigger('change');
             $('#feature_type').val(null).trigger('change');
-            excavation_years_selectpicker.value = '';
+            applyDefaults("feature");
+            $('#excavation_years').empty().val(null).trigger('change');
             building_context_checkbox.checked = false;
+            building_context_description_input.value = '';
+            toggleBuildingContextDescription();
             remarks_textarea.value = '';
             // -------------------------------------------
         }
@@ -112,6 +115,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
     function populateDropdown(itemList) {  
         dropdown.innerHTML = ""; // Reset dropdown
+        itemList = sortFeatures(itemList); // Ascending
         
         itemList.forEach((item, index) => {
             const listItem = document.createElement("li");
@@ -138,11 +142,14 @@ document.addEventListener("DOMContentLoaded", () => {
         feature_condition_checkbox.checked = item.featureCondition;
         $('#preservation_condition').val(item.preservationCondition?.id ?? "").trigger('change');
         $('#feature_type').val(item.featureType?.id ?? "").trigger('change');
-        [...excavation_years_selectpicker.options].forEach(option => {
-            const value = parseInt(option.value, 10);
-            option.selected = item.excavationYears.includes(value);
+        $('#excavation_years').empty();
+        (item.excavationYears ?? []).forEach(year => {
+            $('#excavation_years').append(new Option(year, year, true, true));
         });
+        $('#excavation_years').trigger('change');
         building_context_checkbox.checked = item.buildingContext;
+        building_context_description_input.value = item.buildingContextDescription ?? '';
+        toggleBuildingContextDescription();
         remarks_textarea.value = item.remarksFeature;
         // -------------------------------------------------------------------------
     }
@@ -159,8 +166,11 @@ document.addEventListener("DOMContentLoaded", () => {
         feature_condition_checkbox.checked = false;
         $('#preservation_condition').val(null).trigger('change');
         $('#feature_type').val(null).trigger('change');
-        excavation_years_selectpicker.value = '';
+        applyDefaults("feature");
+        $('#excavation_years').empty().val(null).trigger('change');
         building_context_checkbox.checked = false;
+        building_context_description_input.value = '';
+        toggleBuildingContextDescription();
         remarks_textarea.value = '';
         // -------------------------------------------
 

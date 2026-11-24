@@ -1,0 +1,161 @@
+html {
+    height: 100%;
+}
+
+// min-height, not height: the sticky navbar only sticks within its parent (body), so body must grow with the content.
+// Only body is a flex container: as a flex item of html it would shrink back to the viewport height.
+body {
+    min-height: 100%;
+    display: flex;
+    flex-direction: column;
+}
+
+main {
+    flex: 1;
+}
+
+/* delete browser defaults: */
+body, ul, li, h1, h2, a{
+    margin: 0;
+    padding: 0;
+    font-family: arial;
+   }
+
+   main{
+       max-width: 100%; /* for smaller screens */
+       width: 1200px; /* absolute maximum */
+       margin: 80px auto; /* top and bottom as well as left and right -> margin is equally destributed  */
+       padding: 0 40px;
+       box-sizing: border-box; /* this incoorporates the padding into the 100% */
+   }
+   
+   article h2{
+       color: #5D535E;
+       font-size: 48px;
+   }
+   
+   main .intro{ 
+       text-decoration: none;
+       font-size: 20px;
+       line-height: 2em; 
+       color:#5D535E
+   }
+
+   main .lower{ 
+    text-decoration: none;
+    font-size: 18px;
+    line-height: 2em; 
+    color:#5D535E
+}
+   
+   /* the list used to sit in a <p> (invalid), whose margins gave it this spacing */
+   article ul{
+       margin: 1em 0;
+   }
+
+   article ul li{
+       font-size: 20px;
+       line-height: 2em; 
+       color:#5D535E;
+       padding-left: 25px;
+   }
+   
+   .images{
+       text-align: center;
+       margin: 10px 0;
+       white-space: nowrap;
+   }
+   
+   .images li{
+       display: inline-block;
+       width: 20%;
+       margin: 20px 5%;
+   }
+   
+   .images li img{
+       max-width: 100%;
+       opacity: 0.5;
+   }
+
+   /* -------------- pseudo classes & elements (video 9)
+   
+   "selector:hover" 
+   hover effect text: underline
+   hover effect images: shift up a bit
+   
+   "selector:focus"
+   when a field is in focus: overwrite boarder style
+   
+   "selector:valid"
+   only if e.g. the entered text is a valid mail adress (s. HTML5 features)
+   
+   gibt auch noch weitere, zb. visited/checked/disbaled.. usw:
+       https://www.w3schools.com/css/css_pseudo_classes.asp
+   
+   
+   pseudoelements: https://www.w3schools.com/css/css_pseudo_elements.asp
+   for injecting dynamic content 
+   
+   ---------------------- */
+   
+   
+   .images li:hover{
+       position: relative;
+       top: -4px;
+   }
+   
+   .images li img:hover,
+   .images li a:focus-visible img{
+       opacity: 1.0;
+       cursor:pointer;
+   }
+
+   /* --------------- Responsive Design
+   Responsiveness or responsive Design/ Mobile First approach (and adopting later on for larger screens)
+   media queries: how to style elements for different viewport-dimensions 
+   view port meta tag: tells the browser what width the viewport should be
+   responsive images: only load smaller images for mobile devices
+   ------------------- */
+   
+   @media screen and (max-width: 900px) {
+       main h2{
+           font-size: 28px;
+       }
+   
+       main {
+           margin: 25px auto;
+       }
+   
+       main .intro{ 
+           font-size: 14px;
+       }
+   
+       article ul li{
+           font-size: 14px;
+       }
+
+       main .lower{ 
+        font-size: 12px;
+    }
+
+   }
+   
+   @media screen and (max-width: 700px){
+
+       main {
+           margin: 25px auto; 
+       }
+       
+   
+       .images li{
+           width: 40%;
+           margin: 40px auto;
+           display: block;
+       }
+
+   }
+   
+@import '../vendor/bootstrap@5.3.8/scss/bootstrap';
+@import 'footer';
+@import 'navbar';
+   

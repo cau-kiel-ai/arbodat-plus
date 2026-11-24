@@ -9,12 +9,7 @@ document.addEventListener("DOMContentLoaded", () => {
     const submit_update_button = document.getElementById("site_submit_update_button");
     
     // Attributes --------------------------
-    // references
-    const researchProject_container = document.getElementById("researchProjectContainer");
-    const literature_container = document.getElementById("siteLiteratureContainer");
-
     // General information
-    const activityNumber_input = document.getElementById("activity_number");
     const siteLabelAbbreviation_input = document.getElementById("site_label_abbreviation");
     const siteNumber_input = document.getElementById("site_number");
     const taxonomy_dropdown = document.getElementById("taxonomy");
@@ -23,11 +18,6 @@ document.addEventListener("DOMContentLoaded", () => {
     const naturalUnit_dropdown = document.getElementById("natural_unit");
     const siteConditionUndisturbed_checkbox = document.getElementById("site_condition_undisturbed");
 
-    // Institutions and excavation team
-    const institution_container = document.getElementById("siteInstitutionContainer");
-    const siteDirector_container = document.getElementById("siteDirectorContainer");
-    const archeologist_container = document.getElementById("ArcheologistContainer");
-    const botanist_container = document.getElementById("BotanistContainer");
 
     // Coordinates ans address
     const coordinateSystem_dropdown = document.getElementById("site_coordinate_system");
@@ -55,8 +45,8 @@ document.addEventListener("DOMContentLoaded", () => {
     inputField.addEventListener("focus", () => {
 
         // Check if at least one research project is selected
-        if (!siteResearchProjectList.length > 0) {
-            toast.info("Before you can enter or select a site label, you must add at least one research project.");
+        if (!$('#siteResearchProjects').val().length) {
+            toast.info("Before you can enter or select a site label, you must select at least one research project.");
             inputField.blur();
         }
 
@@ -68,7 +58,7 @@ document.addEventListener("DOMContentLoaded", () => {
         adjustDropdownWidth();
 
         // Send a GET request to get all items
-        fetch('http://localhost:8080/sites', { // Customise here
+        fetch('api/sites', { // Customise here
             method: 'GET',
             headers: {
                 'Content-Type': 'application/json',
@@ -81,8 +71,8 @@ document.addEventListener("DOMContentLoaded", () => {
             return response.json();
         })
         .then(data => {
-            // Filter sites by added research projects
-            const siteResearchProjectIdSet = new Set(siteResearchProjectList.map(rp => rp.id));
+            // Filter sites by selected research projects
+            const siteResearchProjectIdSet = new Set($('#siteResearchProjects').val());
             cachedItems = data.filter(item => item.researchProjectList.some(rp => siteResearchProjectIdSet.has(rp.id))); // Customise here
             activeIndex = -1; // Reset the active index
             populateDropdown(cachedItems);
@@ -126,11 +116,10 @@ document.addEventListener("DOMContentLoaded", () => {
 
             // Customise here ----------------------------
             // references
-            literature_container.innerHTML = "";
-            siteLiteratureList = [];
+            clearMultiSelect('#siteLiterature');
 
             // General information
-            activityNumber_input.value = '';
+            $('#activityNumbers').empty().val(null).trigger('change');
             siteLabelAbbreviation_input.value = '';
             siteNumber_input.value = '';
             $('#taxonomy').val(null).trigger('change');
@@ -140,17 +129,14 @@ document.addEventListener("DOMContentLoaded", () => {
             siteConditionUndisturbed_checkbox.checked = false;
 
             // Institutions and excavation team
-            institution_container.innerHTML = "";
-            siteInstitutionList = [];
-            siteDirector_container.innerHTML = "";
-            siteDirectorList = [];
-            archeologist_container.innerHTML = "";
-            siteArcheologistList = [];
-            botanist_container.innerHTML = "";
-            siteBotanistList = [];
+            clearMultiSelect('#siteInstitutions');
+            clearMultiSelect('#siteDirectors');
+            clearMultiSelect('#archeologists');
+            clearMultiSelect('#botanists');
 
             // Coordinates and address
             $('#site_coordinate_system').val(null).trigger('change');
+            applyDefaults("site");
             longitude_input.value       = '';
             latitude_input.value        = '';
             altitude_input.value        = '';
@@ -170,6 +156,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
     function populateDropdown(itemList) {  
         dropdown.innerHTML = ""; // Reset dropdown
+        itemList = sortSites(itemList); // Ascending
         
         itemList.forEach((item) => {
             const listItem = document.createElement("li");
@@ -192,37 +179,15 @@ document.addEventListener("DOMContentLoaded", () => {
         // Customise here ------------------------------------------------------
         // References
         inputField.value = item.label;
-        // Reset research project list and container ----
-        researchProject_container.innerHTML = "";
-        siteResearchProjectList = [];
-        // Add users to list and container
-        item.researchProjectList.forEach(item => {
-            const itemText = item.projectName;            
-            const researchProjectData = { id: item.id };
-            const index = siteResearchProjectList.push(researchProjectData) - 1;
-            addResearchProjectItemBox(
-                itemText,
-                index
-            );
-        });
-        // Reset literature list and container ----------
-        literature_container.innerHTML = "";
-        siteLiteratureList = [];
-        // Add users to list and container
-        item.literatureList.forEach(item => {
-            const itemText = formatLiterature(item);            
-            const literatureData = { id: item.id };
-            const index = siteLiteratureList.push(literatureData) - 1;
-            addLiteratureItemBox(
-                itemText,
-                index,
-                "siteLiteratureList",
-                "siteLiteratureContainer"
-            );
-        }); // ------------------------------------------
+        setMultiSelect('#siteResearchProjects', item.researchProjectList, rp => rp.projectName);
+        setMultiSelect('#siteLiterature', item.literatureList, formatLiterature);
 
         // General information
-        activityNumber_input.value                = item.activityNumber;
+        $('#activityNumbers').empty();
+        (item.activityNumbers ?? []).forEach(activityNumber => {
+            $('#activityNumbers').append(new Option(activityNumber, activityNumber, true, true));
+        });
+        $('#activityNumbers').trigger('change');
         siteLabelAbbreviation_input.value         = item.labelAbbreviation;
         siteNumber_input.value                    = item.siteNumber;
         $('#taxonomy').val(item.taxonomy?.id ?? '').trigger('change');
@@ -232,66 +197,10 @@ document.addEventListener("DOMContentLoaded", () => {
         siteConditionUndisturbed_checkbox.checked = item.undisturbed;
 
         // Institutions and excavation team
-        // Reset institution list and container ---------
-        institution_container.innerHTML = "";
-        siteInstitutionList = [];
-        // Add users to list and container
-        item.institutionList.forEach(item => {
-            const itemText = formatInstitution(item);            
-            const institutionData = { id: item.id };
-            const index = siteInstitutionList.push(institutionData) - 1;
-            addInstitutionItemBox(
-                itemText,
-                index,
-                "siteInstitutionList",
-                "siteInstitutionContainer"
-            );
-        });
-        // Reset user list and container ----------------
-        siteDirector_container.innerHTML = "";
-        siteDirectorList = [];
-        // Add users to list and container
-        item.siteDirectors.forEach(item => {
-            const itemText = formatName(item);            
-            const userData = { id: item.id };
-            const index = siteDirectorList.push(userData) - 1;
-            addUserItemBox(
-                itemText,
-                index,
-                "siteDirectorList",
-                "siteDirectorContainer"
-            );
-        });
-        // Reset user list and container ----------------
-        archeologist_container.innerHTML = "";
-        siteArcheologistList = [];
-        // Add users to list and container
-        item.archaeologists.forEach(item => {
-            const itemText = formatName(item);            
-            const userData = { id: item.id };
-            const index = siteArcheologistList.push(userData) - 1;
-            addUserItemBox(
-                itemText,
-                index,
-                "siteArcheologistList",
-                "ArcheologistContainer"
-            );
-        });
-        // Reset user list and container ----------------
-        botanist_container.innerHTML = "";
-        siteBotanistList = [];
-        // Add users to list and container
-        item.botanists.forEach(item => {
-            const itemText = formatName(item);            
-            const userData = { id: item.id };
-            const index = siteBotanistList.push(userData) - 1;
-            addUserItemBox(
-                itemText,
-                index,
-                "siteBotanistList",
-                "BotanistContainer"
-            );
-        }); // ------------------------------------------
+        setMultiSelect('#siteInstitutions', item.institutionList, formatInstitution);
+        setMultiSelect('#siteDirectors', item.siteDirectors, formatName);
+        setMultiSelect('#archeologists', item.archaeologists, formatName);
+        setMultiSelect('#botanists', item.botanists, formatName);
 
         // Coordinates and address
         $('#site_coordinate_system')
@@ -322,11 +231,10 @@ document.addEventListener("DOMContentLoaded", () => {
 
         // Customise here ----------------------------
         // references
-        literature_container.innerHTML = "";
-        siteLiteratureList = [];
+        clearMultiSelect('#siteLiterature');
 
         // General information
-        activityNumber_input.value = '';
+        $('#activityNumbers').empty().val(null).trigger('change');
         siteLabelAbbreviation_input.value = '';
         siteNumber_input.value = '';
         $('#taxonomy').val(null).trigger('change');
@@ -336,17 +244,14 @@ document.addEventListener("DOMContentLoaded", () => {
         siteConditionUndisturbed_checkbox.checked = false;
 
         // Institutions and excavation team
-        institution_container.innerHTML = "";
-        siteInstitutionList = [];
-        siteDirector_container.innerHTML = "";
-        siteDirectorList = [];
-        archeologist_container.innerHTML = "";
-        siteArcheologistList = [];
-        botanist_container.innerHTML = "";
-        siteBotanistList = [];
+        clearMultiSelect('#siteInstitutions');
+        clearMultiSelect('#siteDirectors');
+        clearMultiSelect('#archeologists');
+        clearMultiSelect('#botanists');
 
         // Coordinates and address
         $('#site_coordinate_system').val(null).trigger('change');
+        applyDefaults("site");
         longitude_input.value       = '';
         latitude_input.value        = '';
         altitude_input.value        = '';

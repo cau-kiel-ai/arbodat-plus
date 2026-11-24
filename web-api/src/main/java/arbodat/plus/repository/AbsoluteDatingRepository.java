@@ -10,7 +10,10 @@ import java.util.UUID;
 @Repository
 public interface AbsoluteDatingRepository extends JpaRepository <AbsoluteDating, UUID>{
 
-    List<AbsoluteDating> findAllBySubSample(String subSample);
+    // Sub-samples compare case-insensitively (as in ArboDat 2018 / Access)
+    List<AbsoluteDating> findAllBySubSampleIgnoreCase(String subSample);
+
+    List<AbsoluteDating> findBySampleIdAndSubSampleIgnoreCase(UUID sampleId, String subSample);
 
     List<AbsoluteDating> findBySampleFeatureId(UUID featureId);
 }

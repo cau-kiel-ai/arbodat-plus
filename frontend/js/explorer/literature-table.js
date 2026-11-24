@@ -1,0 +1,247 @@
+let literatureTable;
+
+async function buildLiteratureTable() {
+    const build = tableBuild;
+    const container = document.getElementById("table");
+    const spinner = document.getElementById('tableSpinner');
+    const tableContainer = document.querySelector('.table-container');
+    container.innerHTML = "";
+    spinner.style.display = 'block';
+    tableContainer.style.display = 'none';
+
+    // GET literature -----------------------------------------------------------
+    let literature = [];
+    try {
+        const response = await axios.get("api/literature");
+        literature = sortLiterature(response.data);
+    } catch (error) {
+        console.error("Error loading literature:", error);
+    }
+
+    // GET authors --------------------------------------------------------------
+    let authors = [];
+    try {
+        const response = await axios.get("api/authors");
+        authors = sortPeople(response.data);
+    } catch (error) {
+        console.error("Error loading authors:", error)
+    }
+
+
+    // Create Table -------------------------------------------------------------
+    // Another table was chosen while the data was loading: this one is not shown
+    if (!isCurrentBuild(build)) return;
+
+    literatureTable = newTabulator("#table", {
+        height: "100%",
+        data: literature,
+        columns:[
+            {cssClass:"selectionColumn", formatter:"rowSelection", titleFormatter:"rowSelection", titleFormatterParams:{
+                rowRange:"active" //only toggle the values of the active filtered rows
+            }, hozAlign:"center", headerSort:false},
+            {title:"id", field:"id", headerFilter:true, headerSort:false},
+            {title:"*title", titleDownload:"title", field:"title", validator: ["required"], editor:"input", headerFilter:true, headerSortTristate:true, sorter: compareLabels},
+            {title:"publication year", titleDownload:"publicationYear", field:"publicationYear", headerSortTristate:true,
+                // Free text, only a year of 4 digits (or nothing)
+                editor:"input", editorParams: { mask: "9999" },
+                validator: "regex:^\\d{4}$",
+                mutatorEdit: value => value === "" || value === null || value === undefined ? null : Number(value),
+                // The years in the table
+                headerFilter: multiSelectFilter, headerFilterParams: { valuesLookup: true },
+                headerFilterFunc: anyOfFilter,
+                sorter:"array", sorterParams:{
+                    valueMap:"label"
+                },
+            },
+            {title: "authors (multiple selection)", titleDownload:"authorList", field:"authorList", headerSortTristate:true,
+                mutator: function(value) {
+                    // Map objects only to id
+                    return Array.isArray(value) ? value.map(item => item.id? item.id : item) : [];
+                },
+                editor: multiSelectEditor, editorParams:{
+                    values: [
+                        ...authors.map(item => ({
+                            value: item.id,
+                            label: formatName(item)
+                        }))
+                    ],
+                    autocomplete:false,
+                    multiselect:true,
+                    emptyValue:[]
+                },
+                headerFilter: multiSelectFilter, headerFilterParams: {
+                    values: authors.map(item => ({
+                            value: item.id,
+                            label: formatName(item)
+                    })),
+                    multiselect: true
+                },
+                headerFilterFunc: function(headerValue, rowValue){
+                    return headerValue.every(val => rowValue.includes(val));
+                },
+                sorter: formattedSorter(value => formatAuth(authors, value)),
+                formatter: textFormatter(cell => formatAuth(authors, cell.getValue())),
+                accessorDownload: value => formatAuth(authors, value),
+            },
+            {title:"doi", field:"doi", editor:"input", headerFilter:true, headerSortTristate:true},
+            {title:"short citation", titleDownload:"shortCitation", field:"shortCitation", editor:"input", headerFilter:true, headerSortTristate:true},
+            {title:"long citation", titleDownload:"longCitation", field:"longCitation", editor:"input", headerFilter:true, headerSortTristate:true},
+            {title:"abstract", field:"litAbstract", editor:"input", headerFilter:true, headerSort:false},
+        ],
+        initialSort: [
+            {column: "title", dir: "asc"}
+        ]
+    });
+
+
+    // Hide spinner
+    spinner.style.display = 'none';
+    // Show table
+    tableContainer.style.display = 'flex';
+
+    activeTable = "literatureTable";
+
+
+    // PUT: update literature -------------------------------------------------
+    literatureTable.on("cellEdited", async function(cell){
+
+        const editedField = cell.getField();
+        const newValue = cell.getValue();
+
+        const selectedRows = await getRowsToUpdate(literatureTable, cell, "literature", "literature entries");
+        if (!selectedRows) return;
+        selectedRows.forEach(row => {
+            
+            // Create payload
+            const literature = JSON.parse(JSON.stringify(row.getData()));
+            setNestedValue(literature, editedField, newValue); // other selected rows do not contain the new value yet
+            const literatureId = literature.id;
+
+            // Map author ids back to author objects
+            const authorsAsObjects = (literature.authorList || []).map(item => typeof item === "string"
+                ? {
+                    id: item,
+                    firstName: authors.find(auth => auth.id === item).firstName,
+                    middleName: authors.find(auth => auth.id === item).middleName,
+                    lastName: authors.find(auth => auth.id === item).lastName,
+                 }
+                : item);
+
+            // Without the sites: they are linked in the sites table / the migration (and the nested sites couldn't always be read)
+            const { authorList, siteList, ...literatureWithoutAuthorList } = literature;
+
+            // Create FormData object
+            const formData = new FormData();
+            
+            formData.append("transferredLiterature", new Blob([JSON.stringify(literatureWithoutAuthorList)], { type: "application/json" }));
+            formData.append("authorList", new Blob([JSON.stringify(authorsAsObjects)], { type: "application/json" }));
+
+            axios.put(`api/literature/${literatureId}`, formData, {
+                headers: {
+                    "Content-Type": 'multipart/form-data'
+                }
+            })
+            .then(async response => {
+                console.log(response.data);
+                
+                // Update table
+                if(row !== cell.getRow()) { // skip the edited line
+                    updateRowField(row, editedField, newValue);
+                }
+            })
+            .catch(error => handleUpdateError(cell, row, "literature entry", error));
+        });
+    });
+
+    // Delete rows --------------------------------------------------------------
+    const deleteButton = document.getElementById("deleteRows-button");
+    
+    // Only show deleteButton if at least one row is selected
+    literatureTable.on("rowSelectionChanged", function(rows){
+        deleteButton.classList.toggle("hidden", rows.length === 0);
+    });
+
+    // onclick (not addEventListener): the button is shared by all tables
+    deleteButton.onclick = async function() {
+        const selectedRows = literatureTable.getSelectedRows();
+        if (!await confirmDelete("literature entry", selectedRows.length, "literature entries")) return;
+
+        selectedRows.forEach(row => {
+            // Get id
+            const literatureId = row.getData().id;
+
+            axios.delete(`api/literature/${literatureId}`)
+            .then(async response => {
+                console.log(response.data);
+                await row.delete();
+                // Deleting a row does not fire rowSelectionChanged
+                deleteButton.classList.toggle("hidden", literatureTable.getSelectedRows().length === 0);
+            })
+            .catch(error => {
+                handleDeleteError("literature entry", error);
+            });            
+        });
+    };
+}
+
+// Export table -----------------------------------------------------------------
+document.getElementById("download-json").addEventListener("click", function(){
+    if (activeTable === "literatureTable") {
+        const rawData = literatureTable.getData("active");
+    
+        const transformed = rawData.map(row => {
+            
+            return {
+                id: row.id,
+                title: row.title,
+                publicationYear: row.publicationYear,
+                authorList: (row.authorList || []).map(authorId => {
+                    const authorValues = literatureTable.getColumn("authorList").getDefinition().editorParams.values;
+                    const author = authorValues.find(a => a.value === authorId);
+                    return { id: authorId, name: author?.label ?? "" };
+                }),
+                doi: row.doi,
+                shortCitation: row.shortCitation,
+                longCitation: row.longCitation,
+                abstract: row.abstract,
+            };
+        });
+
+        const blob = new Blob([JSON.stringify(transformed, null, 4)], { type: "application/json" });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement("a");
+        a.href = url;
+        a.download = "ArboDat+_Download_Literature.json";
+        a.click();
+        // Revoke later: WebKit (macOS app window) cancels downloads whose blob URL is already revoked.
+        setTimeout(() => URL.revokeObjectURL(url), 60000);
+    }
+});
+
+document.getElementById("download-csv").addEventListener("click", function(){
+    if (activeTable === "literatureTable") {
+        literatureTable.download(
+            "csv",
+            "ArboDat+_Download_Literature.csv"
+        );
+    }    
+});    
+
+document.getElementById("download-xlsx").addEventListener("click", function(){
+    if (activeTable === "literatureTable") {
+        literatureTable.download(
+            "xlsx",
+            "ArboDat+_Download_Literature.xlsx",
+            {sheetName:"ArboDat+ Literature"}
+        );
+    }
+});
+
+document.getElementById("download-html").addEventListener("click", function(){
+    if (activeTable === "literatureTable") {
+        literatureTable.download(
+            "html",
+            "ArboDat+_Download_Literature.html"            
+        );
+    }
+});

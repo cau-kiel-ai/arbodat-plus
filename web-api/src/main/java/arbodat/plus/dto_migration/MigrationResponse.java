@@ -26,6 +26,8 @@ public class MigrationResponse {
     private List<ExistingSample>            existingSampleList              = new ArrayList<>();
     private List<ExistingAbsoluteDating>    existingAbsoluteDatingList      = new ArrayList<>();
 
+    private List<FailedSite>                failedSiteList                  = new ArrayList<>();
+
     // For Testing
     @Override
     public String toString() {
@@ -41,6 +43,7 @@ public class MigrationResponse {
                 ", existingFeatureList=" + existingFeatureList +
                 ", existingSampleList=" + existingSampleList +
                 ", existingAbsoluteDatingList=" + existingAbsoluteDatingList +
+                ", failedSiteList=" + failedSiteList +
                 '}';
     }
 }

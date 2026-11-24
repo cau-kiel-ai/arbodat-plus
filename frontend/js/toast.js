@@ -1,3 +1,9 @@
+// Reason of a failed request: message sent by the backend, else the client-side error message
+function getErrorMessage(error) {
+    const data = error.response?.data;
+    return (typeof data === "string" && data) ? data : error.message;
+}
+
 // Wrapper
 const toast = {
     success: msg => showToast('success', msg),
@@ -26,8 +32,8 @@ function showToast(type, message) {
 
         Object.assign(container.style, {
             position: 'fixed',
-            top: '8px',
-            right: '8px',
+            top: '4px',
+            right: '4px',
             display: 'flex',
             flexDirection: 'column',
             gap: '10px',
@@ -61,7 +67,7 @@ function showToast(type, message) {
         </div>
 
         <div style="flex:1; font-size:16px; color:#333">
-            ${message}
+            ${escapeHtml(message)}
         </div>
     `;
 
@@ -72,6 +78,6 @@ function showToast(type, message) {
         toast.style.opacity = '0';
         toast.style.transform = 'translateX(8px)';
 
-        setTimeout(() => toast.remove(), 300);
+        setTimeout(() => toast.remove(), 350);
     }, 3000);
 }

@@ -4,43 +4,52 @@
       <meta charset="UTF-8">      
       <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
-      <title>ArboDat+ Input</title>
+      <title>ArboDat+ | Data Input</title>
 
       <link href="img/favicon.png" rel="icon">
       <link href="css/input.min.css" rel="stylesheet">
+      <script src="components/app-footer.js"></script>
+      <script src="components/app-navbar.js"></script>
       
       <!-- bootstrap -->
-      <script
-        src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"
-        integrity="sha384-YvpcrYf0tY3lHB60NNkmXc5s9fDVZLESaAA55NDzOxhy9GkcIdslK1eN7N6jIeHz"
-        crossorigin="anonymous"
-        >
-      </script>
+      <script src="vendor/bootstrap@5.3.8/dist/js/bootstrap.bundle.min.js"></script>
       <!-- axios -->
-      <script src="https://unpkg.com/axios@1.8.4/dist/axios.min.js"></script>
+      <script src="vendor/axios@1.21.0/dist/axios.min.js"></script>
       <!-- jquery -->
-      <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.7.1/jquery.min.js"></script>
+      <script src="vendor/jquery@3.7.1/dist/jquery.min.js"></script>
       <!-- leaflet -->
-      <link
-        href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
-        rel="stylesheet"
-        integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY="
-        crossorigin=""
-      />
-      <script
-        src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
-        integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo="
-        crossorigin=""
-        >
-      </script>
+      <link href="vendor/leaflet@1.9.4/dist/leaflet.css" rel="stylesheet" />
+      <script src="vendor/leaflet@1.9.4/dist/leaflet.js"></script>
       <!-- proj4js -->
-      <script src="https://cdnjs.cloudflare.com/ajax/libs/proj4js/2.15.0/proj4.js"></script>
+      <script src="vendor/proj4@2.22.0/dist/proj4.js"></script>
       <!-- Select2 -->
-      <link
-        href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css"
-        rel="stylesheet"
-      />
-      <script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
+      <link href="vendor/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
+      <script src="vendor/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
+      <!-- tabulator (results table) -->
+      <link href="vendor/tabulator-tables@6.7.1/dist/css/tabulator.min.css" rel="stylesheet" />
+      <script src="vendor/tabulator-tables@6.7.1/dist/js/tabulator.min.js"></script>
+      <!-- Export includes -->
+      <script src="vendor/xlsx@0.20.3/dist/xlsx.full.min.js"></script>
+      <!-- Spinner style -->
+      <style>
+        /* Loading Spinner (Circular) */
+        .spinner {
+          border: 4px solid #f3f3f3;
+          border-top: 4px solid #3498db;
+          border-radius: 50%;
+          width: 50px;
+          height: 50px;
+          animation: spin 2s linear infinite;
+          display: none; /* Initially hidden */
+          margin: 20px auto;
+        }
+
+        /* Spinner Animation */
+        @keyframes spin {
+          0% { transform: rotate(0deg); }
+          100% { transform: rotate(360deg); }
+        }
+      </style>
 
 
       <style>
@@ -118,115 +127,28 @@
           font-weight: 200;
           line-height: 24px;
         }
+        /* keep chips clear of the clear-all × */
+        .select2-container .select2-selection--multiple.select2-selection--clearable {
+          padding-right: 36px;
+        }
       </style>
 
   </head>
 
   <body >
     
-    <header class="header">
-      <h1> <img src="img/logo_arbodat_plus.png" alt="logo_arbodat_plus"> </h1>
-    </header> 
+    <app-navbar></app-navbar>
 
     <!-- Accordion -->
-    <div class="container-md" style="margin-top: 120px;">
+    <div class="container-md">
       <div class="accordion" id="accordionPanels">
-        
-        <!-- Research Project -->
-        <div class="accordion-item">
 
-          <h2 class="accordion-header">
-            <button class="accordion-button" type="button" data-bs-toggle="collapse" data-bs-target="#panelsStayOpen-collapseOne" aria-expanded="false" aria-controls="panelsStayOpen-collapseOne">
-              RESEARCH PROJECT
-            </button>
-          </h2>
-
-          <div id="panelsStayOpen-collapseOne" class="accordion-collapse collapse">
-            <div class="accordion-body">
-
-              <form id="researchProjectForm">
-                <fieldset>
-
-                  <input type="hidden" id="researchProjectId">
-
-                  <div class="row">
-                    <div class="col-25">
-                      <label for="projectName" title="Identification of the Project. Select from the list or enter a new project." >project name: *</label>
-                    </div>
-                    <div class="col-75">
-                      <input type="text" placeholder="" id="projectName" required>
-                      <span class="clear-icon" id="clearIcon" style="position: absolute; right: 25px; top: 50%; transform: translateY(-50%); cursor: pointer; color: black; font-size: 16px;">&#10005;</span>
-                      <ul id="projectDropdown" class="dropdown hidden"></ul>
-                    </div>
-                  </div>
-
-                  <div class="row">
-                    <div class="col-25">
-                      <label  for="funder" data-tooltip="Who funded the project? e.g. German Research Foundation." >funder name:</label>
-                    </div>
-                    <div class="col-75">
-                      <input type="text" id="funder">
-                    </div>
-                  </div>
-
-                  <div class="row">
-                    <div class="col-25">
-                      <label for="authorisationNumber" data-tooltip="Grant or funding reference number.">authorisation number:</label>
-                    </div>
-                    <div class="col-75">
-                      <input type="text" id="authorisationNumber">
-                    </div>
-                  </div>
-
-                  <div class="row">
-                    <div class="col-25">
-                      <label for="licenseDropdown" data-tooltip="Please choose from the list.">license: </label>
-                    </div>
-                    <div class="col-75">
-                      <select id="licenseDropdown" style="width: 100%;">
-                        <option value=""></option>
-                      </select>
-                      <!-- Select2 dropdown -->
-                      <script>
-                        $(document).ready(function() {
-                            $('#licenseDropdown').select2({
-                              placeholder: '',
-                              allowClear: true
-                            });
-
-                            // remove arrow
-                            $('#licenseDropdown')
-                              .next('.select2-container')
-                              .find('.select2-selection__arrow')
-                              .remove();
-                        });
-                      </script>
-                    </div>
-                  </div>
-
-                  <div class="row">
-                    <div class="col-25">
-                      <label for="exportFileName">export file name:</label>
-                    </div>
-                    <div class="col-75">
-                      <input type="text" id="exportFileName">
-                    </div>
-                  </div>
-
-                  <button type="button" id="custom_rp_button" onclick="create_update_researchProject()" class="MySubmitButton" style="width: unset; padding-left: 10px; padding-right: 10px;">create</button>
-
-                </fieldset>
-              </form>
-            </div>
-          </div>
-        </div>
-
-        <!-- User and Institution -->
+        <!-- Institution and Team -->
         <div class="accordion-item">
 
           <h2 class="accordion-header">
             <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#panelsStayOpen-collapseTwo" aria-expanded="false" aria-controls="panelsStayOpen-collapseTwo">
-              INSTITUTION AND USER
+              INSTITUTION AND TEAM
             </button>
           </h2>
 
@@ -321,35 +243,14 @@
                     </div>
                   </div>
                   
-                  <div
-                    class="row"
-                    style="
-                      border: 0.5px solid #ccc;
-                      border-left: none;
-                      border-radius: 0 4px 4px 0;
-                      margin-top: 12px;
-                      padding-bottom: 6px;
-                      padding-top: 6px;
-                      margin-right: auto;
-                    "
-                  >
+                  <div class="row">
                     <div class="col-25">
-                      <label for="userInstitutions" data-tooltip="Add institutions from the list.">institutions:</label>
+                      <label for="userInstitutions" data-tooltip="Select institutions from the list.">institutions:</label>
                     </div>
 
-                    <div class="col-75" style="padding-left: 14px; display:flex; gap:10px; align-items:center;">
-                      <select id="userInstitutions"></select>
-                      <!-- Button to add institution -->
-                      <button type="button"
-                              class="btn btn-primary"
-                              id="addInstitutionButton">
-                        Add
-                      </button>
+                    <div class="col-75">
+                      <select id="userInstitutions" multiple style="width: 100%;"></select>
                     </div>
-
-                    <!-- Container to display added institutions -->
-                    <div class="col-25"></div>
-                    <div class="col-75" id="institutionContainer" style="padding-left: 14px; margin-top: 0px;"></div>
                   </div>
 
                   <button type="button" id="userSubmitButton" class="MySubmitButton" onclick="create_update_user()" style="width: unset; padding-left: 10px; padding-right: 10px;">create</button> 
@@ -445,35 +346,14 @@
                   </div>
 
                   <!-- authors -->
-                  <div
-                    class="row"
-                    style="
-                      border: 0.5px solid #ccc;
-                      border-left: none;
-                      border-radius: 0 4px 4px 0;
-                      margin-top: 12px;
-                      padding-bottom: 6px;
-                      padding-top: 6px;
-                      margin-right: auto;
-                    "
-                  >
+                  <div class="row">
                     <div class="col-25">
-                      <label for="literatureAuthors" data-tooltip="Add authors from the list.">authors:</label>
+                      <label for="literatureAuthors" data-tooltip="Select authors from the list.">authors:</label>
                     </div>
 
-                    <div class="col-75" style="padding-left: 14px; display:flex; gap:10px; align-items:center;">                      
-                      <select id="literatureAuthors"></select>
-                      <!-- Button to add author -->
-                      <button type="button"
-                              class="btn btn-primary"
-                              id="addAuthorButton">
-                        Add
-                      </button>
+                    <div class="col-75">
+                      <select id="literatureAuthors" multiple style="width: 100%;"></select>
                     </div>
-
-                    <!-- Container to display added Authors -->
-                    <div class="col-25"></div>
-                    <div class="col-75" id="literatureAuthorContainer" style="padding-left: 14px; margin-top: 0px;"></div>
                   </div>
 
                   <!-- DOI -->
@@ -524,6 +404,86 @@
           </div>
         </div>
 
+        <!-- Research Project -->
+        <div class="accordion-item" style="margin-top: 52px; border-top: var(--bs-accordion-border-width) solid var(--bs-accordion-border-color);">
+
+          <h2 class="accordion-header">
+            <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#panelsStayOpen-collapseOne" aria-expanded="false" aria-controls="panelsStayOpen-collapseOne">
+              RESEARCH PROJECT
+            </button>
+          </h2>
+
+          <div id="panelsStayOpen-collapseOne" class="accordion-collapse collapse">
+            <div class="accordion-body">
+
+              <form id="researchProjectForm">
+                <fieldset>
+
+                  <input type="hidden" id="researchProjectId">
+
+                  <div class="row">
+                    <div class="col-25">
+                      <label for="projectName" title="Identification of the Project. Select from the list or enter a new project." >project name: *</label>
+                    </div>
+                    <div class="col-75">
+                      <input type="text" placeholder="" id="projectName" required>
+                      <span class="clear-icon" id="clearIcon" style="position: absolute; right: 25px; top: 50%; transform: translateY(-50%); cursor: pointer; color: black; font-size: 16px;">&#10005;</span>
+                      <ul id="projectDropdown" class="dropdown hidden"></ul>
+                    </div>
+                  </div>
+
+                  <div class="row">
+                    <div class="col-25">
+                      <label  for="funder" data-tooltip="Who funded the project? e.g. German Research Foundation." >funder name:</label>
+                    </div>
+                    <div class="col-75">
+                      <input type="text" id="funder">
+                    </div>
+                  </div>
+
+                  <div class="row">
+                    <div class="col-25">
+                      <label for="authorisationNumber" data-tooltip="Grant or funding reference number.">authorisation number:</label>
+                    </div>
+                    <div class="col-75">
+                      <input type="text" id="authorisationNumber">
+                    </div>
+                  </div>
+
+                  <div class="row">
+                    <div class="col-25">
+                      <label for="licenseDropdown" data-tooltip="Please choose from the list.">license: </label>
+                    </div>
+                    <div class="col-75">
+                      <select id="licenseDropdown" style="width: 100%;">
+                        <option value=""></option>
+                      </select>
+                      <!-- Select2 dropdown -->
+                      <script>
+                        $(document).ready(function() {
+                            $('#licenseDropdown').select2({
+                              placeholder: '',
+                              allowClear: true
+                            });
+
+                            // remove arrow
+                            $('#licenseDropdown')
+                              .next('.select2-container')
+                              .find('.select2-selection__arrow')
+                              .remove();
+                        });
+                      </script>
+                    </div>
+                  </div>
+
+                  <button type="button" id="custom_rp_button" onclick="create_update_researchProject()" class="MySubmitButton" style="width: unset; padding-left: 10px; padding-right: 10px;">create</button>
+
+                </fieldset>
+              </form>
+            </div>
+          </div>
+        </div>
+
         <!-- Site -->
         <div class="accordion-item">
 
@@ -543,39 +503,19 @@
                   <legend>References</legend>
 
                   <!-- reference research projects -->
-                  <div
-                    class="row"
-                    style="
-                      border: 0.5px solid #ccc;
-                      border-left: none;
-                      border-radius: 0 4px 4px 0;
-                      padding-bottom: 6px;
-                      padding-top: 6px;
-                      margin-right: auto;
-                    "
-                  >
+                  <div class="row">
                     <div class="col-25">
                       <label
                         for="siteResearchProjects"
-                        data-tooltip = "Please add: Which project is the site assigned to? Multiple choice is possible."
+                        data-tooltip = "Please select: Which project is the site assigned to? Multiple choice is possible."
                       >
                         reference research projects:&nbsp;*
                       </label>
                     </div>
 
-                    <div class="col-75" style="padding-left: 14px; display:flex; gap:10px; align-items:center;">
-                      <select name="siteResearchProjects" id="siteResearchProjects"></select>
-                      <!-- Button to add project --> 
-                      <button type="button"
-                              class="btn btn-primary"
-                              id="addResearchProjectButton">
-                        Add
-                      </button>
+                    <div class="col-75">
+                      <select id="siteResearchProjects" multiple style="width: 100%;"></select>
                     </div>
-
-                    <!-- Container to display added projects -->
-                    <div class="col-25"></div>
-                    <div class="col-75" id="researchProjectContainer" style="padding-left: 14px; margin-top: 0px;"></div>
                   </div>
 
                   <!-- site label -->
@@ -592,41 +532,19 @@
                   </div>
 
                   <!-- reference literature -->
-                  <div
-                    class="row"
-                    style="
-                      border: 0.5px solid #ccc;
-                      border-left: none;
-                      border-radius: 0 4px 4px 0;
-                      margin-top: 12px;
-                      padding-bottom: 6px;
-                      padding-top: 6px;
-                      margin-right: auto;
-                    "
-                  >
+                  <div class="row">
                     <div class="col-25">
                       <label
                         for="siteLiterature"
-                        data-tooltip="Please reference relevant literature by adding them. New literature can be created in the 'LITERATURE' section."
+                        data-tooltip="Please reference relevant literature by selecting them. New literature can be created in the 'LITERATURE' section."
                       >
                         reference literature:
                       </label>
                     </div>
 
-                    <div class="col-75" style="padding-left: 14px; display:flex; gap:10px; align-items:center;">
-                      <select id="siteLiterature"></select>
-                      <!-- Button to add literature --> 
-                      <button type="button"
-                              class="btn btn-primary"
-                              id="addLiteratureButtonSite"
-                      >
-                        Add
-                      </button>
+                    <div class="col-75">
+                      <select id="siteLiterature" multiple style="width: 100%;"></select>
                     </div>
-
-                    <!-- Container to display added literature -->
-                    <div class="col-25"></div>
-                    <div class="col-75" id="siteLiteratureContainer" style="padding-left: 14px; margin-top: 0px;"></div>
                   </div>
 
                 </fieldset>
@@ -652,10 +570,27 @@
 
                               <div class="row">
                                 <div class="col-25">
-                                  <label for="activity_number" data-tooltip="Optional number, for internal use.">activity number:</label>
+                                  <label for="activityNumbers" data-tooltip="Optional numbers, for internal use. Pick existing numbers from the list or type new ones (Enter or ';').">activity numbers:</label>
                                 </div>
                                 <div class="col-75">
-                                  <input type="text" id="activity_number">
+                                  <!-- Select2 pills: existing numbers from the list or new ones typed in, see js/input/site.js -->
+                                  <select id="activityNumbers" multiple style="width: 100%"></select>
+                                  <script>
+                                    // When a click outside closes the open select2 dropdown, select2 focuses its own field.
+                                    // That scrolls the page, so the mouseup misses the clicked button (e.g. "update") and no
+                                    // click is fired. Keep the scroll position of the mousedown.
+                                    (function() {
+                                      let scrollX = 0, scrollY = 0;
+                                      document.addEventListener('mousedown', function() {
+                                        scrollX = window.scrollX;
+                                        scrollY = window.scrollY;
+                                      }, true);
+                                      document.addEventListener('mousedown', function(e) {
+                                        if (e.target.closest('.select2-container')) return;
+                                        window.scrollTo({ left: scrollX, top: scrollY, behavior: 'instant' });
+                                      });
+                                    })();
+                                  </script>
                                 </div>
                               </div>
 
@@ -717,13 +652,7 @@
                                   <!-- Select2 Multi-select boxes (pillbox) -->
                                   <script>
                                     $(document).ready(function() {
-                                        $('#site_type').select2({
-                                          placeholder: '',
-                                          allowClear: true,
-                                          templateSelection: function(item) {
-                                            return (item.text || '').trim();
-                                          }
-                                        });
+                                        initMultiSelect('#site_type');
                                     });
                                   </script>
                                 </div>
@@ -802,150 +731,67 @@
                             <fieldset>
 
                               <!-- institutions -->
-                              <div
-                                class="row"
-                                style="
-                                  border: 0.5px solid #ccc;
-                                  border-left: none;
-                                  border-radius: 0 4px 4px 0;
-                                  padding-bottom: 6px;
-                                  padding-top: 6px;
-                                  margin-right: auto;
-                                "
-                              >
+                              <div class="row">
                                 <div class="col-25">
                                   <label
                                     for="siteInstitutions"
-                                    data-tooltip="Add institutions from the list. New institutions can be created in the 'INSTITUTION AND USER' section."
+                                    data-tooltip="Select institutions from the list. New institutions can be created in the 'INSTITUTION AND TEAM' section."
                                   >
                                     institutions:
                                   </label>
                                 </div>
 
-                                <div class="col-75" style="display:flex; gap:10px; align-items:center;">
-                                  <select id="siteInstitutions"></select>
-                                  <!-- Button to add institution --> 
-                                  <button type="button"
-                                          class="btn btn-primary"
-                                          id="addInstitutionButtonSite">
-                                    Add
-                                  </button>
+                                <div class="col-75">
+                                  <select id="siteInstitutions" multiple style="width: 100%;"></select>
                                 </div>
-
-                                <!-- Container to display added institutions -->
-                                <div class="col-25"></div>
-                                <div class="col-75" id="siteInstitutionContainer" style="padding-left: 12px; margin-top: 0px;"></div>
                               </div>
 
                               <!-- heads of excavation -->
-                              <div
-                                class="row"
-                                style="
-                                  border: 0.5px solid #ccc;
-                                  border-left: none;
-                                  border-radius: 0 4px 4px 0;
-                                  padding-bottom: 6px;
-                                  padding-top: 6px;
-                                  margin-top: 12px;
-                                  margin-right: auto;
-                                "
-                              >
+                              <div class="row">
                                 <div class="col-25"> 
                                   <label
                                     for="siteDirectors"
-                                    data-tooltip="Add heads of excavation from the list. New users can be created in the 'INSTITUTION AND USER' section."
+                                    data-tooltip="Select heads of excavation from the list. New users can be created in the 'INSTITUTION AND TEAM' section."
                                   >
                                     heads of excavation:
                                   </label>
                                 </div>
 
-                                <div class="col-75" style="display:flex; gap:10px; align-items:center;">
-                                  <select id="siteDirectors"></select>
-                                  <!-- Button to add head of excavation --> 
-                                  <button type="button"
-                                          class="btn btn-primary"
-                                          id="addSiteDirectorButton">
-                                    Add
-                                  </button>
+                                <div class="col-75">
+                                  <select id="siteDirectors" multiple style="width: 100%;"></select>
                                 </div>
-
-                                <!-- Container to display added heads of excavation -->
-                                <div class="col-25"></div>
-                                <div class="col-75" id="siteDirectorContainer" style="padding-left: 12px; margin-top: 0px;"></div>
                               </div>
 
                               <!-- archaeologists -->
-                              <div
-                                class="row"
-                                style="
-                                  border: 0.5px solid #ccc;
-                                  border-left: none;
-                                  border-radius: 0 4px 4px 0;
-                                  padding-bottom: 6px;
-                                  padding-top: 6px;
-                                  margin-top: 12px;
-                                  margin-right: auto;
-                                "
-                              >
+                              <div class="row">
                                 <div class="col-25"> 
                                   <label
                                     for="archeologists"
-                                    data-tooltip="Add archeologists from the list. New users can be created in the 'INSTITUTION AND USER' section."
+                                    data-tooltip="Select archeologists from the list. New users can be created in the 'INSTITUTION AND TEAM' section."
                                   >
                                     archaeologists:
                                   </label>
                                 </div>
 
-                                <div class="col-75" style="display:flex; gap:10px; align-items:center;">
-                                  <select id="archeologists"></select>
-                                  <!-- Button to add archeologists --> 
-                                  <button type="button"
-                                          class="btn btn-primary"
-                                          id="addArcheologistButton">
-                                    Add
-                                  </button>
+                                <div class="col-75">
+                                  <select id="archeologists" multiple style="width: 100%;"></select>
                                 </div>
-
-                                <!-- Container to display added archeologists -->
-                                <div class="col-25"></div>
-                                <div class="col-75" id="ArcheologistContainer" style="padding-left: 12px; margin-top: 0px;"></div>
                               </div>
 
                               <!-- botanists -->
-                              <div
-                                class="row"
-                                style="
-                                  border: 0.5px solid #ccc;
-                                  border-left: none;
-                                  border-radius: 0 4px 4px 0;
-                                  padding-bottom: 6px;
-                                  padding-top: 6px;
-                                  margin-top: 12px;
-                                  margin-right: auto;
-                                "
-                              >
+                              <div class="row">
                                 <div class="col-25"> 
                                   <label
                                     for="botanists"
-                                    data-tooltip="Add botanists from the list. New users can be created in the 'INSTITUTION AND USER' section."
+                                    data-tooltip="Select botanists from the list. New users can be created in the 'INSTITUTION AND TEAM' section."
                                   >
                                     botanists:
                                   </label>
                                 </div>
 
-                                <div class="col-75" style="display:flex; gap:10px; align-items:center;">
-                                  <select id="botanists"></select>
-                                  <!-- Button to add botanists --> 
-                                  <button type="button"
-                                          class="btn btn-primary"
-                                          id="addBotanistButton">
-                                    Add
-                                  </button>
+                                <div class="col-75">
+                                  <select id="botanists" multiple style="width: 100%;"></select>
                                 </div>
-
-                                <!-- Container to display added botanists -->
-                                <div class="col-25"></div>
-                                <div class="col-75" id="BotanistContainer" style="padding-left: 12px; margin-top: 0px;"></div>
                               </div>
 
                             </fieldset>
@@ -1160,7 +1006,7 @@
 
           <h2 class="accordion-header">
             <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#panelsStayOpen-collapseFour" aria-expanded="false" aria-controls="panelsStayOpen-collapseFour">
-              FEATURE (horizontal)
+              FEATURE
             </button>
           </h2>
 
@@ -1282,20 +1128,23 @@
                   <!-- excavation years -->
                   <div class="row">
                     <div class="col-25">
-                      <label for="excavation_years">year(s) of excavation: </label>
+                      <label for="excavation_years" data-tooltip="Pick existing years from the list or type new ones (Enter or ';').">years of excavation:</label>
                     </div>
                     <div class="col-75">
-                      <select type="int" id="excavation_years" multiple size='6' style="width: 84px;"></select>
+                      <select type="int" id="excavation_years" multiple style="width: 100%"></select>
                     </div>
                   </div>
 
                   <!-- building context -->
                   <div class="row">
                     <div class="col-25"> 
-                      <label for="building_context" data-tooltip="Check this box if the feature belongs to a building. Specifications such as house numbers can be made in the 'remarks' box below.">building context:</label>
+                      <label for="building_context" data-tooltip="Check this box if the feature belongs to a building. A description of the house (e.g. house number) can be entered in the field next to the checkbox.">building context:</label>
                     </div>
                     <div class="col-75">
-                      <input type="checkbox" id="building_context" style="margin-top: 18px;">
+                      <div style="display: flex; align-items: center; gap: 12px; min-height: 52px;">
+                        <input type="checkbox" id="building_context" onchange="toggleBuildingContextDescription()" style="margin-top: 0px;">
+                        <input type="text" id="building_context_description" placeholder="description (e.g. house number)" style="display: none;">
+                      </div>
                     </div>
                   </div>
 
@@ -1330,7 +1179,7 @@
         <div class="accordion-item">
           <h2 class="accordion-header">
             <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#panelsStayOpen-collapseFive" aria-expanded="false" aria-controls="panelsStayOpen-collapseFive">
-              SAMPLE (vertical)
+              SAMPLE
             </button>
           </h2>
           <div id="panelsStayOpen-collapseFive" class="accordion-collapse collapse">
@@ -1563,17 +1412,7 @@
                             <fieldset>
 
                               <!-- botanical determination by -->
-                              <div
-                                class="row"
-                                style="
-                                  border: 0.5px solid #ccc;
-                                  border-left: none;
-                                  border-radius: 0 4px 4px 0;
-                                  padding-bottom: 6px;
-                                  padding-top: 6px;
-                                  margin-right: auto;
-                                "
-                              >
+                              <div class="row">
                                 <div class="col-25">
                                   <label
                                     for="botanicalDeterminationsBy"
@@ -1583,19 +1422,9 @@
                                   </label>
                                 </div>
 
-                                <div class="col-75" style="display:flex; gap:10px; align-items:center;">
-                                  <select id="botanicalDeterminationsBy"></select>
-                                  <!-- Button to add botanist --> 
-                                  <button type="button"
-                                          class="btn btn-primary"
-                                          id="addBotanicalDeterminationByButton">
-                                    Add
-                                  </button>
+                                <div class="col-75">
+                                  <select id="botanicalDeterminationsBy" multiple style="width: 100%;"></select>
                                 </div>
-
-                                <!-- Container to display added botanists -->
-                                <div class="col-25"></div>
-                                <div class="col-75" id="botanicalDeterminationByContainer" style="padding-left: 12px; margin-top: 0px;"></div>
                               </div>
 
                               <!-- year of botanical determination -->
@@ -1612,75 +1441,21 @@
                                   <input type="int" id="bot_det_yr" style="width: 70px;">
                                 </div>
                               </div>
-                              <br>
 
-                              <fieldset id="fractions" style="padding: 0;">
-                                <div id="one_fraction">
-                                  <br>
-                                  <legend>fraction 1:</legend>
-
-                                  <!-- fraction analyzed -->
-                                  <div class="row">
-                                    <div class="col-25"> 
-                                      <label for="fraction_analyzed_1">fraction analyzed:</label>
-                                    </div>
-                                    <div class="col-75">
-                                      <select id="fraction_analyzed_1">
-                                        <option value="" hidden selected></option>
-                                        <option value="yes">yes</option>
-                                        <option value="no">no</option>
-                                        <option value="partly">partly</option>
-                                      </select>
-                                    </div>
-                                  </div>
-
-                                  <!-- orgOrMin -->
-                                  <div class="row">
-                                    <div class="col-25"> 
-                                      <label for="">organic / minerals:</label>
-                                    </div>
-                                    <div class="col-75">
-                                      <div class="form-check form-check-inline">
-                                        <label class="form-check-label" for="org_1">ORG</label>
-                                        <input class="form-check-input" type="radio" name="orgOrMin_1" id="org_1" value="org" disabled>
-                                      </div>
-                                      <div class="form-check form-check-inline">
-                                        <label class="form-check-label" for="min_1">MIN</label>
-                                        <input class="form-check-input" type="radio" name="orgOrMin_1" id="min_1" value="min" disabled>
-                                      </div>
-                                    </div>
-                                  </div>
-
-                                  <!-- sieve size -->
-                                  <div class="row">
-                                    <div class="col-25"> 
-                                      <label for="sieveSize">sieve size [mm]:</label>
-                                    </div>
-                                    <div class="col-75">
-                                      <input type="number" step="0.01" id="sieveSize_1" disabled>
-                                    </div>
-                                  </div>
-
-                                  <!-- standard multiplier -->
-                                  <div class="row">
-                                    <div class="col-25"> 
-                                      <label for="multiplier">standard multiplier:</label>
-                                    </div>
-                                    <div class="col-75">
-                                      <input type="number"step="0.01" id="multiplier_1" min="1" disabled>
-                                    </div>
-                                  </div>
+                              <!-- fractions: in the grid like the fields above, so they line up with the inputs -->
+                              <div class="row" style="margin-top: 10px;">
+                                <div class="col-25"></div>
+                                <div class="col-75">
+                                  <fieldset id="fractions">
+                                    <!-- fraction boxes are rendered by js/input/sample-fraction-boxes.js -->
+                                  </fieldset>
                                 </div>
-                              </fieldset>
+                              </div>
                               <button type="button" class="Add" onclick="addFraction()" >add fraction</button>
                               <script>
-                                document.addEventListener("DOMContentLoaded", () => {
-                                  updateRemoveFractionButtonVisibility();
-                                  handleRequiredAndEnableInputsForFraction(1);
-                                });
+                                document.addEventListener("DOMContentLoaded", () => addFraction());
                               </script>
-                              <button type="button" class="Remove" style="margin-left: 10px; margin-right: 10px;" id="removeFractionButton" onclick="removeFraction()" >remove fraction</button>
-                              <br><br><br><br><br>
+                              <br><br><br><br>
 
                               <!-- sample type -->
                               <div class="row">
@@ -1834,17 +1609,17 @@
                                   <label for="charcoal_total_weight">charcoal total weight [g]:</label>
                                 </div>
                                 <div class="col-75">
-                                  <input type="number" step="0.01" id="charcoal_total_weight">
+                                  <input type="number" step="0.0001" id="charcoal_total_weight">
                                 </div>
                               </div>
 
                               <!-- weight undetermined -->
                               <div class="row">
                                 <div class="col-25"> 
-                                  <label for="charcoal_undetermined_weight">charcoal, undetermined weight [g]:</label>
+                                  <label for="charcoal_undetermined_weight">charcoal undetermined weight [g]:</label>
                                 </div>
                                 <div class="col-75">
-                                  <input type="number" step="0.01" id="charcoal_undetermined_weight">
+                                  <input type="number" step="0.0001" id="charcoal_undetermined_weight">
                                 </div>
                               </div>
 
@@ -1934,6 +1709,17 @@
                                 </div>
                                 <div class="col-75">
                                   <input type="text" id="culturalGroup">
+                                </div>
+                              </div>
+
+                              <!-- absolute dating from, to -->
+                              <div class="row">
+                                <div class="col-25"> 
+                                  <label for="absoluteDatingFrom">absolute dating:</label>
+                                </div>
+                                <div class="col-75">
+                                  <input type="number" step="1" id="absoluteDatingFrom" placeholder="from">
+                                  <input type="number" step="1" id="absoluteDatingTo"   placeholder="to">
                                 </div>
                               </div>
                             </fieldset>
@@ -2034,41 +1820,19 @@
                   </div>
 
                   <!-- reference literature -->
-                  <div
-                    class="row"
-                    style="
-                      border: 0.5px solid #ccc;
-                      border-left: none;
-                      border-radius: 0 4px 4px 0;
-                      margin-top: 12px;
-                      padding-bottom: 6px;
-                      padding-top: 6px;
-                      margin-right: auto;
-                    "
-                  >
+                  <div class="row">
                     <div class="col-25">
                       <label
                         for="datingLiterature"
-                        data-tooltip="Please reference relevant literature by adding them. New literature can be created in the 'LITERATURE' section."
+                        data-tooltip="Please reference relevant literature by selecting them. New literature can be created in the 'LITERATURE' section."
                       >
                         reference literature:
                       </label>
                     </div>
 
-                    <div class="col-75" style="padding-left: 14px; display:flex; gap:10px; align-items:center;">
-                      <select id="datingLiterature"></select>
-                      <!-- Button to add literature --> 
-                      <button type="button"
-                              class="btn btn-primary"
-                              id="addLiteratureButtonAbsoluteDating"
-                      >
-                        Add
-                      </button>
+                    <div class="col-75">
+                      <select id="datingLiterature" multiple style="width: 100%;"></select>
                     </div>
-
-                    <!-- Container to display added literature -->
-                    <div class="col-25"></div>
-                    <div class="col-75" id="absDating_literature_container" style="padding-left: 14px; margin-top: 0px;"></div>
                   </div>
 
                 </fieldset>
@@ -2230,22 +1994,29 @@
                                   <label for="c14_lab" data-tooltip="Please select a C14 laboratory from the list.">C14 laboratory:</label>
                                 </div>
                                 <div class="col-75">
-                                  <select id="c14_lab" required style="width: 100%;">
-                                    <option value=""></option>
-                                  </select>
+                                  <div style="display: flex; align-items: center; flex-wrap: wrap; gap: 8px 16px;">
+                                    <div style="flex: 1 1 250px; min-width: 0; display: flex;">
+                                      <select id="c14_lab" required style="width: 100%;">
+                                        <option value=""></option>
+                                      </select>
+                                    </div>
+                                    <!-- filter by code / name -->
+                                    <div id="c14LabFilterBy" style="display: flex; align-items: center; gap: 12px; white-space: nowrap;">
+                                      <span>filter by:</span>
+                                      <label for="c14_lab_filter_code" style="display: flex; align-items: center; gap: 6px; padding: 0; cursor: pointer;">
+                                        <input type="radio" name="c14LabFilterBy" id="c14_lab_filter_code" value="code" style="margin: 0;" checked>
+                                        code
+                                      </label>
+                                      <label for="c14_lab_filter_name" style="display: flex; align-items: center; gap: 6px; padding: 0; cursor: pointer;">
+                                        <input type="radio" name="c14LabFilterBy" id="c14_lab_filter_name" value="name" style="margin: 0;">
+                                        name
+                                      </label>
+                                    </div>
+                                  </div>
                                   <!-- Select2 dropdown -->
                                   <script>
                                     $(document).ready(function() {
-                                        $('#c14_lab').select2({
-                                          placeholder: '',
-                                          allowClear: true
-                                        });
-
-                                        // remove arrow
-                                        $('#c14_lab')
-                                          .next('.select2-container')
-                                          .find('.select2-selection__arrow')
-                                          .remove();
+                                        initCodeNameFilter('c14_lab', 'c14LabFilterBy');
                                     });
                                   </script>
                                 </div>
@@ -2389,12 +2160,6 @@
           <div id="panelsStayOpen-collapseSeven" class="accordion-collapse collapse">
             <div class="accordion-body">
 
-              <span style="padding: 4px;">
-                ⓘ Results can only be submitted. In the
-                <a href="data-explorer.html" target="_blank">Data Explorer</a>,
-                results can be viewed, edited and deleted.
-              </span>
-
               <form id="resultForm" style="padding-top: 4px;">               
 
                 <!-- References -->
@@ -2437,34 +2202,6 @@
                     </div>
                   </div>
 
-                  <!-- reference absolute datings -->
-                  <div class="row">
-                    <div class="col-25">
-                      <label
-                        for="result_datings"
-                        data-tooltip="Multiple subsamples can be selected from the list of,
-                        previously entered in the DATING section."
-                      >
-                        related datings:
-                      </label>
-                    </div>
-                    <div class="col-75">
-                      <select id="result_datings" multiple style="width: 100%"></select>
-                      <!-- Select2 Multi-select boxes (pillbox) -->
-                      <script>
-                        $(document).ready(function() {
-                            $('#result_datings').select2({
-                              placeholder: '',
-                              allowClear: true,
-                              templateSelection: function(item) {
-                                return (item.text || '').trim();
-                              }
-                            });
-                        });
-                      </script>
-                    </div>
-                  </div>
-
                 </fieldset>
 
                 <br>
@@ -2484,7 +2221,7 @@
                         fraction: *
                       </label>
                     </div>
-                    <div class="col-75" padding-right: 20px;>
+                    <div class="col-75">
                       <select id="result_fraction" required style="width: 100%;">
                         <option value=""></option>
                       </select>
@@ -2505,75 +2242,80 @@
                     </div>
                   </div>
 
-                  <!-- fraction fieldset -->
-                  <fieldset 
-                    id="result_fraction"
-                    style="
-                      border: 0.5px solid #ccc;
-                      border-top: none;
-                      border-radius: 0 0 4px 4px;
-                      margin-top: 4px;
-                      margin-bottom: 6px;
-                      margin-left: auto;
-                      margin-right: 1.5px;
-                      padding-top: 0px;
-                      padding-bottom: 17px;
-                    "
-                  >
-                    <!-- fraction analyzed -->
-                    <div class="row">
-                      <div class="col-25"> 
-                        <label for="result_fractionAnalyzed">fraction analyzed:</label>
-                      </div>
-                      <div class="col-75">
-                        <input type="text" id="result_fractionAnalyzed" disabled style="margin-top: 10px; width: 145px;">
-                      </div>
-                    </div>
-
-                    <!-- org or min -->
-                    <div class="row">
-                      <div class="col-25"> 
-                        <label for="">organic / minerals:</label>
-                      </div>
-                      <div class="col-75" style="margin-top: 18px;">
-                        <div class="form-check form-check-inline">
-                          <label class="form-check-label" for="result_org">ORG</label>
-                          <input class="form-check-input" type="radio" name="orgOrMin" id="result_org" value="org" disabled>
+                  <!-- fraction fieldset: in the grid like the fields above, so it is as wide as the .col-75 -->
+                  <div class="row">
+                    <div class="col-25"></div>
+                    <div class="col-75">
+                      <fieldset 
+                        id="result_fraction_fieldset"
+                        style="
+                          border: 0.5px solid #ccc;
+                          border-top: none;
+                          border-radius: 0 0 4px 4px;
+                          margin-top: 4px;
+                          margin-bottom: 6px;
+                          margin-left: 0;
+                          margin-right: 0;
+                          padding-top: 0px;
+                          padding-bottom: 17px;
+                        "
+                      >
+                        <!-- fraction analyzed -->
+                        <div class="row">
+                          <div class="col-25"> 
+                            <label for="result_fractionAnalyzed">fraction analyzed:</label>
+                          </div>
+                          <div class="col-75">
+                            <input type="text" id="result_fractionAnalyzed" disabled style="margin-top: 10px; width: 145px;">
+                          </div>
                         </div>
-                        <div class="form-check form-check-inline">
-                          <label class="form-check-label" for="result_min">MIN</label>
-                          <input class="form-check-input" type="radio" name="orgOrMin" id="result_min" value="min" disabled>
+
+                        <!-- org or min -->
+                        <div class="row">
+                          <div class="col-25"> 
+                            <label for="">organic / minerals:</label>
+                          </div>
+                          <div class="col-75" style="margin-top: 18px;">
+                            <div class="form-check form-check-inline">
+                              <label class="form-check-label" for="result_org">ORG</label>
+                              <input class="form-check-input" type="radio" name="orgOrMin" id="result_org" value="org" disabled>
+                            </div>
+                            <div class="form-check form-check-inline">
+                              <label class="form-check-label" for="result_min">MIN</label>
+                              <input class="form-check-input" type="radio" name="orgOrMin" id="result_min" value="min" disabled>
+                            </div>
+                          </div>
                         </div>
-                      </div>
-                    </div>
 
-                    <!-- sieve size -->
-                    <div class="row">
-                      <div class="col-25"> 
-                        <label for="result_sieveSize">sieve size [mm]:</label>
-                      </div>
-                      <div class="col-75">
-                        <input type="number" id="result_sieveSize" disabled style="width: 145px;">
-                      </div>
-                    </div>
+                        <!-- sieve size -->
+                        <div class="row">
+                          <div class="col-25"> 
+                            <label for="result_sieveSize">sieve size [mm]:</label>
+                          </div>
+                          <div class="col-75">
+                            <input type="number" id="result_sieveSize" disabled style="width: 145px;">
+                          </div>
+                        </div>
 
-                    <!-- multiplier -->
-                    <div class="row">
-                      <div class="col-25"> 
-                        <label
-                          for="result_multiplier"
-                          data-tooltip="The multiplicator is needed for the extrapolation
-                          to the whole sampleand depends on the sieved fraction."
-                        >
-                          multiplier:
-                        </label>
-                      </div>
-                      <div class="col-75">
-                        <input type="number" step="0.01" id="result_multiplier" style="width: 145px;">
-                      </div>
-                    </div>
+                        <!-- multiplier -->
+                        <div class="row">
+                          <div class="col-25"> 
+                            <label
+                              for="result_multiplier"
+                              data-tooltip="The multiplicator is needed for the extrapolation
+                              to the whole sampleand depends on the sieved fraction."
+                            >
+                              multiplier:
+                            </label>
+                          </div>
+                          <div class="col-75">
+                            <input type="number" step="0.01" id="result_multiplier" style="width: 145px;">
+                          </div>
+                        </div>
 
-                  </fieldset>
+                      </fieldset>
+                    </div>
+                  </div>
 
                   <!-- entry date -->
                   <div class="row">
@@ -2589,8 +2331,12 @@
                       >
                       <script>
                         window.onload= function() {
-                          const today = new Date().toISOString().split('T')[0]; // "YYYY-MM-DD"
-                          document.querySelector('.set-today').value = today;
+                          // Today as local date (toISOString would give the UTC date): default and maximum
+                          const now = new Date();
+                          const today = new Date(now.getTime() - now.getTimezoneOffset() * 60000).toISOString().split('T')[0];
+                          const entryDate = document.querySelector('.set-today');
+                          entryDate.value = today;
+                          entryDate.max = today;
                         }
                       </script>
                     </div>
@@ -2662,21 +2408,29 @@
                       <label for="taxCode" data-tooltip="Please select from the corresponding list of taxonomy codes, which was specified under ' site -> general information -> taxonomy '. ">tax code: *</label>
                     </div>
                     <div class="col-75">
-                      <select id="taxCode" required style="width: 100%;">
-                        <option value=""></option>
-                      </select>
+                      <div style="display: flex; align-items: center; flex-wrap: wrap; gap: 8px 16px;">
+                        <div style="flex: 1 1 250px; min-width: 0; display: flex;">
+                          <select id="taxCode" required style="width: 100%;">
+                            <option value=""></option>
+                          </select>
+                        </div>
+                        <!-- filter by code / name -->
+                        <div id="taxCodeFilterBy" style="display: flex; align-items: center; gap: 12px; white-space: nowrap;">
+                          <span>filter by:</span>
+                          <label for="taxCode_filter_code" style="display: flex; align-items: center; gap: 6px; padding: 0; cursor: pointer;">
+                            <input type="radio" name="taxCodeFilterBy" id="taxCode_filter_code" value="code" style="margin: 0;" checked>
+                            code
+                          </label>
+                          <label for="taxCode_filter_name" style="display: flex; align-items: center; gap: 6px; padding: 0; cursor: pointer;">
+                            <input type="radio" name="taxCodeFilterBy" id="taxCode_filter_name" value="name" style="margin: 0;">
+                            name
+                          </label>
+                        </div>
+                      </div>
                       <!-- Select2 dropdown -->
                       <script>
                         $(document).ready(function() {
-                          $('#taxCode').select2({
-                            placeholder: '',
-                            allowClear: true
-                          });
-                          // remove arrow
-                          $('#taxCode')
-                            .next('.select2-container')
-                            .find('.select2-selection__arrow')
-                            .remove();
+                          initCodeNameFilter('taxCode');
                         });
                       </script>
                     </div>
@@ -2689,6 +2443,28 @@
                     </div>
                     <div class="col-75">
                       <textarea id="remarks_taxonomy" rows="3"></textarea>
+                    </div>
+                  </div>
+
+                  <!-- reference absolute datings -->
+                  <div class="row">
+                    <div class="col-25">
+                      <label
+                        for="result_datings"
+                        data-tooltip="Multiple subsamples can be selected from the list of,
+                        previously entered in the DATING section."
+                      >
+                        related datings:
+                      </label>
+                    </div>
+                    <div class="col-75">
+                      <select id="result_datings" multiple style="width: 100%"></select>
+                      <!-- Select2 Multi-select boxes (pillbox) -->
+                      <script>
+                        $(document).ready(function() {
+                            initMultiSelect('#result_datings');
+                        });
+                      </script>
                     </div>
                   </div>
 
@@ -2728,10 +2504,10 @@
                   <!-- rest count -->
                   <div class="row">
                     <div class="col-25"> 
-                      <label for="r_count" data-tooltip="The number of finds of one type of plant remains.">rCount:</label>
+                      <label for="r_count" data-tooltip="The number of finds of one type of plant remains (-1: present, not counted).">rCount:</label>
                     </div>
                     <div class="col-75">
-                      <input type="number" step="1" min="0" id="r_count">
+                      <input type="number" step="1" min="-1" id="r_count">
                     </div>
                   </div>
 
@@ -2776,94 +2552,82 @@
                   </button>
 
                 </fieldset>
+
+                <br>
+
+                <!-- Existing results of the selected reference sample -->
+                <fieldset>
+                  <span id="existingResults-hint" style="padding: 4px;">
+                    ⓘ Select a reference sample to see its existing results.
+                  </span>
+
+                  <!-- site, feature and sample of the table (like the fraction popup of the explorer) -->
+                  <div id="existingResults-sample" style="display: none;"></div>
+
+                  <div id="existingResults-buttons" class="button-container" style="display: none;">
+                    <button type="button" id="existingResults-delete" class="deleteButton hidden">
+                      Delete selected Rows
+                    </button>
+
+                    Export Table:
+
+                    <button type="button" id="existingResults-json" class="exportButton">JSON</button>
+                    <button type="button" id="existingResults-csv" class="exportButton">CSV</button>
+                    <button type="button" id="existingResults-xlsx" class="exportButton">XLSX</button>
+                    <button type="button" id="existingResults-html" class="exportButton">HTML</button>
+                  </div>
+
+                  <div id="existingResults-spinner" class="spinner"></div>
+
+                  <div id="existingResults-table" style="display: none;"></div>
+                </fieldset>
+
               </form>
             </div>
           </div>
         </div>
-
-        <!-- additional information -->
-        <!-- <div class="accordion-item">
-          <h2 class="accordion-header">
-            <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#panelsStayOpen-collapseEight" aria-expanded="false" aria-controls="panelsStayOpen-collapseNine">
-              ADDITIONAL INFORMATION
-            </button>
-          </h2>
-          <div id="panelsStayOpen-collapseEight" class="accordion-collapse collapse">
-            <div class="accordion-body">
-              Please enter additional, individual information here. 
-              A quick intro into the usage details can be found   
-              <a href="manual.html" target="_blank">here</a>.
-              <br><br>
-              <fieldset>
-                <div class="row">
-                  <div class="col-25">
-                    <label for="which_project">reference project(s):</label>
-                  </div>
-                  <div class="col-75">
-                    <select class="selectpicker" id="which_project" required multiple>
-                      <option value="project 1">project 1, from local</option>
-                      <option value="project 2">project 2, from local</option>
-                      <option value="project 3">project 3, from local</option>
-                      <option value="project 4">project 4, from local</option>
-                      <option value="project 5">project 5, from local</option>
-                      <option value="project 6">project 6, from local</option>
-                    </select>
-                  </div>
-                </div>
-              </fieldset>
-              <br>
-              <fieldset>
-                <div class="row">
-                  <div class="col-25">
-                    <label for="add_info">additional information:</label>
-                  </div>
-                  <div class="col-75">
-                    <textarea name="add_info" id="add_info" rows="10" placeholder=""></textarea>
-                  </div>
-                </div>
-                <button type="submit" class="MySubmitButton" onclick="mySubmitButton()" > submit </button>
-              </fieldset>
-            </div>
-          </div>
-        </div> -->
 
       </div>
     </div>
 
     <!------------------------------- Scripts -------------------------------->
     <!-- DANTE attributes -->
+    <script src="js/displayOrder.js"></script>
     <script src="js/danteAttributes/fetchDanteAttribute.js"></script>
     <script src="js/danteAttributes/populateDanteDropdown.js"></script>
+    <script src="js/danteAttributes/danteListEditor.js"></script>
     <script src="js/danteAttributes/updateBackendDanteAttributes.js"></script>
     <script>updateBackendDanteAttributes()</script>
 
     <!-- general -->
+    <script src="js/confirm.js"></script>
+    <script src="js/defaultValues.js"></script>
     <script src="js/formatService.js"></script>
+    <script src="js/labelSort.js"></script>
+    <script src="js/input/multi-select.js"></script>
+    <script src="js/input/codeNameFilter.js"></script>
     <script src="js/leafletMap.js"></script>
-    <script src="js/transformCoordinatesToWGS84.js"></script>
     <script src="js/reverseGeocoding.js"></script>
+    <script src="js/stickyAccordion.js"></script>
+    <script src="js/escapeHtml.js"></script>
     <script src="js/toast.js"></script>
+    <script src="js/transformCoordinatesToWGS84.js"></script>
 
     <!-- research project -->
     <script src="js/input/researchProject.js"></script>
     <script src="js/input/researchProject-dropdown.js"></script>
-    <script src="js/input/researchProject-boxes.js"></script>
 
     <!-- user and institution -->
     <script src="js/input/institution.js"></script>
     <script src="js/input/institution-dropdown.js"></script>
-    <script src="js/input/institution-boxes.js"></script>
     <script src="js/input/user.js"></script>
     <script src="js/input/user-dropdown.js"></script>
-    <script src="js/input/user-boxes.js"></script>
 
     <!-- literature -->
     <script src="js/input/author.js"></script>
     <script src="js/input/author-dropdown.js"></script>
-    <script src="js/input/author-boxes.js"></script>
     <script src="js/input/literature.js"></script>
     <script src="js/input/literature-dropdown.js"></script>
-    <script src="js/input/literature-boxes.js"></script>
 
     <!-- site -->
     <script src="js/input/site.js"></script>
@@ -2884,15 +2648,13 @@
 
     <!-- result -->
     <script src="js/input/result.js"></script>
+    <!-- results table (shared with the explorer) -->
+    <script src="js/explorer/helper.js"></script>
+    <script src="js/multiSelectEditor.js"></script>
+    <script src="js/explorer/result-table.js"></script>
     <!------------------------------------------------------------------------>
 
-    <footer>
-      <ul>
-        <li><a href="license.html" target="_blank">License</a></li>
-        <li>Version 4.0.0</li>
-        <li><a href="contact.html" target="_blank">Contact<strong> ☏ </strong></a></li>
-      </ul>
-    </footer>
+    <app-footer></app-footer>
 
   </body>
 </html>

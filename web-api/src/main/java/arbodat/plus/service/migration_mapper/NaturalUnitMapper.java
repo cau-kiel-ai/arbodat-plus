@@ -356,7 +356,7 @@ public class NaturalUnitMapper {
         naturalUnitMap.put("367", "http://uri.gbv.de/terminology/arbodat_natural_unit/f655ef33-86e9-4106-a7de-bbf4656c8bb3");
 
     // Weser-Leine-Bergland
-        naturalUnitMap.put("37", "http://uri.gbv.de/terminology/arbodat_natural_unit/1a8d22bc-310c-4a7b-83b2-cb14dd80fcc6");
+        naturalUnitMap.put("37----", "http://uri.gbv.de/terminology/arbodat_natural_unit/1a8d22bc-310c-4a7b-83b2-cb14dd80fcc6");
 
         // Solling, Bramwald und Reinhardswald
         naturalUnitMap.put("370", "http://uri.gbv.de/terminology/arbodat_natural_unit/7fbe4106-6b94-4175-80eb-2219b0b03bf9");

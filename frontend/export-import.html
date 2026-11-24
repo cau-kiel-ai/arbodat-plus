@@ -1,0 +1,230 @@
+<!DOCTYPE html>
+<html lang="en">
+    <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+        <title>ArboDat+ | Export / Import</title>
+
+        <link href="img/favicon.png" rel="icon">
+        <link href="css/input.min.css" rel="stylesheet">
+        <script src="components/app-footer.js"></script>
+        <script src="components/app-navbar.js"></script>
+
+        <!-- axios -->
+        <script src="vendor/axios@1.21.0/dist/axios.min.js"></script>
+        <!-- bootstrap -->
+        <script src="vendor/bootstrap@5.3.8/dist/js/bootstrap.bundle.min.js"></script>
+        <!-- jquery -->
+        <script src="vendor/jquery@3.7.1/dist/jquery.min.js"></script>
+        <!-- select2 -->
+        <link href="vendor/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
+        <script src="vendor/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
+
+        <!-- select2 style -->
+        <style>
+            .select2-container .select2-selection--single {
+            display: flex;
+            align-items: center;
+            height: 52px !important;
+            border: 2px solid #ccc;
+            border-radius: 4px;
+            }
+            .select2-container .select2-selection--multiple {
+            border: 2px solid #ccc;
+            min-height: 52px;
+            }
+            .select2-container .select2-selection--single .select2-selection__rendered {
+            order: 1;
+            padding: 12px;
+            font-size: 16px;
+            color: #000000;
+            }
+            .select2-container .select2-selection--single .select2-selection__clear {
+            order: 2;
+            margin-left: auto;
+            transform: translateX(50%);
+            font-size: 24px;
+            font-weight: 200;
+            line-height: 24px;
+            }
+            .select2-container .select2-selection--multiple .select2-selection__clear {
+            font-size: 24px;
+            font-weight: 200;
+            line-height: 24px;
+            }
+        </style>
+
+    </head>
+
+    <app-navbar></app-navbar>
+
+    <body>
+
+        <!-- Accordion -->
+        <div class="container-md">
+            <div class="accordion" id="accordionPanels">
+                
+                <!-- Data Export -->
+                <div class="accordion-item">
+
+                    <h2 class="accordion-header">
+                        <button
+                            class="accordion-button collapsed"
+                            type="button"
+                            data-bs-toggle="collapse"
+                            data-bs-target="#panelsStayOpen-collapseOne"
+                            aria-expanded="false"
+                            aria-controls="panelsStayOpen-collapseOne"
+                        >
+                            DATA EXPORT
+                        </button>
+                    </h2>
+
+                    <div id="panelsStayOpen-collapseOne" class="accordion-collapse collapse">
+                        <div class="accordion-body">
+
+                            <p class="text-body-secondary">
+                                Exports the existing data as a JSON file. Without a filter selection all data is exported;
+                                otherwise only the selected research projects, sites, features or samples (the most detailed
+                                filter selection counts). The file can be imported into another ArboDat+.
+                            </p>
+
+                            <fieldset>
+
+                                <legend>Filter</legend>
+
+                                <!-- research projects -->
+                                <div class="row">
+                                    <div class="col-25">
+                                        <label for="researchProjectDropdown">research projects:</label>
+                                    </div>
+                                    <div class="col-75">
+                                        <select id="researchProjectDropdown" multiple style="width: 100%;">
+                                            <option value=""></option>
+                                        </select>
+                                    </div>
+                                </div>
+
+                                <!-- reference site -->
+                                <div class="row">
+                                    <div class="col-25">
+                                        <label for="siteDropdown">sites:</label>
+                                    </div>
+                                    <div class="col-75">
+                                        <select id="siteDropdown" multiple style="width: 100%;">
+                                            <option value=""></option>
+                                        </select>
+                                    </div>
+                                </div>
+
+                                <!-- reference feature -->
+                                <div class="row">
+                                    <div class="col-25">
+                                        <label for="featureDropdown">features:</label>
+                                    </div>
+                                    <div class="col-75">
+                                        <select id="featureDropdown" multiple style="width: 100%;">
+                                            <option value=""></option>
+                                        </select>
+                                    </div>
+                                </div>
+
+                                <!-- reference sample -->
+                                <div class="row">
+                                    <div class="col-25">
+                                        <label for="sampleDropdown">samples:</label>
+                                    </div>
+                                    <div class="col-75">
+                                        <select id="sampleDropdown" multiple style="width: 100%;">
+                                            <option value=""></option>
+                                        </select>
+                                    </div>
+                                </div>
+
+                                <br>
+                                <legend>Options</legend>
+
+                                <!-- export file name -->
+                                <div class="row">
+                                    <div class="col-25"> 
+                                        <label for="exportFileNameInput" >export file name:</label>
+                                    </div>
+                                    <div class="col-75">
+                                        <input type="text" id="exportFileNameInput" autocomplete="off">
+                                    </div>
+                                </div>
+
+                                <!-- export button -->
+                                <div class="text-center" style="margin-top: 20px;">
+                                    <button type="button" id="exportButton" class="btn btn-primary" onclick="exportData()">Export</button>
+                                </div>
+
+                            </fieldset>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Data Import -->
+                <div class="accordion-item">
+
+                    <h2 class="accordion-header">
+                        <button
+                            class="accordion-button collapsed"
+                            type="button"
+                            data-bs-toggle="collapse"
+                            data-bs-target="#panelsStayOpen-collapseTwo"
+                            aria-expanded="false"
+                            aria-controls="panelsStayOpen-collapseTwo"
+                        >
+                            DATA IMPORT
+                        </button>
+                    </h2>
+
+                    <div id="panelsStayOpen-collapseTwo" class="accordion-collapse collapse">
+                        <div class="accordion-body">
+
+                            <p class="text-body-secondary">
+                                Inserts an ArboDat+ export into the existing data. Existing data records are identified
+                                (by their id, else by their label within the same parent element) and completed;
+                                nothing is deleted, and nothing is overwritten unless it is selected in the preview.
+                            </p>
+
+                            <fieldset>
+
+                                <!-- import file -->
+                                <label for="importFileInput" class="form-label">Select an ArboDat+ export file</label>
+                                <input type="file" id="importFileInput" class="form-control" accept=".json,.gz,application/json,application/gzip">
+
+                                <!-- preview button -->
+                                <div class="text-center" style="margin-top: 20px;">
+                                    <button type="button" id="importPreviewButton" class="btn btn-primary" onclick="previewImport()" disabled>Preview</button>
+                                </div>
+
+                            </fieldset>
+
+                            <!-- filled by import.js -->
+                            <div id="importPreview" hidden></div>
+                            <div id="importResult" hidden></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+
+        <!--------------------------- Scripts ---------------------------->
+        <script src="js/labelSort.js"></script>
+        <script src="js/escapeHtml.js"></script>
+        <script src="js/toast.js"></script>
+        <script src="js/confirm.js"></script>
+        <script src="js/input/multi-select.js"></script>
+        <script src="js/export-import/export.js"></script>
+        <script src="js/export-import/import.js"></script>
+        <script src="js/stickyAccordion.js"></script>
+        <!---------------------------------------------------------------->
+
+        <app-footer></app-footer>
+
+    </body>
+</html>

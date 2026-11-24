@@ -1,8 +1,8 @@
 let samples = [];
 
 async function getSamples() {
-    const { data } = await axios.get('http://localhost:8080/samples');
-    samples = data;
+    const { data } = await axios.get('api/samples');
+    samples = sortSamples(data);
 }
 
 // Form and Fields ------------------------------------------------------------
@@ -44,6 +44,8 @@ const volume_determination_wet_radio     = document.getElementById("wet");
 const chronozone_dropdown         = document.getElementById("chronozone");
 const archaeological_dating_input = document.getElementById("archaeologicalDating");
 const cultural_group_input        = document.getElementById("culturalGroup");
+const absolute_dating_from_input  = document.getElementById("absoluteDatingFrom");
+const absolute_dating_to_input    = document.getElementById("absoluteDatingTo");
 const remarks_textarea            = document.getElementById("sample_remarks");
 
 // Select2 reference site dropdown --------------------------------------------
@@ -91,16 +93,13 @@ $('#sampleSite').on('select2:opening', async function (e) {
         // Update data
         sites.forEach(item => {
             // Determine item name --------------------------------
-            let itemName;
-            if (item.activityNumber) {
-                itemName = `${item.label}, ${item.activityNumber}`;
-            } else {
-                itemName = item.label;
-            }
+            const activityNumbers = item.activityNumbers?.length
+                ? `activity numbers: ${item.activityNumbers.join(', ')}; `
+                : '';
             const projectNames = item.researchProjectList
                 .map(rp => rp.projectName)
                 .join(', ');
-            itemName += ` (research projects: ${projectNames})`;
+            const itemName = `${item.label} (${activityNumbers}research projects: ${projectNames})`;
             // ----------------------------------------------------
             $('#sampleSite').append(
                 new Option(itemName, item.id)
@@ -203,6 +202,7 @@ document.addEventListener('DOMContentLoaded', async function () {
 
     await fetchDanteAttribute("coordinateSystem");
     populateDanteDropdown ("coordinateSystem", coordinate_system_dropdown);
+    await applyDefaults("sample", ["sample_coordinate_system"]);
     
     // // Init map when accordion is opened
     // Accordion.addEventListener('shown.bs.collapse', () => {
@@ -238,12 +238,12 @@ document.addEventListener('DOMContentLoaded', async function () {
         inputTimer = setTimeout(async () => {
     
             // Parse input
-            const longitude = parseFloat(longitude_input.value);
-            const latitude = parseFloat(latitude_input.value);
+            const longitude = parseDecimal(longitude_input.value);
+            const latitude = parseDecimal(latitude_input.value);
             const coordinateSystem = coordinate_system_dropdown.options[coordinate_system_dropdown.selectedIndex];
             let sourceEPSG = coordinateSystem?.getAttribute('data-crsNotation');
           
-            if (longitude && latitude && sourceEPSG && sourceEPSG !== "undefined") {
+            if (isCoordinateValue(longitude_input.value) && isCoordinateValue(latitude_input.value) && sourceEPSG && sourceEPSG !== "undefined") {
                 try {
                     // transform coordinates to WGS84
                     const { transformedLatitude, transformedLongitude } =
@@ -288,59 +288,9 @@ document.addEventListener('DOMContentLoaded', async function () {
 });
 
 // Select2 botDetBy dropdown --------------------------------------------------
-$('#botanicalDeterminationsBy').select2({
-    placeholder: "",
-    allowClear: true,
-    width: "100%",
-});
-
-// remove arrow
-$('#botanicalDeterminationsBy')
-    .next('.select2-container')
-    .find('.select2-selection__arrow')
-    .remove();
-
-let botanicalDeterminationsBy_isReopening = false;
-$('#botanicalDeterminationsBy').on('select2:opening', async function (e) {
-    if (botanicalDeterminationsBy_isReopening) {
-        botanicalDeterminationsBy_isReopening = false;
-        return;
-    }
-
-    e.preventDefault(); // Prevent opening
-
-    // Disable dropdown and show "Loading..."
-    $('#botanicalDeterminationsBy')
-        .empty()
-        .append(new Option('Loading...', 'loading', true, true))
-        .trigger('change')
-        .prop('disabled', true); // Disable
-
-    try {
-        await getUsers();
-    } finally {
-        // Enable and reset dropdown
-        $('#botanicalDeterminationsBy')
-            .prop('disabled', false) // Enable
-            .empty()
-            .append(new Option('', '', false, false));
-
-        // Update data
-        users.forEach(item => {
-            $('#botanicalDeterminationsBy').append(
-                new Option(formatName(item), item.id)
-            );
-        });
-
-        // Refresh UI
-        $('#botanicalDeterminationsBy').trigger('change.select2');
-
-        // Reopen dropdown
-        botanicalDeterminationsBy_isReopening = true;
-        setTimeout(() => {
-            $('#botanicalDeterminationsBy').select2('open');
-        }, 0);
-    }
+initLazyMultiSelect('#botanicalDeterminationsBy', {
+    load:   async () => { await getUsers(); return users; },
+    format: formatName,
 });
 
 // Populate DANTE dropdowns ---------------------------------------------------
@@ -359,6 +309,8 @@ document.addEventListener("DOMContentLoaded", async () => {
 
     await fetchDanteAttribute("chronozone");
     populateDanteDropdown ("chronozone", chronozone_dropdown);
+
+    await applyDefaults("sample");
 });
 
 // Submit/Update sample -------------------------------------------------------
@@ -379,7 +331,7 @@ function create_update_sample() {
             depthFrom: depth_from_input.value,
             depthTo: depth_to_input.value,
             // Measurement details -------------------------------
-            botanicalDeterminationBy: sampleBotanicalDeterminationByList,
+            botanicalDeterminationBy: selectedRefs('#botanicalDeterminationsBy'),
             botanicalDeterminationYear: year_of_bot_det_input.value,
             sampleStorage: sample_storage_checkbox.checked,
             microRemain: micro_remain_checkbox.checked,
@@ -395,6 +347,8 @@ function create_update_sample() {
             // Sample dating -------------------------------------
             archaeologicalDating: archaeological_dating_input.value || null,
             culturalGroup: cultural_group_input.value || null,
+            absoluteDatingFrom: absolute_dating_from_input.value || null,
+            absoluteDatingTo: absolute_dating_to_input.value || null,
             remarksSample: remarks_textarea.value || null,
         };
         // Coordinates -------------------------------------------
@@ -403,80 +357,69 @@ function create_update_sample() {
                                 ? { id: coordinate_system_dropdown.value,
                                     label: coordinate_system_dropdown.selectedOptions[0].text }
                                 : null,
-            longitude: longitude_input.value,
-            latitude:  latitude_input.value,
-            altitude:  altitude_input.value,
-            longitudeWgs84: longitude_wgs84_input.value,
-            latitudeWgs84:  latitude_wgs84_input.value,
+            longitude: decimalOrText(longitude_input.value),
+            latitude:  decimalOrText(latitude_input.value),
+            altitude:  decimalOrText(altitude_input.value),
+            longitudeWgs84: decimalOrText(longitude_wgs84_input.value),
+            latitudeWgs84:  decimalOrText(latitude_wgs84_input.value),
         }
         // Fractions ---------------------------------------------
-        fraction_list = []
-        for (let i = 1; i <= frac_counter; i++) {
-            const fraction_analyzed = document.getElementById("fraction_analyzed_" + i);
-            if (fraction_analyzed.value) {
-                org = document.getElementById("org_" + i).checked;
-                min = document.getElementById("min_" + i).checked;
-                fraction = {
-                    fractionAnalyzed: fraction_analyzed.value,
-                    orgOrMin: org ? "org" : min ? "min" : null,
-                    sieveSize: document.getElementById("sieveSize_" + i).value,
-                    standardMultiplier: document.getElementById("multiplier_" + i).value
-                }
-                fraction_list.push(fraction);
-            }
-        }
-        payload.fractionAnalyzedList = fraction_list;
+        payload.fractionAnalyzedList = getFractions();
 
         // Sample type -------------------------------------------
         if (sample_type_dropdown.value) {
             payload.sampleType = {
                 id: sample_type_dropdown.value,
-                label: sample_type_dropdown.selectedOptions[0].text
+                label: selectedLabel(sample_type_dropdown)
             }
         }        
         // Seeds and fruits --------------------------------------
         if (seeds_and_fruits_dropdown.value) {
             payload.seedsAndFruits = {
                 id: seeds_and_fruits_dropdown.value,
-                label: seeds_and_fruits_dropdown.selectedOptions[0].text
+                label: selectedLabel(seeds_and_fruits_dropdown)
             }
         }
         // Wood subfossile ---------------------------------------
         if (wood_subfossile_dropdown.value) {
             payload.woodSubfossile = {
                 id: wood_subfossile_dropdown.value,
-                label: wood_subfossile_dropdown.selectedOptions[0].text
+                label: selectedLabel(wood_subfossile_dropdown)
             }
         }
         // Charcoal investigated ---------------------------------
         if (charcoal_investigated_dropdown.value) {
             payload.charcoalInvestigated = {
                 id: charcoal_investigated_dropdown.value,
-                label: charcoal_investigated_dropdown.selectedOptions[0].text
+                label: selectedLabel(charcoal_investigated_dropdown)
             }
         }
         // Chronozone --------------------------------------------
         if (chronozone_dropdown.value) {
             payload.chronozone = {
                 id: chronozone_dropdown.value,
-                label: chronozone_dropdown.selectedOptions[0].text
+                label: selectedLabel(chronozone_dropdown)
             }
         } // -----------------------------------------------------
 
         if (sampleId) { // Update (PUT) -----------------------------------
             payload.id = sampleId;
 
-            axios.put(`http://localhost:8080/samples/${sampleId}`, payload)
-            .then(response => {
-                console.log(response.data);
-                toast.success("sample updated");
-            })
-            .catch(error => {
-                console.error('Error during PUT request to update sample:', error);
-                alert("action failed");
+            confirmUpdate("sample").then(confirmed => {
+                if (!confirmed) return;
+
+                axios.put(`api/samples/${sampleId}`, payload)
+                .then(response => {
+                    console.log(response.data);
+                    toast.success("sample updated");
+                })
+                .catch(error => {
+                    console.error('Error during PUT request to update sample:', error);
+                    toast.error([400, 409].includes(error.response?.status) ? getErrorMessage(error) : "action failed");
+                });
             });
         } else { // Create (POST) -----------------------------------------
-            axios.post('http://localhost:8080/samples', payload)
+            axios.post('api/samples', payload)
             .then(response => {
                 console.log(response.data);
                 toast.success("sample created");
@@ -491,18 +434,19 @@ function create_update_sample() {
             })
             .catch(error => {
                 console.error('Error during POST request to create sample:', error);
-                alert("action failed");
+                toast.error([400, 409].includes(error.response?.status) ? getErrorMessage(error) : "action failed");
             });
         }
 
     } else {  // Report ----------------
-        // Set focus on invalid field
-        sample_feature_dropdown.focus();
-
-        // wait until focus is set
-        setTimeout(() => {
-            sampleForm.reportValidity();
-        }, 850);
+        // Bootstrap's `scroll-behavior: smooth` animates the browser's scroll
+        // to the invalid field; jump to it instantly, then report.
+        const firstInvalid = sampleForm.querySelector(':invalid');
+        if (firstInvalid) {
+            firstInvalid.scrollIntoView({ block: 'center', behavior: 'instant' });
+            firstInvalid.focus({ preventScroll: true });
+        }
+        sampleForm.reportValidity();
     } // -------------------------------
 }
 
@@ -515,7 +459,7 @@ function resetSampleForm() {
     $('#woodSubfossile').val(null).trigger('change');
     $('#charcoalInvestigated').val(null).trigger('change');
     $('#chronozone').val(null).trigger('change');
+    applyDefaults("sample");
 
-    sampleBotanicalDeterminationByList = [];
-    document.getElementById("botanicalDeterminationByContainer").innerHTML = "";
+    clearMultiSelect('#botanicalDeterminationsBy');
 }

@@ -23,7 +23,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
         adjustDropdownWidth();
 
-        fetch('http://localhost:8080/institutions', { // Customise here
+        fetch('api/institutions', { // Customise here
             method: 'GET',
             headers: {
                 'Content-Type': 'application/json',
@@ -84,6 +84,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
     function populateDropdown(itemList) {  
         dropdown.innerHTML = ""; // Reset dropdown
+        itemList = sortInstitutions(itemList); // Ascending
         
         itemList.forEach((item, index) => {
             const listItem = document.createElement("li");

@@ -1,0 +1,22 @@
+{
+  "name": "arbodat-plus-frontend",
+  "private": true,
+  "description": "Pinned third-party libraries for the static ArboDat+ frontend. `npm run vendor` copies them into vendor/ (committed).",
+  "scripts": {
+    "vendor": "node scripts/vendor.mjs"
+  },
+  "dependencies": {
+    "axios": "1.21.0",
+    "bootstrap": "5.3.8",
+    "jquery": "3.7.1",
+    "leaflet": "1.9.4",
+    "proj4": "2.22.0",
+    "select2": "4.1.0-rc.0",
+    "sortablejs": "1.15.7",
+    "tabulator-tables": "6.7.1",
+    "xlsx": "https://cdn.sheetjs.com/xlsx-0.20.3/xlsx-0.20.3.tgz"
+  },
+  "devDependencies": {
+    "sass": "1.107.1"
+  }
+}

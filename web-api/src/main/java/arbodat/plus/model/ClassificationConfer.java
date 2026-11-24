@@ -8,6 +8,7 @@ import java.util.Set;
 
 @Data
 @Entity
+@EntityListeners(VocabularyTermListener.class)
 @Table(name = "classification_confer")
 public class ClassificationConfer {
 

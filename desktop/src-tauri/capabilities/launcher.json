@@ -1,0 +1,52 @@
+{
+  "$schema": "../gen/schemas/desktop-schema.json",
+  "identifier": "launcher",
+  "description": "The Control Center: the app's own page, the only one allowed to call the app's commands. It is shown in the app's one window, which also shows ArboDat+ itself (a web page from a URL); a capability without a `remote` entry applies to the app's own pages only, never to that web page.",
+  "windows": [
+    "main"
+  ],
+  "permissions": [
+    "core:default",
+    "allow-get-status",
+    "allow-install",
+    "allow-start",
+    "allow-stop",
+    "allow-open-arbodat",
+    "allow-change-port",
+    "allow-remove-installation",
+    "allow-get-settings",
+    "allow-set-auto-start",
+    "allow-choose-backup-folder",
+    "allow-reset-backup-folder",
+    "allow-connect-server",
+    "allow-use-local-mode",
+    "allow-server-status",
+    "allow-open-server-in-browser",
+    "allow-get-diagnostics",
+    "allow-backup-now",
+    "allow-list-backups",
+    "allow-open-backup-folder",
+    "allow-delete-backup",
+    "allow-restore-backup",
+    "allow-choose-restore-file",
+    "allow-update-stack",
+    "allow-roll-back-update",
+    {
+      "identifier": "opener:allow-open-url",
+      "allow": [
+        {
+          "url": "https://docs.docker.com/*"
+        },
+        {
+          "url": "https://github.com/cau-kiel-ai/arbodat-plus/*"
+        },
+        {
+          "url": "http://127.0.0.1:[0-9][0-9][0-9][0-9]/"
+        },
+        {
+          "url": "http://127.0.0.1:[0-9][0-9][0-9][0-9][0-9]/"
+        }
+      ]
+    }
+  ]
+}

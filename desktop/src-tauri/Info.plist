@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+  <!-- Server mode may point at a plain-http intranet server by hostname, which App Transport
+       Security silently blocks in WKWebView (raw IPs like 127.0.0.1 are exempt). Scoped to web
+       content only; the app's own networking isn't affected. Verified in the Phase 4a spike. -->
+  <key>NSAppTransportSecurity</key>
+  <dict>
+    <key>NSAllowsArbitraryLoadsInWebContent</key>
+    <true/>
+  </dict>
+</dict>
+</plist>

@@ -1,8 +1,14 @@
 package arbodat.plus.controller;
 
+import arbodat.plus.dto_migration.BulkItemStatus;
+import arbodat.plus.dto_migration.BulkLiteratureItem;
 import arbodat.plus.model.*;
 import arbodat.plus.repository.*;
+import arbodat.plus.service.LiteratureMigrationService;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.dao.DataAccessException;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.HashSet;
@@ -10,17 +16,38 @@ import java.util.List;
 import java.util.Set;
 import java.util.UUID;
 
-//@CrossOrigin(origins = "http://127.0.0.1:5500")
-@CrossOrigin(origins = "*") // Allow requests from all domains
 @RestController
 @RequestMapping("/literature")
 public class LiteratureController {
+
+    private static final Logger log = LoggerFactory.getLogger(LiteratureController.class);
 
     @Autowired
     LiteratureRepository literatureRepository;
 
     @Autowired
     AuthorRepository authorRepository;
+
+    @Autowired
+    LiteratureMigrationService literatureMigrationService;
+
+    /**
+     * Adds literature to many sites (literature accordion of the migration).
+     * Every item gets its own status ("updated" or "error"), so one bad row doesn't stop the others.
+     */
+    @PutMapping("/sites/bulk")
+    public List<BulkItemStatus> linkSites(@RequestBody List<BulkLiteratureItem> items) {
+        try {
+            return literatureMigrationService.linkAll(items);
+        } catch (DataAccessException e) {
+            // The transaction is rolled back -> none of the items is updated
+            log.error("Bulk linking of literature failed", e);
+            String message = e.getMostSpecificCause().getMessage();
+            return items.stream()
+                    .map(item -> BulkItemStatus.error(item.getClientId(), message))
+                    .toList();
+        }
+    }
 
     @GetMapping
     public List<Literature> getAllLiterature() {
@@ -68,14 +95,6 @@ public class LiteratureController {
         literature.setShortCitation(transferredLiterature.getShortCitation());
         literature.setLongCitation(transferredLiterature.getLongCitation());
         literature.setLitAbstract(transferredLiterature.getLitAbstract());
-
-        // add site from migration update literature
-        if (transferredLiterature.getSiteList() != null) {
-            transferredLiterature.getSiteList()
-                    .stream()
-                    .findFirst()
-                    .ifPresent(site -> literature.getSiteList().add(site));
-        }
 
         // Handle authors -------------------------------------------
         Set<Author> authors = new HashSet<>();

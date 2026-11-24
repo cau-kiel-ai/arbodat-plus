@@ -1,8 +1,8 @@
 let absoluteDatings = [];
 
 async function getAbsoluteDatings() {
-    const { data } = await axios.get('http://localhost:8080/absolute_datings');
-    absoluteDatings = data;
+    const { data } = await axios.get('api/absolute_datings');
+    absoluteDatings = sortDatings(data);
 }
 
 // Form and Fields ------------------------------------------------------------
@@ -84,16 +84,13 @@ $('#absDating_site_dropdown').on('select2:opening', async function (e) {
         // Update data
         sites.forEach(item => {
             // Determine item name --------------------------------
-            let itemName;
-            if (item.activityNumber) {
-                itemName = `${item.label}, ${item.activityNumber}`;
-            } else {
-                itemName = item.label;
-            }
+            const activityNumbers = item.activityNumbers?.length
+                ? `activity numbers: ${item.activityNumbers.join(', ')}; `
+                : '';
             const projectNames = item.researchProjectList
                 .map(rp => rp.projectName)
                 .join(', ');
-            itemName += ` (research projects: ${projectNames})`;
+            const itemName = `${item.label} (${activityNumbers}research projects: ${projectNames})`;
             // ----------------------------------------------------
             $('#absDating_site_dropdown').append(
                 new Option(itemName, item.id)
@@ -249,59 +246,9 @@ $('#absDating_sample_dropdown').on('select2:opening', async function (e) {
 });
 
 // Select2 refernce literature dropdown ---------------------------------------
-$('#datingLiterature').select2({
-    placeholder: "",
-    allowClear: true,
-    width: "100%",
-});
-
-// remove arrow
-$('#datingLiterature')
-    .next('.select2-container')
-    .find('.select2-selection__arrow')
-    .remove();
-
-let datingLiterature_isReopening = false;
-$('#datingLiterature').on('select2:opening', async function (e) {
-    if (datingLiterature_isReopening) {
-        datingLiterature_isReopening = false;
-        return;
-    }
-
-    e.preventDefault(); // Prevent opening
-
-    // Disable dropdown and show "Loading..."
-    $('#datingLiterature')
-        .empty()
-        .append(new Option('Loading...', 'loading', true, true))
-        .trigger('change')
-        .prop('disabled', true); // Disable
-
-    try {
-        await getLiterature();
-    } finally {
-        // Enable and reset dropdown
-        $('#datingLiterature')
-            .prop('disabled', false) // Enable
-            .empty()
-            .append(new Option('', '', false, false));
-
-        // Update data
-        literature.forEach(item => {
-            $('#datingLiterature').append(
-                new Option(formatLiterature(item), item.id)
-            );
-        });
-
-        // Refresh UI
-        $('#datingLiterature').trigger('change.select2');
-
-        // Reopen dropdown
-        datingLiterature_isReopening = true;
-        setTimeout(() => {
-            $('#datingLiterature').select2('open');
-        }, 0);
-    }
+initLazyMultiSelect('#datingLiterature', {
+    load:   async () => { await getLiterature(); return literature; },
+    format: formatLiterature,
 });
 
 // Populate DANTE dropdowns ---------------------------------------------------
@@ -314,6 +261,8 @@ document.addEventListener("DOMContentLoaded", async () => {
 
     await fetchDanteAttribute("c14Laboratory");
     populateDanteDropdown("c14Laboratory", c14LabDropdown);
+
+    await applyDefaults("absoluteDating");
 });
 
 // Manage dating accordions ---------------------------------------------------
@@ -333,7 +282,7 @@ const otherDating_AccordionButton = otherDating_AccordionItem.querySelector(".ac
 const otherDating_AccordionCollapseElem = document.getElementById("otherDating_AccordionCollapseElem");
 
 $('#dating_method').on('change', function () {
-    const selectedValue = this.selectedOptions[0].text;
+    const selectedValue = selectedLabel(this);
 
     if (selectedValue === "Dendrochronology") {
         c14LabDropdown.required = false;
@@ -459,7 +408,7 @@ function populateLabList() {
     lab_list.innerHTML = "";
 
     // Populate laborytories
-    axios.get('http://localhost:8080/laboratories')
+    axios.get('api/laboratories')
     .then(response => {
         response.data.forEach(item => {
             // Create option
@@ -480,13 +429,13 @@ function populateLabList() {
 function create_update_absoulteDating() {
     if (absoluteDating_form.checkValidity()) {
         const absoluteDatingId = document.getElementById("absDating_id").value;
-        const datingMethodLabel = datingMethodDropdown.selectedOptions[0].text
+        const datingMethodLabel = selectedLabel(datingMethodDropdown);
 
         // Create absolute dating payload
         const payload = {            
             // References ----------------------------------------
             sample: { id: absoluteDating_sample_dropdown.value },
-            literatureList: absoluteDatingLiteratureList,
+            literatureList: selectedRefs('#datingLiterature'),
             
             // Absolute dating -----------------------------------
             subSample: subSampleInput.value,
@@ -500,7 +449,7 @@ function create_update_absoulteDating() {
         if (materialDropdown.value) {
             payload.material = {
                 id: materialDropdown.value,
-                label: materialDropdown.selectedOptions[0].text
+                label: selectedLabel(materialDropdown)
             };
         }
             // dating method
@@ -571,18 +520,23 @@ function create_update_absoulteDating() {
         }
         
         if (absoluteDatingId) { // Update (PUT) --------------------------------------------
-            axios.put(`http://localhost:8080/absolute_datings/${absoluteDatingId}`, payload)
-            .then(response => {
-                console.log(response.data);
-                toast.success("dating updated");
-            })
-            .catch(error => {
-                console.error('Error during PUT request to update absolute dating:', error);
-                alert("action failed");
+            confirmUpdate("dating").then(confirmed => {
+                if (!confirmed) return;
+
+                axios.put(`api/absolute_datings/${absoluteDatingId}`, payload)
+                .then(response => {
+                    console.log(response.data);
+                    toast.success("dating updated");
+                })
+                .catch(error => {
+                    console.error('Error during PUT request to update absolute dating:', error);
+                    // 409: the laboratory number belongs to another dating (the backend says which)
+                    toast.error([400, 409].includes(error.response?.status) ? getErrorMessage(error) : "action failed");
+                });
             });
 
         } else { // Create (POST) ----------------------------------------------------------
-            axios.post('http://localhost:8080/absolute_datings', payload)
+            axios.post('api/absolute_datings', payload)
             .then(response => {
                 console.log(response.data);
                 toast.success("dating created");
@@ -599,28 +553,32 @@ function create_update_absoulteDating() {
             })
             .catch(error => {
                 console.error('Error during POST request to create absolute dating:', error);
-                alert("action failed");
+                toast.error([400, 409].includes(error.response?.status) ? getErrorMessage(error) : "action failed");
             });
         }        
 
     } else { // Report --------------------------
-        // Set focus on invalid field
-        absoluteDating_sample_dropdown.focus();
-
-        // wait until focus is set
-        setTimeout(() => {
-            absoluteDating_form.reportValidity();
-        }, 450);
+        // Bootstrap's `scroll-behavior: smooth` animates the browser's scroll
+        // to the invalid field; jump to it instantly, then report.
+        const firstInvalid = absoluteDating_form.querySelector(':invalid');
+        if (firstInvalid) {
+            firstInvalid.scrollIntoView({ block: 'center', behavior: 'instant' });
+            firstInvalid.focus({ preventScroll: true });
+        }
+        absoluteDating_form.reportValidity();
     } // ----------------------------------------
 }
 
 function resetAbsoluteDatingForm() {
     absoluteDating_form.reset();
 
-    absoluteDatingLiteratureList = [];
-    document.getElementById("absDating_literature_container").innerHTML = "";
+    // Reset (radio) C14 laboratory filter to the remembered mode
+    restoreCodeNameFilterMode('c14_lab');
+
+    clearMultiSelect('#datingLiterature');
 
     $('#material').val(null).trigger('change');
     $('#dating_method').val(null).trigger('change');
     $('#c14_lab').val(null).trigger('change');
+    applyDefaults("absoluteDating");
 }

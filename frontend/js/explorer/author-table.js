@@ -1,0 +1,155 @@
+let authorTable;
+
+async function buildAuthorTable() {
+    const build = tableBuild;
+    const container = document.getElementById("table");
+    const spinner = document.getElementById('tableSpinner');
+    const tableContainer = document.querySelector('.table-container');
+    container.innerHTML = "";
+    spinner.style.display = 'block';
+    tableContainer.style.display = 'none';
+
+    // GET authors --------------------------------------------------------------
+    let authors = [];
+    try {
+        const response = await axios.get("api/authors");
+        authors = sortPeople(response.data);
+    } catch (error) {
+        console.error("Error loading authors:", error);
+    }
+
+    // Create Table -------------------------------------------------------------
+    // Another table was chosen while the data was loading: this one is not shown
+    if (!isCurrentBuild(build)) return;
+
+    authorTable = newTabulator("#table", {
+        height: "100%",
+        data: authors,
+        columns:[
+            {cssClass:"selectionColumn", formatter:"rowSelection", titleFormatter:"rowSelection", titleFormatterParams:{
+                rowRange:"active" //only toggle the values of the active filtered rows
+            }, hozAlign:"center", headerSort:false},
+            {title:"id", field:"id", headerFilter:true, headerSort:false},
+            {title:"first name", titleDownload:"firstName", field:"firstName", editor:"input", headerFilter:true, headerSortTristate:true, sorter: compareLabels},
+            {title:"middle name", titleDownload:"middleName", field:"middleName", editor:"input", headerFilter:true, headerSortTristate:true, sorter: compareLabels},
+            {title:"*last name", titleDownload:"lastName", field:"lastName", validator: ["required"], editor:"input", headerFilter:true, headerSortTristate:true, sorter: compareLabels},
+        ],
+        initialSort: [
+            {column: "firstName", dir: "asc"}, // last entry has the highest priority
+            {column: "lastName", dir: "asc"}
+        ]
+    }); // ----------------------------------------------------------------------
+
+
+    // Hide spinner
+    spinner.style.display = 'none';
+    // Show table
+    tableContainer.style.display = 'flex';
+
+    activeTable = "authorTable";
+
+
+    // PUT: update authors -------------------------------------------------
+    authorTable.on("cellEdited", async function(cell){
+
+        const editedField = cell.getField();
+        const newValue = cell.getValue();
+
+        const selectedRows = await getRowsToUpdate(authorTable, cell, "author", "authors");
+        if (!selectedRows) return;
+        selectedRows.forEach(row => {
+            
+            // Create payload
+            const author = JSON.parse(JSON.stringify(row.getData()));
+            setNestedValue(author, editedField, newValue); // other selected rows do not contain the new value yet
+            const authorId = author.id;
+            const payload = {
+                ...author,
+            };
+    
+            axios.put(`api/authors/${authorId}`, JSON.stringify(payload), {
+                headers: {
+                    "Content-Type": 'application/json'
+                }
+            })
+            .then(async response => {
+                console.log(response.data);
+                
+                // Update table
+                if(row !== cell.getRow()) { // skip the edited line
+                    updateRowField(row, editedField, newValue);
+                }
+            })
+            .catch(error => handleUpdateError(cell, row, "author", error));
+        });
+    });
+
+    // Delete rows --------------------------------------------------------------
+    const deleteButton = document.getElementById("deleteRows-button");
+    
+    // Only show deleteButton if at least one row is selected
+    authorTable.on("rowSelectionChanged", function(rows){
+        deleteButton.classList.toggle("hidden", rows.length === 0);
+    });
+
+    // onclick (not addEventListener): the button is shared by all tables
+    deleteButton.onclick = async function() {
+        const selectedRows = authorTable.getSelectedRows();
+        if (!await confirmDelete("author", selectedRows.length)) return;
+
+        selectedRows.forEach(row => {
+            // Get id
+            const authorId = row.getData().id;
+
+            axios.delete(`api/authors/${authorId}`)
+            .then(async response => {
+                console.log(response.data);
+                await row.delete();
+                // Deleting a row does not fire rowSelectionChanged
+                deleteButton.classList.toggle("hidden", authorTable.getSelectedRows().length === 0);
+            })
+            .catch(error => {
+                handleDeleteError("author", error);
+            });            
+        });
+    };
+}
+
+// Export table -----------------------------------------------------------------
+document.getElementById("download-json").addEventListener("click", function(){
+    if (activeTable === "authorTable") {
+        authorTable.download(
+            "json",
+            "ArboDat+_Download_Authors.json"
+        );
+    }
+});
+
+document.getElementById("download-csv").addEventListener("click", function(){
+    if (activeTable === "authorTable") {
+        authorTable.download(
+            "csv",
+            "ArboDat+_Download_Authors.csv"
+        );
+    }
+});
+
+
+document.getElementById("download-xlsx").addEventListener("click", function(){
+    if (activeTable === "authorTable") {
+        authorTable.download(
+            "xlsx",
+            "ArboDat+_Download_Authors.xlsx",
+            {sheetName:"ArboDat+ Authors"}
+        );
+    }
+});
+
+document.getElementById("download-html").addEventListener("click", function(){
+    if (activeTable === "authorTable") {
+        authorTable.download(
+            "html",
+            "ArboDat+_Download_Authors.html"
+        );
+    }
+});

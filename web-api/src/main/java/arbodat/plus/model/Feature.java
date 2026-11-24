@@ -12,8 +12,12 @@ import java.util.UUID;
 
 @Data
 @Entity
-@Table(name = "feature")
+// A feature label is unique within its site (exact; ignoring case is checked by LabelUniqueness)
+@Table(name = "feature",
+        uniqueConstraints = @UniqueConstraint(name = Feature.UNIQUE_LABEL, columnNames = {"site", "feature_label"}))
 public class Feature implements Serializable {
+
+    public static final String UNIQUE_LABEL = "uk_feature_site_label";
 
     @Id
     @GeneratedValue(strategy = GenerationType.UUID)
@@ -33,6 +37,9 @@ public class Feature implements Serializable {
     @Column(name = "building_context")
     private Boolean buildingContext;
 
+    @Column(name = "building_context_description")
+    private String buildingContextDescription;
+
     @Column(name = "feature_condition")
     private Boolean featureCondition;
 
@@ -49,24 +56,6 @@ public class Feature implements Serializable {
     @JoinColumn(name = "feature_type")
     private FeatureType featureType;
 
-//    // central on Dante
-//    @JsonIgnore
-//    @ManyToMany
-//    @JoinTable(name = "feature_archaeological_dating_relation",
-//            joinColumns = @JoinColumn(name = "feature_id"),
-//            inverseJoinColumns = @JoinColumn(name = "archaeological_dating_id")
-//    )
-//    private Set<ArchaeologicalDating> archaeologicalDatingList;
-//
-//    // central on Dante
-//    @JsonIgnore
-//    @ManyToMany
-//    @JoinTable(name = "feature_cultural_group_relation",
-//            joinColumns = @JoinColumn(name = "feature_id"),
-//            inverseJoinColumns = @JoinColumn(name = "cultural_group_id")
-//    )
-//    private Set<CulturalGroup> culturalGroupList;
-
     @JsonIgnore
     @OneToMany(mappedBy = "feature")
     private Set<Sample> sampleList;
@@ -75,7 +64,6 @@ public class Feature implements Serializable {
     @JoinColumn(name = "site")
     @JsonIgnoreProperties("literatureList")
     private Site site;
-
 
     @Override
     public boolean equals(Object obj) {

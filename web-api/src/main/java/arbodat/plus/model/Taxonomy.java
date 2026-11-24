@@ -9,6 +9,7 @@ import java.util.Set;
 
 @Data
 @Entity
+@EntityListeners(VocabularyTermListener.class)
 @Table(name = "taxonomy")
 public class Taxonomy implements Serializable {
 

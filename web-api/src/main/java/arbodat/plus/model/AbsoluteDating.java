@@ -1,6 +1,7 @@
 package arbodat.plus.model;
 
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
+import com.fasterxml.jackson.annotation.JsonProperty;
 import jakarta.persistence.*;
 import lombok.Data;
 import java.io.Serializable;
@@ -10,8 +11,12 @@ import java.util.UUID;
 
 @Data
 @Entity
-@Table(name = "absolute_dating")
+// A sub-sample is unique within its sample (exact; ignoring case is checked by LabelUniqueness)
+@Table(name = "absolute_dating",
+        uniqueConstraints = @UniqueConstraint(name = AbsoluteDating.UNIQUE_SUB_SAMPLE, columnNames = {"sample", "sub_sample"}))
 public class AbsoluteDating implements Serializable {
+
+    public static final String UNIQUE_SUB_SAMPLE = "uk_absolute_dating_sample_sub_sample";
 
     @Id
     @GeneratedValue(strategy = GenerationType.UUID)
@@ -38,23 +43,28 @@ public class AbsoluteDating implements Serializable {
     @JoinColumn(name = "sample")
     private Sample sample;
 
+    // Only written to JSON, never read: the results are linked on the result side (Result.absoluteDatingList).
+    // Reading it failed once a result had been read before (Jackson, mutual @JsonIgnoreProperties:
+    // "No _valueDeserializer assigned") -> a dating with results couldn't be saved from the data explorer.
     @ManyToMany(mappedBy = "absoluteDatingList")
     @JsonIgnoreProperties("absoluteDatingList")
+    @JsonProperty(access = JsonProperty.Access.READ_ONLY)
     private Set<Result> resultList;
 
     @ManyToMany(mappedBy = "absoluteDatingList")
     private Set<Literature> literatureList;
 
-    // Datings ---------------------------------------------------------------------
-    @OneToOne(cascade = CascadeType.ALL)
+    // Datings: each belongs to this absolute dating only (one-to-one); one that is replaced is deleted
+    // (it would be unreachable, and its laboratory number blocked for good).
+    @OneToOne(cascade = CascadeType.ALL, orphanRemoval = true)
     @JoinColumn(name = "c14_dating_id", referencedColumnName = "id")
     private C14Dating c14Dating;
 
-    @OneToOne(cascade = CascadeType.ALL)
+    @OneToOne(cascade = CascadeType.ALL, orphanRemoval = true)
     @JoinColumn(name = "dendrochronological_dating_id", referencedColumnName = "id")
     private DendrochronologicalDating dendrochronologicalDating;
 
-    @OneToOne(cascade = CascadeType.ALL)
+    @OneToOne(cascade = CascadeType.ALL, orphanRemoval = true)
     @JoinColumn(name = "other_dating_id", referencedColumnName = "id")
     private OtherDating otherDating;
     // -----------------------------------------------------------------------------

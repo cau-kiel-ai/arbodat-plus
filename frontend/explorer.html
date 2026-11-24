@@ -1,0 +1,156 @@
+<!DOCTYPE html>
+<html lang="en">
+    <head>
+        <meta charset="utf-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+
+        <title>ArboDat+ | Data Explorer</title>
+
+        <link href="img/favicon.png" rel="icon">
+        <link href="css/explorer.min.css" rel="stylesheet">
+        <script src="components/app-footer.js"></script>
+        <script src="components/app-navbar.js"></script>
+        
+        <!-- bootstrap -->
+        <script src="vendor/bootstrap@5.3.8/dist/js/bootstrap.bundle.min.js"></script>
+        <!-- axios -->
+        <script src="vendor/axios@1.21.0/dist/axios.min.js"></script>
+        <!-- jquery -->
+        <script src="vendor/jquery@3.7.1/dist/jquery.min.js"></script>
+        <!-- Select2 -->
+        <link href="vendor/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
+        <script src="vendor/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
+        <!-- tabulator -->
+        <link href="vendor/tabulator-tables@6.7.1/dist/css/tabulator.min.css" rel="stylesheet" />
+        <script src="vendor/tabulator-tables@6.7.1/dist/js/tabulator.min.js"></script>
+
+        <!-- Export includes -->
+        <script src="vendor/xlsx@0.20.3/dist/xlsx.full.min.js"></script>
+
+        <!-- Spinner style -->
+        <style>
+        /* Loading Spinner (Circular) */
+        .spinner {
+            border: 4px solid #f3f3f3;
+            border-top: 4px solid #3498db;
+            border-radius: 50%;
+            width: 50px;
+            height: 50px;
+            animation: spin 2s linear infinite;
+            display: none; /* Initially hidden */
+            margin: 20px auto;
+        }
+
+        /* Spinner Animation */
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        </style>
+    </head>
+
+    <body>
+
+        <app-navbar></app-navbar>
+
+        <div class="table-wrapper">            
+
+            <div class="button-container">
+                <button id="deleteRows-button" class="deleteButton hidden">
+                    Delete selected Rows
+                </button>
+
+                <div class="dropdown-container">
+                    Select&nbsp;Table:&nbsp;&nbsp;
+                    <select id="tableSelector">
+                        <option></option>
+                        <optgroup label="">
+                            <option value="institution">institutions</option>
+                            <option value="user">users</option>
+                            <option value="author">authors</option>
+                            <option value="literature">literature</option>
+                        </optgroup>
+                        <optgroup label="">
+                            <option value="researchProject">research projects</option>
+                            <option value="site">sites</option>
+                            <option value="feature">features</option>
+                            <option value="sample">samples</option>
+                            <option value="dating">datings</option>
+                            <option value="result">results</option>
+                        </optgroup>
+                    </select>
+                </div>
+
+                Export Table:
+
+                <button id="download-json" class="exportButton">
+                    JSON
+                </button>
+                <button id="download-csv" class="exportButton">
+                    CSV
+                </button>
+                <button id="download-xlsx" class="exportButton">
+                    XLSX
+                </button>
+                <button id="download-html" class="exportButton">
+                    HTML
+                </button>
+            </div>
+
+            <!-- Spinner -->
+            <div id="tableSpinner" class="spinner"></div>
+
+            <div class="table-container">
+                <div id="table"></div>
+            </div>
+            
+        </div>
+
+        <!-- Fractions popup (opened by clicking a cell of the sample table) -->
+        <div id="fractionModal" class="fraction-modal">
+            <div class="fraction-modal-content">
+                <span class="fraction-modal-close">&times;</span>
+                <h2>Fractions Analyzed</h2>
+                <div id="fractionModalSample"></div>
+                <form id="fractionModalForm" role="form">
+                    <!-- keep this fieldset empty (no whitespace): the "no fractions" note uses :empty -->
+                    <fieldset id="fractions"></fieldset>
+                    <button type="button" class="fraction-modal-button" onclick="addFraction()">add fraction</button>
+                    <button type="button" class="fraction-modal-button fraction-modal-save" id="fractionModalSave">save</button>
+                </form>
+            </div>
+        </div>
+
+        <!-- scripts --> 
+        <script src="js/explorer/renderTable.js"></script>
+        <script src="js/explorer/helper.js"></script>
+
+        <script src="js/explorer/researchProject-table.js"></script>
+        <script src="js/explorer/institution-table.js"></script>
+        <script src="js/explorer/user-table.js"></script>
+        <script src="js/explorer/author-table.js"></script>
+        <script src="js/explorer/literature-table.js"></script>
+        <script src="js/explorer/site-table.js"></script>
+        <script src="js/explorer/feature-table.js"></script>
+        <script src="js/input/sample-fraction-boxes.js"></script>
+        <script src="js/explorer/sample-table.js"></script>
+        <script src="js/explorer/dating-table.js"></script>
+        <script src="js/explorer/result-table.js"></script>
+
+        <script src="js/displayOrder.js"></script>
+        <script src="js/danteAttributes/fetchDanteAttribute.js"></script>
+        <script src="js/danteAttributes/populateDanteDropdown.js"></script>
+        <script src="js/danteAttributes/danteListEditor.js"></script>
+        <script src="js/danteAttributes/updateBackendDanteAttributes.js"></script>
+
+        <script src="js/formatService.js"></script>
+        <script src="js/labelSort.js"></script>
+        <script src="js/escapeHtml.js"></script>
+        <script src="js/multiSelectEditor.js"></script>
+        <script src="js/toast.js"></script>
+        <script src="js/confirm.js"></script>
+
+        <app-footer></app-footer>
+
+    </body>
+</html>

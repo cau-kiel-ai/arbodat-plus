@@ -8,7 +8,6 @@ document.addEventListener("DOMContentLoaded", () => {
     const inputField = document.getElementById("subsample");
     const submit_update_button = document.getElementById("absDating_submit_update_button");
 
-    const literature_container = document.getElementById("absDating_literature_container");
     // ------------------------------------------------------------------------------------
 
     let activeIndex = -1;
@@ -34,7 +33,7 @@ document.addEventListener("DOMContentLoaded", () => {
         adjustDropdownWidth();
 
         // Send a GET request to get all items
-        fetch('http://localhost:8080/absolute_datings', { // Customise here
+        fetch('api/absolute_datings', { // Customise here
             method: 'GET',
             headers: {
                 'Content-Type': 'application/json',
@@ -104,6 +103,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
     function populateDropdown(itemList) {  
         dropdown.innerHTML = ""; // Reset dropdown
+        itemList = sortDatings(itemList); // Ascending
         
         itemList.forEach((item, index) => {
             const listItem = document.createElement("li");
@@ -125,23 +125,13 @@ document.addEventListener("DOMContentLoaded", () => {
         // Customise here -------------------------------------------
         inputField.value = item.subSample;
         
-        // Reset literature list and container
-        absoluteDatingLiteratureList = []
-        literature_container.innerHTML = "";
-
-        // Add literature to list and container
-        item.literatureList.forEach(item => {
-            const itemText = formatLiterature(item);            
-            const literatureData = { id: item.id };
-            const index = absoluteDatingLiteratureList.push(literatureData) - 1;
-            addLiteratureItemBox(itemText, index, "absoluteDatingLiteratureList", "absDating_literature_container");
-        });
+        setMultiSelect('#datingLiterature', item.literatureList, formatLiterature);
         
         $('#material').val(item.material?.id ?? '').trigger('change');
         remarksTextarea.value = item.remarks;
         $('#dating_method').val(item.datingMethod?.id ?? '').trigger('change');
         // dating method accordions
-        selected_datingMethod = datingMethodDropdown.selectedOptions[0].text;
+        const selected_datingMethod = selectedLabel(datingMethodDropdown);
         if (selected_datingMethod === "Dendrochronology") {
             dendroLabInput.value = item.dendrochronologicalDating?.laboratory?.label ?? '';
             dendroNumberInput.value = item.dendrochronologicalDating?.number ?? '';

@@ -1,10 +1,14 @@
 const resultForm = document.getElementById('resultForm');
-const today = new Date().toISOString().split('T')[0]; // "YYYY-MM-DD"
+// Today as local date "YYYY-MM-DD" (toISOString would give the UTC date)
+const today = new Date(Date.now() - new Date().getTimezoneOffset() * 60000).toISOString().split('T')[0];
 const taxonomy = document.getElementById("taxonomy_info");
 const taxCodeDropdown = document.getElementById("taxCode");
 
 function resetResultForm() {
     resultForm.reset();
+
+    // Reset (radio) tax code filter to the remembered mode
+    restoreCodeNameFilterMode('taxCode');
 
     // Reset related datings
     $('#result_datings').val(null).trigger('change');
@@ -24,7 +28,9 @@ function resetResultForm() {
     // Reset cf
     $('#cf').val(null).trigger('change');
     // Reset rType
-    $('#restType').val(null).trigger('change');    
+    $('#restType').val(null).trigger('change');
+
+    applyDefaults("result");
 }
 
 const result_site_dropdown    = document.getElementById("result_site_dropdown");
@@ -77,16 +83,13 @@ $('#result_site_dropdown').on('select2:opening', async function (e) {
         // Update data
         sites.forEach(item => {
             // Determine item name --------------------------------
-            let itemName;
-            if (item.activityNumber) {
-                itemName = `${item.label}, ${item.activityNumber}`;
-            } else {
-                itemName = item.label;
-            }
+            const activityNumbers = item.activityNumbers?.length
+                ? `activity numbers: ${item.activityNumbers.join(', ')}; `
+                : '';
             const projectNames = item.researchProjectList
                 .map(rp => rp.projectName)
                 .join(', ');
-            itemName += ` (research projects: ${projectNames})`;
+            const itemName = `${item.label} (${activityNumbers}research projects: ${projectNames})`;
             // ----------------------------------------------------
             $('#result_site_dropdown').append(
                 new Option(itemName, item.id)
@@ -185,6 +188,100 @@ $('#result_sample_dropdown')
     .find('.select2-selection__arrow')
     .remove();
 
+// Existing results of the selected sample ------------------------------------------
+// (table code is shared with the explorer: js/explorer/result-table.js)
+const existingResults_hint    = document.getElementById("existingResults-hint");
+const existingResults_sample  = document.getElementById("existingResults-sample");
+const existingResults_buttons = document.getElementById("existingResults-buttons");
+const existingResults_delete  = document.getElementById("existingResults-delete");
+const existingResults_spinner = document.getElementById("existingResults-spinner");
+const existingResults_table   = document.getElementById("existingResults-table");
+let existingResultsTable = null;
+
+function clearExistingResults() {
+    if (existingResultsTable) {
+        existingResultsTable.destroy();
+        existingResultsTable = null;
+    }
+    existingResults_table.style.display = 'none';
+    existingResults_sample.style.display = 'none';
+    existingResults_buttons.style.display = 'none';
+    existingResults_spinner.style.display = 'none';
+    existingResults_hint.style.display = '';
+}
+
+// site, feature and sample of the table, values start at the same horizontal point
+function showExistingResultsSample(sampleId) {
+    const sample = samples.find(s => String(s.id) === sampleId);
+    existingResults_sample.innerHTML = "";
+    [
+        ["site",    sample?.feature?.site?.label],
+        ["feature", sample?.feature?.label],
+        ["sample",  sample?.label],
+    ].forEach(([name, value]) => {
+        const line = document.createElement("div");
+        const nameSpan = document.createElement("span");
+        nameSpan.className = "existingResults-sample-name";
+        nameSpan.textContent = name + ":";
+        line.append(nameSpan, value ?? "");
+        existingResults_sample.appendChild(line);
+    });
+    existingResults_sample.style.display = '';
+}
+
+let existingResults_requestId = 0;
+async function refreshExistingResults() {
+    const sampleId = result_sample_dropdown.value;
+    const requestId = ++existingResults_requestId;
+
+    // No sample selected (or dropdown is loading)
+    if (!sampleId || sampleId === 'loading') {
+        clearExistingResults();
+        return;
+    }
+
+    clearExistingResults();
+    existingResults_hint.style.display = 'none';
+    existingResults_spinner.style.display = 'block';
+
+    const results = await loadResults({ sampleId });
+    // Another sample was selected in the meantime
+    if (requestId !== existingResults_requestId) return;
+
+    // The table container must be visible before Tabulator is built
+    existingResults_table.style.display = 'block';
+    existingResultsTable = await createResultTable({
+        selector: "#existingResults-table",
+        results,
+        hiddenFields: ["id", "sample.id", "sample.feature.id", "sample.feature.site.id", "absoluteDatingList"],
+        height: "400px",
+    });
+    if (requestId !== existingResults_requestId) {
+        existingResultsTable.destroy();
+        existingResultsTable = null;
+        return;
+    }
+    attachResultDeleteHandler(existingResultsTable, existingResults_delete);
+
+    existingResults_spinner.style.display = 'none';
+    showExistingResultsSample(sampleId);
+    existingResults_buttons.style.display = 'flex';
+}
+
+$('#result_sample_dropdown').on('change', refreshExistingResults);
+
+// Functions from js/explorer/result-table.js (loaded after this file): look them up on click
+[
+    ["existingResults-json", table => downloadResultsJson(table)],
+    ["existingResults-csv",  table => downloadResultsCsv(table)],
+    ["existingResults-xlsx", table => downloadResultsXlsx(table)],
+    ["existingResults-html", table => downloadResultsHtml(table)],
+].forEach(([buttonId, download]) => {
+    document.getElementById(buttonId).addEventListener("click", () => {
+        if (existingResultsTable) download(existingResultsTable);
+    });
+});
+
 let resultSample_isReopening = false;
 $('#result_sample_dropdown').on('select2:opening', async function (e) {
     if (resultSample_isReopening) {
@@ -259,16 +356,16 @@ $('#result_sample_dropdown').on('select2:select', async function (event) {
 
     try {
         // Get absolute datings
-        const response = await axios.get('http://localhost:8080/absolute_datings');
+        const response = await axios.get('api/absolute_datings');
 
         // Reset multi-select boxes
         $('#result_datings')
             .empty()
         
         // Filter AbsDatings that match the selected sample
-        const filteredItems = response.data.filter(item =>
+        const filteredItems = sortDatings(response.data.filter(item =>
         item.sample?.id == selectedSampleId
-        );
+        ));
 
         filteredItems.forEach(item => {
             const option = document.createElement('option');
@@ -298,7 +395,7 @@ $('#result_sample_dropdown').on('select2:select', async function (event) {
         .prop('disabled', true);
 
     try {
-        const response = await axios.get('http://localhost:8080/fractions_analyzed');
+        const response = await axios.get('api/fractions_analyzed');
 
         // Reset dropdown
         $('#result_fraction')
@@ -398,6 +495,12 @@ const estimationCheckbox = document.getElementById("estimation");
 
 // --------------------------------------------------------------------------------
 function submitResult() {
+    // A result needs a quantity: count (-1: present, not counted), fragments or weight (as in ArboDat)
+    const hasQuantity = [restCountInput, restFragmentInput, restWeightInput]
+        .some(input => input.value !== "" && Number(input.value) !== 0);
+    restCountInput.setCustomValidity(hasQuantity ? "" : "Please enter a count, fragments or a weight.");
+    entryDateInput.max = today;
+
     if (resultForm.checkValidity()) {
         const selectedFractionOption = fractionDropdown.options[fractionDropdown.selectedIndex]
 
@@ -411,19 +514,19 @@ function submitResult() {
             fractionAnalyzed: selectedFractionOption.getAttribute('data-fractionAnalyzed'),
             orgOrMin: selectedFractionOption.getAttribute('data-orgOrMin'),
             sieveSize: selectedFractionOption.getAttribute('data-sieveSize'),
-            multiplier:  selectedFractionOption.getAttribute('data-standardMultiplier'), // multiplierInput.value,
+            multiplier:  multiplierInput.value, // preset with the standard multiplier of the fraction, editable
             
             // General -------------------------------------------
             entryDate: entryDateInput.value,
             stateOfPreservation: {
                 id: stateOfPreservationDropdown.value,
-                label: stateOfPreservationDropdown.selectedOptions[0].text
+                label: selectedLabel(stateOfPreservationDropdown)
             },
 
             // Taxonomy ------------------------------------------
             classificationConfer: {
                 id: classificationConferDropdown.value,
-                label: classificationConferDropdown.selectedOptions[0].text
+                label: selectedLabel(classificationConferDropdown)
             },
             taxCode: { 
                 id: taxCodeDropdown.value,
@@ -435,7 +538,7 @@ function submitResult() {
             // Result --------------------------------------------
             restType: {
                 id: restTypeDropdown.value,
-                label: restTypeDropdown.selectedOptions[0].text,
+                label: selectedLabel(restTypeDropdown),
                 structuralConcept: restTypeDropdown.selectedOptions[0].getAttribute('data-structuralConcept')
             },
             restCount: restCountInput.value,
@@ -445,7 +548,7 @@ function submitResult() {
             // ---------------------------------------------------
         };
         
-        axios.post('http://localhost:8080/results', payload)
+        axios.post('api/results', payload)
         .then(response => {
             if (response.data === "result is created") {
                 toast.success("result created");
@@ -453,8 +556,9 @@ function submitResult() {
             if (response.data === "result already exists") {
                 toast.info("result already exists");
             }
+            refreshExistingResults();
             // Reset "Taxonomy" and "Results" fields -------------------
-            const inputs = resultFormTaxonomy.querySelectorAll('input, select, textarea');
+            const inputs = document.getElementById('resultFormTaxonomy').querySelectorAll('input, select, textarea');
             
             inputs.forEach(input => {
                 if (input.tagName.toLowerCase() === 'input') {
@@ -473,24 +577,27 @@ function submitResult() {
             // Reset select2 dropown 
             $('#cf').val(null).trigger('change');
             $('#taxCode').val(null).trigger('change');
+            $('#result_datings').val(null).trigger('change');
             $('#restType').val(null).trigger('change'); 
+            applyDefaults("result", ["cf", "restType"]);
             // ---------------------------------------------------------
 
             classificationConferDropdown.focus();
         })
         .catch(error => {
             console.error('Error during POST request to create result:', error);
-            alert("action failed");
+            toast.error([400, 409].includes(error.response?.status) ? getErrorMessage(error) : "action failed");
         });
 
     } else { // Report -----------------
-        // Set focus on invalid field
-        result_sample_dropdown.focus();
-
-        // wait until focus is set
-        setTimeout(() => {
-            resultForm.reportValidity();
-        }, 500);
+        // Bootstrap's `scroll-behavior: smooth` animates the browser's scroll
+        // to the invalid field; jump to it instantly, then report.
+        const firstInvalid = resultForm.querySelector(':invalid');
+        if (firstInvalid) {
+            firstInvalid.scrollIntoView({ block: 'center', behavior: 'instant' });
+            firstInvalid.focus({ preventScroll: true });
+        }
+        resultForm.reportValidity();
     } // -------------------------------
 }
 
@@ -504,4 +611,6 @@ document.addEventListener("DOMContentLoaded", async () => {
 
     await fetchDanteAttribute("restType");
     populateDanteDropdown("restType", restTypeDropdown);
+
+    await applyDefaults("result");
 });

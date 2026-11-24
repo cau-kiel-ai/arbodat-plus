@@ -25,7 +25,7 @@ document.addEventListener("DOMContentLoaded", () => {
         adjustDropdownWidth();
 
         // Send a GET request to get all items
-        fetch('http://localhost:8080/research_projects', { // Customise here
+        fetch('api/research_projects', { // Customise here
             method: 'GET',
             headers: {
                 'Content-Type': 'application/json',
@@ -82,13 +82,14 @@ document.addEventListener("DOMContentLoaded", () => {
             funderNameInput.value          = "";
             authorisationNumberInput.value = "";
             $('#licenseDropdown').val(null).trigger('change');
-            exportFileNameInput.value      = "";
+            applyDefaults("project");
             // -----------------------------------------------
         }
     });
 
     function populateDropdown(itemList) {  
         dropdown.innerHTML = ""; // Reset dropdown
+        itemList = sortResearchProjects(itemList); // Ascending
         
         itemList.forEach((item) => {
             const listItem = document.createElement("li");
@@ -112,7 +113,6 @@ document.addEventListener("DOMContentLoaded", () => {
         funderNameInput.value          = item.funder;
         authorisationNumberInput.value = item.authorisationNumber;
         $('#licenseDropdown').val(item.license?.id ?? '').trigger('change');
-        exportFileNameInput.value      = item.exportFileName;
         // -----------------------------------------------------------------
     }
 
@@ -124,6 +124,7 @@ document.addEventListener("DOMContentLoaded", () => {
         // Customise here --------------------------------
         researchProjectForm.reset();
         $('#licenseDropdown').val(null).trigger('change');
+        applyDefaults("project");
         // -----------------------------------------------
         inputField.focus();
     });

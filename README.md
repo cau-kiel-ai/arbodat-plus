@@ -1,125 +1,72 @@
 # ArboDat+
+[![CI](https://github.com/cau-kiel-ai/arbodat-plus/actions/workflows/ci.yml/badge.svg)](https://github.com/cau-kiel-ai/arbodat-plus/actions/workflows/ci.yml)
+[![Release](https://img.shields.io/github/v/release/cau-kiel-ai/arbodat-plus?include_prereleases&label=version)](https://github.com/cau-kiel-ai/arbodat-plus/releases)
+[![License](https://img.shields.io/badge/license-BSD--2--Clause-blue)](LICENSE.md)
+[![DOI](https://img.shields.io/badge/DOI-10.5281%2Fzenodo.17938311-blue)](https://doi.org/10.5281/zenodo.17938311)
+![Docker](https://img.shields.io/badge/Docker-required-2496ED?logo=docker&logoColor=white)
 
-## Overview
 ArboDat+ is the continued development of the archaeobotanical database program ArboDat. It is being carried out as a collaborative project between NFDI for Objects, Kiel University, and the Lower Saxony Institute for Historical Coastal Research, Germany.
 
-ArboDat+ is designed as an operating system-independent web application. It features a newly implemented PostgreSQL database that transitions the system to an open and free platform. While the database remains relational, data integrity is ensured by adapting the old schema in accordance with the principles of the third normal form.
+**Features**
+- ArboDat+ is designed as an operating system-independent web application.
 
-ArboDat+ uses central lists of standardized vocabularies and thesauri, stored at Dante VZG. It also allows the addition of local attribute labels to the central Dante Server. These labels are manually reviewed before being uploaded centrally, updating the thesauri lists for all users automatically. This ensures that the data remains consistent and interoperable with other datasets, while still allowing flexibility for unique requirements.
+- A newly implemented PostgreSQL database transitions the system to an open and free platform. While the database remains relational, data integrity is ensured by adapting the old schema in accordance with the principles of the third normal form.
 
-The system also supports data migration through the **'Data Migration'** module. New records can be entered using the **‘Data Input’** module. Additionally, data entries can be queried, filtered, modified, and exported into various file formats through the **'Data Explorer'** module. An interactive map is also provided for easy management of site locations.
+- ArboDat+ uses central lists of standardized vocabularies and thesauri, stored at Dante VZG. It also allows the addition of local attribute labels to the central Dante Server. These labels are manually reviewed before being uploaded centrally, updating the thesauri lists for all users automatically. This ensures that the data remains consistent and interoperable with other datasets, while still allowing flexibility for unique requirements.
+
+- New records can be entered using the **‘Data Input’** module.
+- Existing data sets from legacy MS Access ArboDat can be imported via the **'Data Migration'** module.
+- Data entries can be queried, filtered, modified, and exported into various file formats through the **'Data Explorer'** module.
+- An interactive map provides easy location management of sites and reverse geocoding allows address details to be filled in automatically.
+- The **'Export / Import'** module exports the whole database, or only selected research projects, sites, features or samples, to a JSON file, and imports such a file into another ArboDat+: records already there are recognised and completed, nothing is deleted, and conflicting values are decided in a preview.
+- Default values and custom order of Dante attributes in the 'Data Input' forms can be configured in the **'Settings'** module.
 
 Please note that this is an early public release, and further improvements are recommended. For example, the data import functionality is still to be refined, and integration with a data repository would further enhance the system's capabilities.
 
-## Start ArboDat+ Application:  
-##### Requirements: *Docker*
+## Install ArboDat+
+- **On your own computer:** download the ArboDat+ desktop app from the
+  [releases page](https://github.com/cau-kiel-ai/arbodat-plus/releases). It installs, starts, backs up
+  and updates ArboDat+ for you, using Docker. See [docs/INSTALL.md](docs/INSTALL.md) for Docker and the
+  first start.
+- **On a server for several people:** see [deploy/README.md](deploy/README.md).
+
+## Start ArboDat+
+This builds and runs the application from the source code (for development).
+
+Requirements: [Docker Desktop](https://docs.docker.com/desktop/) (or Docker Engine with the Compose plugin ≥ 2.21 on Linux)
+
+`cp .env.example .env`  
 `docker compose --profile prod up -d --build`
 
-Next, open a web browser and go to `http://localhost`
+Next, open a web browser and go to http://localhost:8480
 
-## Directory Structure
+## Project Structure
 ```
+arbodat-plus
+├── .github/workflows        # CI and release workflows
 ├── database
-│   ├── data                 # postgresql database bind mount
-│   └── ERD
-│
-├── frontend
-│   ├── bootstrap-scss
-│   ├── css
-│   ├── img
-│   ├── js
-│   ├── sass
-│   │   └── scss files       # are compiled to css files
-│   ├── html files
-│   └── Dockerfile
-│
-├── web-api
-│   ├── build/libs
-│   │   └── web-api.jar
-│   ├── src/main
-│   │   ├── java/arbodat/plus
-│   │   │   ├── controller
-│   │   │   ├── model
-│   │   │   ├── repository
-│   │   │   └── service
-│   │   │       ├── migration_mapper
-│   │   │       └── MigrationService
-│   │   └── resources
-│   │       └── application.properties
-│   ├── build.gradle
-│   └── Dockerfile
-│
-├── node-proxy
-│   ├── server.js
-│   ├── package.json
-│   └── Dockerfile
-│
-├── info
-│   ├── DANTE-terminologies
-│   ├── API-URLs
-│   └── data-migration-table-mapping
-:
-├── .env
-├── .gitignore
-└── docker-compose.yml
+│   └── data                 # postgresql development database (bind mount)
+├── deploy                   # production compose.yml
+├── desktop                  # ArboDat+ desktop app
+│   ├── src                  # - Control Center UI
+│   └── src-tauri            # - Rust backend
+├── docs
+│   ├── API.md
+│   ├── DANTE-terminologies.md
+│   ├── data-migration-table-mapping.pdf
+│   ├── DEVELOPMENT.md
+│   ├── ERD.png
+│   └── INSTALL.md
+├── frontend                 # web pages (HTML/JS/CSS) served by nginx
+├── scripts                  # release version helpers
+├── web-api                  # Spring Boot REST backend
+├── .env.example
+└── docker-compose.yml       # development stack
 ```
-
-## Export ArboDat+
-- Build Docker Images:  
-  `docker compose --profile prod build --no-cache`
-- Export and bundle Docker Images:  
-  `docker save -o ArboDat+.tar postgres:16 arbodat_plus-frontend:latest arbodat_plus-web-api:latest arbodat_plus-node-proxy:latest`
-- Load Docker Images:  
-  `docker load -i ArboDat+.tar`
-- Start ArboDat+ via Docker:  
-  `docker compose up`
 
 ## Development
-Start ArboDat+ via Docker in dev mode:  
-`docker compose --profile dev build --no-cache`  
-`docker compose --profile dev up --build`  
-- bind mount of frontend folder into nginx container  
-(auto update of frontend changes while Application is running)
-- node-proxy is available at http://localhost:3000
-
-### Database - PostgreSQL
-Database is created using *postgres:16* Docker Image
-  - Creation of test database:  
-  `docker run --name test-database -p 5432:5432 --env POSTGRES_PASSWORD=password -d postgres:16`
-
-### Web API - Spring Boot
-Web API (backend) is built with *Spring Boot 3.3*, using *Gradle 8.8* as the build tool and *JDK 17* as the runtime environment.
-- Run Web-API:  
-  *Gradle -> Tasks -> application -> bootRun*
-
-- Build `web-api.jar`:
-  - Windows:  
-    `cd web-api && gradlew build && cd ..`
-    
-  - Linux/macOS:  
-  `cd web-api && chmod u+x gradlew && cd ..` (make ***gradlew*** file executable)  
-  `cd web-api && sudo ./gradlew build && cd ..`
-
-### Node Proxy
-- Creation of test node-proxy:  
-  `docker build --no-cache -t node-proxy ./node-proxy`  
-  `docker run --name test-node-proxy -p 3000:3000 node-proxy`
-
-### Frontend
-- Compile css files from scss files via *Sass*
-  - Recommended settings for [*Live Sass Compiler*](https://marketplace.visualstudio.com/items?itemName=glenn2223.live-sass):  
-  copy this to `.vscode/settings.json`: 
-    ```
-    "liveSassCompile.settings.formats": [
-        {
-            "format": "compressed",
-            "extensionName": ".min.css",
-            "savePath": "/frontend/css"
-        }
-    ],
-    "liveSassCompile.settings.forceBaseDirectory": "/frontend/sass"
-    ``` 
-  - *Live Sass Compiler -> Watch Sass* (to generate css files)
+How to set up the repository, run the dev stack, contribute, and make a release:
+[docs/DEVELOPMENT.md](docs/DEVELOPMENT.md).
 
 ## License
-See [LICENSE.md](LICENSE.md) and [THIRD_PARTY_LICENSES.md](THIRD_PARTY_LICENSES.md) for details
+See [LICENSE.md](LICENSE.md) and [THIRD_PARTY_LICENSES.md](THIRD_PARTY_LICENSES.md) for details.

@@ -11,7 +11,10 @@ import java.util.UUID;
 @Repository
 public interface SampleRepository extends JpaRepository <Sample, UUID>  {
 
-    List<Sample> findAllByLabel(String label);
+    // Labels compare case-insensitively (as in ArboDat 2018 / Access)
+    List<Sample> findAllByLabelIgnoreCase(String label);
+
+    List<Sample> findByFeatureIdAndLabelIgnoreCase(UUID featureId, String label);
 
     List<Sample> findByFeatureIdIn(Collection<UUID> featureIds);
 }

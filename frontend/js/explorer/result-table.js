@@ -1,0 +1,782 @@
+// Result table -------------------------------------------------------------------
+// Shared by explorer.html (all results) and input.html (results of the selected
+// reference sample, see js/input/result.js).
+
+let resultTable;
+
+// GET results (paged), optionally filtered e.g. by { sampleId } ---------------------
+async function loadResults(params = {}) {
+    const results = [];
+
+    const size = 1000;
+    let page = 0;
+    let last = false;
+    while (!last) {
+        try {
+            const response = await axios.get("api/results", {
+                params: { ...params, page, size }
+            });
+
+            results.push(...response.data.content);
+            last = response.data.last;
+            page++;
+        } catch (error) {
+            console.error("Error loading results:", error);
+            break;
+        }
+    }
+    return results;
+}
+
+// Build the table in `selector`; columns in `hiddenFields` are hidden but still exported
+// isCurrent: false -> the table is not wanted any more (explorer: another table was chosen while loading), null is returned
+async function createResultTable({ selector, results, hiddenFields = [], height = "100%", isCurrent = () => true }) {
+
+    // GET sites --------------------------------------------------------------
+    let sites = [];
+    try {
+        const response = await axios.get("api/sites");
+        sites = sortSites(response.data);
+    } catch (error) {
+        console.error("Error loading sites:", error)
+    }
+
+    // GET features --------------------------------------------------------------
+    let features = [];
+    try {
+        const response = await axios.get("api/features");
+        features = sortFeatures(response.data);
+    } catch (error) {
+        console.error("Error loading features:", error)
+    }
+
+    // GET samples --------------------------------------------------------------
+    let samples = [];
+    try {
+        const response = await axios.get("api/samples");
+        samples = sortSamples(response.data);
+    } catch (error) {
+        console.error("Error loading samples:", error)
+    }
+
+    // GET absolute datings -----------------------------------------------------
+    let datings = [];
+    try {
+        const response = await axios.get("api/absolute_datings");
+        datings = sortDatings(response.data);
+    } catch (error) {
+        console.error("Error loading absolute datings:", error)
+    }
+
+    // Fetch taxCodes -----------------------------------------------------------
+    const ArboDat_PCODE_URI = "http://uri.gbv.de/terminology/arbodat_taxonomy/6ac2cb7f-fed7-445d-bd8c-4c8cadec2303";
+    await fetchDanteTaxCodes(ArboDat_PCODE_URI);
+
+    function formatClassificationConfer(classificationConferId){
+        if (!classificationConferId) return "";
+        const classificationConfer = cachedClassificationConfers.find(cf => cf.uri === classificationConferId) || null;
+        return classificationConfer?.prefLabel.en ?? classificationConferId;
+    }
+
+    // GET rest type ------------------------------------------------------------
+    let restTypes = [];
+    try {
+        const response = await axios.get("api/dante_attributes/rest_type");
+        restTypes = response.data;
+    } catch (error) {
+        console.error("Error loading rest types:", error)
+    }
+
+    // Dropdowns of the DANTE columns (same entries and order as on the input page, see danteListEditor.js)
+    await loadDanteListOptions(["classificationConfer", "restType", "stateOfPreservation"]);
+
+    function formatRestType(restTypeId){
+        if (!restTypeId) return "";
+        const restType = restTypes.find(rt => rt.id === restTypeId) || null;
+        return restType?.label ?? restTypeId;
+    }
+
+    function formatStateOfPreservation(stateOfPreservationId){
+        if (!stateOfPreservationId) return "";
+        const stateOfPreservation = cachedStateOfPreservation.find(sop => sop.uri === stateOfPreservationId) || null;
+        return stateOfPreservation?.prefLabel.en ?? stateOfPreservationId;
+    }
+
+    if (!isCurrent()) return null;
+
+    // Create Table -------------------------------------------------------------
+    const table = newTabulator(selector, {
+        height: height,
+        data: results,
+        columns:[
+            {cssClass:"selectionColumn", formatter:"rowSelection", titleFormatter:"rowSelection", titleFormatterParams:{
+                rowRange:"active" //only toggle the values of the active filtered rows
+            }, hozAlign:"center", headerSort:false},
+            {title:"id", field:"id", headerFilter:true, headerSort:false},
+            {title: "*sample", titleDownload:"sample", field:"sample.id", headerSortTristate:true, sorter: rankSorter(samples),
+                editor: singleSelectEditor, editorParams: function(cell) {
+                    const rowData = cell.getRow().getData();
+                    const featureId = rowData?.sample.feature.id;
+
+                    return {
+                        values: samples
+                            .filter(item => item.feature?.id === featureId)
+                            .map(item => ({
+                                value: item.id,
+                                label: item.label
+                            }))
+                    };
+                },
+                headerFilter: multiSelectFilter, headerFilterParams: { valuesInData: true,
+                    values: samples.map(item => ({
+                            value: item.id,
+                            label:
+                                item.label +
+                                " (" +
+                                item.feature.label +
+                                ")"
+                    })),
+                    multiselect: true
+                },
+                headerFilterFunc: function(headerValue, rowValue) {
+                    if (!headerValue || (Array.isArray(headerValue) && headerValue.length === 0)) {
+                        return true;
+                    }
+                    return headerValue.includes(rowValue);
+                },
+                formatter: textFormatter(cell => formatSample(samples, cell.getValue())),
+                accessorDownload: value => formatSample(samples, value),
+            },
+            {title: "*feature", titleDownload:"feature", field:"sample.feature.id", headerSortTristate:true, sorter: rankSorter(features),
+                editor: singleSelectEditor, editorParams: function(cell) {
+                    const rowData = cell.getRow().getData();
+                    const siteId = rowData?.sample.feature.site.id;
+
+                    return {
+                        values: features
+                            .filter(item => item.site?.id === siteId)
+                            .map(item => ({
+                                value: item.id,
+                                label: item.label
+                            }))
+                    };
+                },
+                headerFilter: multiSelectFilter, headerFilterParams: { valuesInData: true,
+                    values: features.map(item => ({
+                            value: item.id,
+                            label:
+                                item.label +
+                                " (" +
+                                item.site.label +
+                                ")"
+                    })),
+                    multiselect: true
+                },
+                headerFilterFunc: function(headerValue, rowValue) {
+                    if (!headerValue || (Array.isArray(headerValue) && headerValue.length === 0)) {
+                        return true;
+                    }
+                    return headerValue.includes(rowValue);
+                },
+                formatter: textFormatter(cell => formatFeature(features, cell.getValue())),
+                accessorDownload: value => formatFeature(features, value),
+            },
+            {title: "*site", titleDownload:"site", field:"sample.feature.site.id", headerSortTristate:true, sorter: rankSorter(sites),
+                editor: singleSelectEditor, editorParams:{
+                    values: sites.map(item => ({
+                            value: item.id,
+                            label:
+                                item.label +
+                                " (" +
+                                item.researchProjectList.map(rp => rp.projectName).join(',') +
+                                ")"
+                        }))
+                    ,
+                },
+                headerFilter: multiSelectFilter, headerFilterParams: { valuesInData: true,
+                    values: sites.map(item => ({
+                            value: item.id,
+                            label:
+                                item.label +
+                                " (" +
+                                item.researchProjectList.map(rp => rp.projectName).join(',') +
+                                ")"
+                    })),
+                    multiselect: true
+                },
+                headerFilterFunc: function(headerValue, rowValue) {
+                    if (!headerValue || (Array.isArray(headerValue) && headerValue.length === 0)) {
+                        return true;
+                    }
+                    return headerValue.includes(rowValue);
+                },
+                formatter: textFormatter(cell => formatSite(sites, cell.getValue())),
+                accessorDownload: value => formatSite(sites, value),
+            },
+            {title: "dating list (multiple selection)", titleDownload:"absoluteDatingList", field:"absoluteDatingList", headerSortTristate:true,
+                mutator: function(value) {
+                    // Map objects only to id
+                    return Array.isArray(value) ? value.map(item => item.id? item.id : item) : [];
+                },
+                editor: multiSelectEditor, editorParams: function(cell) {
+                    const rowData = cell.getRow().getData();
+                    const sampleId = rowData?.sample?.id;
+
+                    return {
+                        values: datings
+                            .filter(item => item.sample?.id === sampleId)
+                            .map(item => ({
+                                value: item.id,
+                                label: formatDatings(item)
+                            })),
+                        autocomplete:false,
+                        multiselect:true,
+                        emptyValue:[]
+                    };
+                },
+                headerFilter: multiSelectFilter, headerFilterParams: {
+                    values: datings.map(item => ({
+                            value: item.id,
+                            label: formatDatings(item)
+                    })),
+                    multiselect: true
+                },
+                headerFilterFunc: function(headerValue, rowValue){
+                    return headerValue.every(val => rowValue.includes(val));
+                },
+                sorter: formattedSorter(ids => (ids || [])
+                    .map(id => formatDatings(datings.find(item => item.id === id) ?? {}))
+                    .join(", ")),
+                formatter: textFormatter(function(cell) {
+                    const datingsIds = cell.getValue();
+
+                    // HTML download
+                    if (Array.isArray(datingsIds) && datingsIds.length > 0 && typeof datingsIds[0] === "object") {
+                        return datingsIds.map(obj => formatDatings(obj)).join(", ");
+                    }
+
+                    if (Array.isArray(datingsIds)) {
+                        return datingsIds
+                                .map(id => {
+                                    const dating = datings.find(item => item.id === id)
+                                    return formatDatings(dating)})
+                                .join(", ");
+                    }
+                }),
+                accessorDownload: function(value) {
+                    if (!Array.isArray(value)) return "";
+                    return value
+                        .map(id => {
+                            const dating = datings.find(item => item.id === id);
+                            return {
+                                id: dating.id,
+                                subSample: dating.subSample,
+                                remarks: dating.remarks,
+                                datingMethod: dating.datingMethod,
+                                material: dating.material,
+                                literatureList: dating.literatureList,
+                                c14Dating: dating.c14Dating,
+                                dendrochronologicalDating: dating.dendrochronologicalDating,
+                                otherDating: dating.otherDating
+                            }
+                        })
+                }
+            },
+            {title:"entry date", titleDownload:"entryDate", field:"entryDate", editor:"date", headerSortTristate:true,
+                // Not in the future (local date)
+                editorParams: { max: new Date(Date.now() - new Date().getTimezoneOffset() * 60000).toISOString().split('T')[0] },
+                headerFilter:"input", headerFilterFunc: function(headerValue, rowValue) {
+                    if (!headerValue) return true;
+                    if (!rowValue) return false;
+
+                    const dateStr = typeof rowValue === "string"
+                        ? rowValue.split("T")[0]
+                        : rowValue.toISOString().split("T")[0];
+
+                    const header = headerValue.trim();
+
+                    // 1) yyyy
+                    if (/^\d{4}$/.test(header)) {
+                        return dateStr.startsWith(header);
+                    }
+
+                    // 2) yyyy-mm
+                    if (/^\d{4}-\d{2}$/.test(header)) {
+                        return dateStr.startsWith(header);
+                    }
+
+                    // 3) yyyy-mm-dd
+                    return dateStr === header;
+                },
+                formatter: function(cell) {
+                    const value = cell.getValue();
+                    if (!value) return "";
+
+                    if (typeof value === "string") {
+                        return value.split("T")[0];
+                    }
+                    
+                    if (value instanceof Date) {
+                        return value.toISOString().split("T")[0];
+                    }
+
+                    return "";
+                }
+            },
+            {title:"*tax code", titleDownload:"taxCode", field:"taxCode.id", headerSortTristate:true,
+                // taxCodes of the taxonomy of the row's site
+                editor: singleSelectEditor, editorParams: taxCodeEditorParams(cell =>
+                    samples.find(s => s.id === cell.getRow().getData().sample?.id)?.feature.site.taxonomy?.id),
+                // The taxCodes in the table (labels as in the download)
+                headerFilter: multiSelectFilter, headerFilterParams: { valuesLookup: true },
+                headerFilterFunc: anyOfFilter,
+                formatter: textFormatter(function(cell) {
+                    const rowData = cell.getRow().getData();
+
+                    const sample = samples.find(s => s.id === rowData.sample?.id);
+                    if (!sample) {
+                        return { values: [], emptyValue: null };
+                    }
+
+                    const taxonomyUri = sample.feature.site.taxonomy?.id;
+                    const taxCodes = cachedTaxCodesForURI.get(taxonomyUri) || [];
+                    
+                    const value = cell.getValue();
+                    const entry = taxCodes.find(item => item.uri === value);
+
+                    // HTML download
+                    if (!entry) return typeof value === "string" ? value : "";
+
+                    return entry ? [entry.notation, entry.prefLabel?.la].filter(Boolean).join(", ") : "";
+                }),
+                accessorDownload: function(value, data) {
+                    const row = table.getRow(data.id);
+                    const rowData = row.getData();
+
+                    if (!value) return "";
+
+                    const sample = samples.find(s => s.id === rowData.sample?.id);
+                    if (!sample) return "";
+
+                    const taxonomyUri = sample.feature.site.taxonomy?.id;
+                    const taxCodes = cachedTaxCodesForURI.get(taxonomyUri) || [];
+
+                    const entry = taxCodes.find(item => item.uri === value);
+                    return entry ? [entry.notation, entry.prefLabel?.la].filter(Boolean).join(", ") : "";
+                }
+            },
+            {title:"*organic / minerals", titleDownload:"orgOrMin", field:"orgOrMin", headerSortTristate:true,
+                editor:"list", editorParams: function(cell) {
+                    const rowData = cell.getRow().getData();
+                    const fractions = rowData?.sample.fractionAnalyzedList || [];
+                    const allowedValues = fractions.map(f => f.orgOrMin);
+
+                    return {
+                        values: [
+                            { value: "org", label: "ORG" },
+                            { value: "min", label: "MIN" }
+                        ].filter(item => allowedValues.includes(item.value))
+                    };
+                },
+                headerFilter: "list",
+                headerFilterParams: {
+                    values: [
+                        { value: "org", label: "ORG" },
+                        { value: "min", label: "MIN" }
+                    ]
+                },
+                formatter: function(cell) {
+                    const value = cell.getValue();
+                    if (value === "org") {
+                        return "ORG";
+                    } else if (value === "min") {
+                        return "MIN";
+                    } else {
+                        return "";
+                    }
+                },
+            },
+            {title:"*sieve size", titleDownload:"sieveSize", field:"sieveSize", validator: ["required"], headerSortTristate:true,
+                // The sieve sizes of the sample's fractions analyzed with this org / min (a result belongs to a fraction)
+                editor: singleSelectEditor, editorParams: function(cell) {
+                    const rowData = cell.getRow().getData();
+                    const fractions = rowData?.sample.fractionAnalyzedList || [];
+                    const orgOrMin = rowData?.orgOrMin;
+                    const allowedValues = fractions.filter(f => f.orgOrMin === orgOrMin).map(f => f.sieveSize);
+
+                    return {
+                        values: [...new Set(allowedValues)].sort((a, b) => a - b)
+                    };
+                },
+                // The sieve sizes in the table
+                headerFilter: multiSelectFilter, headerFilterParams: { valuesLookup: true },
+                headerFilterFunc: anyOfFilter,
+            },
+            {title:"*fraction analyzed", titleDownload:"fractionAnalyzed", field:"fractionAnalyzed", headerSortTristate:true,
+                editor:"list", editorParams:{ values: [ "yes", "no", "partly"] },
+                headerFilter: "list", headerFilterParams:
+                    { values: [ "yes", "no", "partly"], multiselect:true },
+                headerFilterFunc: function(headerValue, rowValue) {
+                    if (!headerValue || (Array.isArray(headerValue) && headerValue.length === 0)) {
+                        return true;
+                    }
+                    return headerValue.includes(rowValue);
+                },
+            },
+            {title:"*classification confer", titleDownload:"classificationConfer", field:"classificationConfer.id", headerSortTristate:true,
+                editor: singleSelectEditor, editorParams: danteEditorParams("classificationConfer"),
+                headerFilter: multiSelectFilter, headerFilterParams: { valuesInData: true,
+                    values: cachedClassificationConfers.map(item => ({
+                            value: item.uri,
+                            label: item.prefLabel.en
+                        })),
+                    multiselect:true
+                },
+                headerFilterFunc: function(headerValue, rowValue) {
+                    if (!headerValue || (Array.isArray(headerValue) && headerValue.length === 0)) {
+                        return true;
+                    }
+                    return headerValue.includes(rowValue);
+                },
+                formatter: textFormatter(cell => formatClassificationConfer(cell.getValue())),
+                accessorDownload: value => formatClassificationConfer(value),
+            },
+            {title:"*rType", titleDownload:"restType", field:"restType.id", headerSortTristate:true,
+                editor: singleSelectEditor, editorParams: danteEditorParams("restType", {
+                    fallback: restTypes.map(restType => ({ value: restType.id, label: restType.label })) }),
+                headerFilter: multiSelectFilter, headerFilterParams: { valuesInData: true,
+                    values: restTypes.map(item => ({
+                            value: item.id,
+                            label: item.label
+                        })),
+                    multiselect:true
+                },
+                headerFilterFunc: function(headerValue, rowValue) {
+                    if (!headerValue || (Array.isArray(headerValue) && headerValue.length === 0)) {
+                        return true;
+                    }
+                    return headerValue.includes(rowValue);
+                },
+                formatter: textFormatter(cell => formatRestType(cell.getValue())),
+                accessorDownload: value => formatRestType(value),
+            },
+            {title:"*state of preservation", titleDownload:"stateOfPreservation", field:"stateOfPreservation.id", headerSortTristate:true,
+                editor: singleSelectEditor, editorParams: danteEditorParams("stateOfPreservation"),
+                headerFilter: multiSelectFilter, headerFilterParams: { valuesInData: true,
+                    values: cachedStateOfPreservation.map(item => ({
+                            value: item.uri,
+                            label: item.prefLabel.en
+                        })),
+                    multiselect:true
+                },
+                headerFilterFunc: function(headerValue, rowValue) {
+                    if (!headerValue || (Array.isArray(headerValue) && headerValue.length === 0)) {
+                        return true;
+                    }
+                    return headerValue.includes(rowValue);
+                },
+                formatter: textFormatter(cell => formatStateOfPreservation(cell.getValue())),
+                accessorDownload: value => formatStateOfPreservation(value),
+            },
+            {title:"rCount", titleDownload:"restCount", field:"restCount", headerFilter:"input", headerSortTristate:true,
+                editor:"number", validator: ["integer"], editorParams:{
+                    min:-1, // -1: present, not counted (ArboDat convention)
+                    step:1,
+                },
+            },
+            {title:"rFragment", titleDownload:"restFragment", field:"restFragment", headerFilter:"input", headerSortTristate:true,
+                editor:"number", validator: ["integer"], editorParams:{
+                    min:0,
+                    step:1,
+                },
+            },
+            {title:"rWeight [g]", titleDownload:"restWeight", field:"restWeight", headerFilter:"input", headerSortTristate:true,
+                editor:"number", editorParams:{
+                    min:0,
+                    step:0.1,
+                },
+            },
+            {title:"estimation", field:"estimation", hozAlign:"center", headerSortTristate:true,
+                headerFilter: function(cell, onRendered, success, cancel){
+                    let state = "all";
+                    const box = document.createElement("input");
+                    box.type = "checkbox";
+                    box.indeterminate = true;
+
+                    box.addEventListener("click", function(e){
+                        if (state === "all") {
+                            box.indeterminate = false;
+                            box.checked = true;
+                            state = "true";
+                        } else if (state === "true") {
+                            box.indeterminate = false;
+                            box.checked = false;
+                            state = "false";
+                        } else {  // state === "false"
+                            box.indeterminate = true;
+                            box.checked = false;
+                            state = "all";
+                        }
+                        success(state);
+                    });
+
+                    return box;
+                },
+                headerFilterFunc: function(headerValue, rowValue){
+                    if (headerValue === "all") return true;
+                    if (headerValue === "true") return rowValue === true;
+                    if (headerValue === "false") return rowValue === false;
+                },
+                formatter: function(cell){
+                    var value = cell.getValue();
+                    return `<input type="checkbox" ${value ? "checked" : ""}>`;
+                },
+                cellClick: function(e, cell){
+                    let checkbox = e.target;
+                    if (checkbox.tagName === "INPUT") {
+                        let newValue = checkbox.checked;
+                        cell.setValue(newValue);
+                    }
+                }
+            },
+            {title:"multiplier", field:"multiplier", headerFilter:"input", headerSortTristate:true,
+                editor:"number", editorParams:{
+                    min:0,
+                    step:0.1,
+                },
+            },
+            {title:"remarks", field:"remarksTaxonomy", editor:"input", headerFilter:true, headerSort:false},
+        ].map(column => hiddenFields.includes(column.field)
+            ? { ...column, visible: false, download: true }
+            : column),
+    });
+
+    // PUT: update results ------------------------------------------------------
+    table.on("cellEdited", async function(cell){
+
+        const editedField = cell.getField();
+        const newValue = cell.getValue();
+
+        const selectedRows = await getRowsToUpdate(table, cell, "result", "results");
+        if (!selectedRows) return;
+        const editedRow = cell.getRow();
+        const refused = await Promise.all(selectedRows.map(async row => {
+
+            // Create payload from a copy of the row data with the edit applied
+            // (other selected rows do not contain the new value yet)
+            const result = JSON.parse(JSON.stringify(row.getData()));
+            setNestedValue(result, editedField, newValue);
+            const resultId = result.id;
+
+            // Map ids back to objects
+            const datingsAsObjects = (result.absoluteDatingList || []).map(item => typeof item === "string"
+                ? { id: item }
+                : item);
+
+            const payload = {
+                ...result,
+                sample: result.sample ? { id: result.sample.id } : null,
+                absoluteDatingList: datingsAsObjects,
+            };
+
+            try {
+                const response = await axios.put(`api/results/${resultId}`, JSON.stringify(payload), {
+                    headers: {
+                        "Content-Type": 'application/json'
+                    }
+                });
+                console.log(response.data);
+
+                // Backend refused: the edit would duplicate another result
+                if (response.data === "result already exists") {
+                    if (row === editedRow) {
+                        cell.restoreOldValue();
+                    }
+                    return true;
+                }
+
+                // Update table
+                if(row !== editedRow) { // skip the edited line
+                    updateRowField(row, editedField, newValue);
+                }
+            } catch (error) {
+                handleUpdateError(cell, row, "result", error);
+            }
+            return false;
+        }));
+
+        if (refused.includes(true)) {
+            toast.info("result already exists");
+        }
+    });
+
+    return table;
+}
+
+// Delete selected rows via `deleteButton` (only visible while rows are selected) ----
+function attachResultDeleteHandler(table, deleteButton) {
+    deleteButton.classList.add("hidden");
+
+    const updateDeleteButton = () => {
+        deleteButton.classList.toggle("hidden", table.getSelectedRows().length === 0);
+    };
+
+    table.on("rowSelectionChanged", updateDeleteButton);
+
+    // onclick (not addEventListener): the button is reused when the table is rebuilt
+    deleteButton.onclick = async function() {
+        const selectedRows = table.getSelectedRows();
+        if (!await confirmDelete("result", selectedRows.length)) return;
+
+        selectedRows.forEach(row => {
+            const resultId = row.getData().id;
+
+            axios.delete(`api/results/${resultId}`)
+            .then(async response => {
+                console.log(response.data);
+                await row.delete();
+                // Deleting a row does not fire rowSelectionChanged
+                updateDeleteButton();
+            })
+            .catch(error => {
+                handleDeleteError("result", error);
+            });
+        });
+    };
+}
+
+// Explorer: build the table with all results -----------------------------------------
+async function buildResultTable() {
+    const build = tableBuild;
+    const container = document.getElementById("table");
+    const spinner = document.getElementById('tableSpinner');
+    const tableContainer = document.querySelector('.table-container');
+    container.innerHTML = "";
+    spinner.style.display = 'block';
+    tableContainer.style.display = 'none';
+
+    const results = await loadResults();
+    // Only the explorer has the JSON download
+    await loadDanteDownloadRecords(["taxCode", "classificationConfer", "restType", "stateOfPreservation"]);
+    // Another table chosen while the data was loading: this one is not shown
+    const table = await createResultTable({ selector: "#table", results, isCurrent: () => isCurrentBuild(build) });
+    if (!table) return;
+    resultTable = table;
+    attachResultDeleteHandler(resultTable, document.getElementById("deleteRows-button"));
+
+    // Hide spinner
+    spinner.style.display = 'none';
+    // Show table
+    tableContainer.style.display = 'flex';
+
+    activeTable = "resultTable";
+}
+
+// Export table -----------------------------------------------------------------
+function downloadResultsJson(table) {
+        const rawData = table.getData("active");
+        
+        const transformed = rawData.map(row => {
+            // Sample
+            const sampleId = row.sample?.id;
+            const sampleValues = table.getColumn("sample.id").getDefinition().editorParams({
+                getRow: () => ({
+                    getData: () => row
+                })
+            }).values;
+            const sample = sampleValues.find(s => s.value === sampleId);
+            // Feature
+            const featureId     = row.sample?.feature?.id;
+            const featureValues = table.getColumn("sample.feature.id").getDefinition().editorParams({
+                getRow: () => ({
+                    getData: () => row
+                })
+            }).values;
+            const feature       = featureValues.find(f => f.value === featureId);
+            // Site
+            const siteId     = row.sample?.feature?.site?.id;
+            const siteValues = table.getColumn("sample.feature.site.id").getDefinition().editorParams.values;
+            const site       = siteValues.find(s => s.value === siteId);
+            return {
+                id:        row.id,
+                sample:    sampleId && {
+                    id:   sampleId,
+                    name: sample.label
+                },
+                feature: featureId && {
+                    id:   featureId,
+                    name: feature.label
+                },
+                site: siteId && {
+                    id:   siteId,
+                    name: site.label
+                },
+                absoluteDatingList: (() => {
+                    const accessorDownload = table
+                        .getColumn("absoluteDatingList")
+                        .getDefinition()
+                        .accessorDownload;
+                    return accessorDownload(row.absoluteDatingList);
+                })(),
+                entryDate: row.entryDate,
+                taxCode: danteDownloadRecord("taxCode", row.taxCode?.id),
+                orgOrMin: row.orgOrMin,
+                sieveSize: row.sieveSize,
+                fractionAnalyzed: row.fractionAnalyzed,
+                classificationConfer: danteDownloadRecord("classificationConfer", row.classificationConfer?.id),
+                restType: danteDownloadRecord("restType", row.restType?.id),
+                stateOfPreservation: danteDownloadRecord("stateOfPreservation", row.stateOfPreservation?.id),
+                restCount: row.restCount,
+                restFragment: row.restFragment,
+                restWeight: row.restWeight,
+                estimation: row.estimation,
+                multiplier: row.multiplier,
+                remarks: row.remarksTaxonomy
+            };
+        });
+
+        const blob = new Blob([JSON.stringify(transformed, null, 4)], { type: "application/json" });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement("a");
+        a.href = url;
+        a.download = "ArboDat+_Download_Results.json";
+        a.click();
+        // Revoke later: WebKit (macOS app window) cancels downloads whose blob URL is already revoked.
+        setTimeout(() => URL.revokeObjectURL(url), 60000);
+}
+
+function downloadResultsCsv(table) {
+    table.download(
+        "csv",
+        "ArboDat+_Download_Results.csv"
+    );
+}
+
+function downloadResultsXlsx(table) {
+    table.download(
+        "xlsx",
+        "ArboDat+_Download_Results.xlsx",
+        {sheetName:"ArboDat+ Results"}
+    );
+}
+
+function downloadResultsHtml(table) {
+    table.download(
+        "html",
+        "ArboDat+_Download_Results.html"
+    );
+}
+
+// Explorer export buttons (not present on input.html)
+[
+    ["download-json", downloadResultsJson],
+    ["download-csv",  downloadResultsCsv],
+    ["download-xlsx", downloadResultsXlsx],
+    ["download-html", downloadResultsHtml],
+].forEach(([buttonId, download]) => {
+    document.getElementById(buttonId)?.addEventListener("click", function(){
+        if (activeTable === "resultTable") {
+            download(resultTable);
+        }
+    });
+});

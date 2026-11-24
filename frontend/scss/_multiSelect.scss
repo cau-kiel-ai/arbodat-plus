@@ -1,0 +1,44 @@
+/* ---------------- multi-selects of the input forms (see js/input/multi-select.js) ---------------- */
+// .multi-select makes the rules more specific than select2's own, which are loaded after the page styles.
+// Pills and search field are vertically centered in the field; when they don't fit into one line they wrap
+// and the field gets higher (the lines are centered as well).
+.select2-container--default.multi-select {
+    .select2-selection--multiple {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: center;
+        align-content: center;
+        padding-top: 4px;
+        padding-bottom: 4px;
+    }
+
+    // The pills and the search field are items of the flex row (the search follows the last pill)
+    .select2-selection--multiple .select2-selection__rendered {
+        display: contents;
+    }
+
+    .select2-selection--multiple .select2-selection__choice {
+        margin: 2px 0 2px 5px;
+    }
+
+    .select2-search--inline {
+        display: inline-flex;
+        align-items: center;
+
+        // select2's textarea: one line high and without its top margin (its text would sit off the middle)
+        .select2-search__field {
+            height: 24px;
+            margin: 2px 0 2px 5px;
+            line-height: 24px;
+            vertical-align: middle;
+        }
+    }
+
+    // × for all values: vertically centered (select2 places it at the top)
+    .select2-selection--multiple .select2-selection__clear {
+        top: 50%;
+        height: auto;
+        margin-top: 0;
+        transform: translateY(-50%);
+    }
+}

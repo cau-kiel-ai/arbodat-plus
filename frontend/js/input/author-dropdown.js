@@ -28,7 +28,7 @@ document.addEventListener("DOMContentLoaded", () => {
         adjustDropdownWidth();
 
         // Send a GET request to get all items
-        fetch('http://localhost:8080/authors', { // Customise here
+        fetch('api/authors', { // Customise here
             method: 'GET',
             headers: {
                 'Content-Type': 'application/json',
@@ -72,10 +72,11 @@ document.addEventListener("DOMContentLoaded", () => {
 
     function populateDropdown(itemList) {  
         dropdown.innerHTML = ""; // Reset dropdown
+        itemList = sortPeople(itemList); // Ascending
         
         itemList.forEach((item) => {
             const listItem = document.createElement("li");
-            listItem.textContent = item.lastName + ", " + item.firstName + " " + item.middleName; // Customise here
+            listItem.textContent = formatName(item); // Customise here
             listItem.addEventListener("click", () => {
                 selectItem(item);
             });

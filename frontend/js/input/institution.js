@@ -1,8 +1,8 @@
 let institutions = [];
 
 async function getInstitutions() {
-    const { data } = await axios.get('http://localhost:8080/institutions');    
-    institutions = data;
+    const { data } = await axios.get('api/institutions');    
+    institutions = sortInstitutions(data);
 }
 
 // Form and Fields -------------------------------------------------------
@@ -25,18 +25,22 @@ function create_update_institution() {
         if (institutionId) { // Update (PUT) -------------------------------------------
             payload.id = institutionId; // Add id to payload
 
-            axios.put(`http://localhost:8080/institutions/${institutionId}`, payload)
-            .then(response => {
-                console.log(response.data);
-                toast.success("institution updated");
-            })
-            .catch(error => {
-                console.error('Error during PUT request to update institution:', error);
-                alert("action failed");
+            confirmUpdate("institution").then(confirmed => {
+                if (!confirmed) return;
+
+                axios.put(`api/institutions/${institutionId}`, payload)
+                .then(response => {
+                    console.log(response.data);
+                    toast.success("institution updated");
+                })
+                .catch(error => {
+                    console.error('Error during PUT request to update institution:', error);
+                    toast.error("action failed");
+                });
             });
 
         } else { // Create (POST) ------------------------------------------------------
-            axios.post('http://localhost:8080/institutions', payload)
+            axios.post('api/institutions', payload)
             .then(response => {
                 console.log(response.data);
                 toast.success("institution created");
@@ -46,15 +50,18 @@ function create_update_institution() {
             })
             .catch(error => {
                 console.error('Error during POST request to create institution:', error);
-                alert("action failed");
+                toast.error("action failed");
             });
         }
 
     } else { // Report ----------------------
-        institutionLabel.focus();
-        // wait until focus is set
-        setTimeout(() => {
-            institutionForm.reportValidity();
-        }, 200);
+        // Bootstrap's `scroll-behavior: smooth` animates the browser's scroll
+        // to the invalid field; jump to it instantly, then report.
+        const firstInvalid = institutionForm.querySelector(':invalid');
+        if (firstInvalid) {
+            firstInvalid.scrollIntoView({ block: 'center', behavior: 'instant' });
+            firstInvalid.focus({ preventScroll: true });
+        }
+        institutionForm.reportValidity();
     } // ------------------------------------
 }

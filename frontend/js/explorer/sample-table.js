@@ -1,0 +1,856 @@
+let sampleTable;
+let fractionModalEscapeHandler; // document listener of the fractions popup, replaced on each table build
+
+async function buildSampleTable() {
+    const build = tableBuild;
+    const container = document.getElementById("table");
+    const spinner = document.getElementById('tableSpinner');
+    const tableContainer = document.querySelector('.table-container');
+    container.innerHTML = "";
+    spinner.style.display = 'block';
+    tableContainer.style.display = 'none';
+
+    // GET samples --------------------------------------------------------------
+    let samples = [];
+    try {
+        const response = await axios.get("api/samples");
+        samples = sortSamples(response.data);
+    } catch (error) {
+        console.error("Error loading samples:", error);
+    }
+
+    // GET sites ----------------------------------------------------------------
+    let sites = [];
+    try {
+        const response = await axios.get("api/sites");
+        sites = sortSites(response.data);
+    } catch (error) {
+        console.error("Error loading sites:", error)
+    }
+
+    // GET features --------------------------------------------------------------
+    let features = [];
+    try {
+        const response = await axios.get("api/features");
+        features = sortFeatures(response.data);
+    } catch (error) {
+        console.error("Error loading features:", error)
+    }
+
+    // GET coordinate systems ---------------------------------------------------
+    await fetchDanteAttribute("coordinateSystem");
+
+    // GET users ----------------------------------------------------------------
+    let users = [];
+    try {
+        const response = await axios.get("api/users");
+        users = sortPeople(response.data);
+    } catch (error) {
+        console.error("Error loading users:", error)
+    }
+
+    // GET fractions -----------------------------------------------------------
+    let fractions = [];
+    try {
+        const response = await axios.get("api/fractions_analyzed");
+        fractions = response.data;
+    } catch (error) {
+        console.error("Error loading fractions_analyzed:", error)
+    }
+
+    function formatFrac(fractionList) {
+        if (!fractionList) return "";
+
+        // HTML download
+        if (!Array.isArray(fractionList)) return fractionList;
+
+        return fractionList
+            .map(id => {
+                const fraction = fractions.find(f => f.id === id)
+                return formatFraction(fraction) ?? id ?? "";
+            })
+            .filter(Boolean)
+            .join(", ");
+    }
+
+
+    function formatSampleType(sampleTypeId){
+        if (!sampleTypeId) return "";
+        const sampleType = cachedSampleTypes.find(st => st.uri === sampleTypeId) || null;
+        return sampleType?.prefLabel.en ?? sampleTypeId;
+    }
+
+    function formatSampleInvestigated(sampleInvestigatedId){
+        if (!sampleInvestigatedId) return "";
+        const sampleInvestigated = cachedSampleInvestigated.find(si => si.uri === sampleInvestigatedId) || null;
+        return sampleInvestigated?.prefLabel.en ?? sampleInvestigatedId;
+    }
+
+    function formatChronozone(chronozonedId){
+        if (!chronozonedId) return "";
+        const chronozone = cachedChronozones.find(c => c.uri === chronozonedId) || null;
+        return chronozone?.prefLabel.en ?? chronozonedId;
+    }
+
+    // Dropdowns of the DANTE columns (same entries and order as on the input page, see danteListEditor.js)
+    await loadDanteListOptions(["coordinateSystem", "sampleType", "chronozone", "seedsAndFruits", "woodSubfossile", "charcoalInvestigated"]);
+    await loadDanteDownloadRecords(["coordinateSystem", "sampleType", "sampleInvestigated", "chronozone"]);
+
+    // Create Table -------------------------------------------------------------
+    // Another table was chosen while the data was loading: this one is not shown
+    if (!isCurrentBuild(build)) return;
+
+    sampleTable = newTabulator("#table", {
+        height: "100%",
+        data: samples,
+        columns:[
+            {cssClass:"selectionColumn", formatter:"rowSelection", titleFormatter:"rowSelection", titleFormatterParams:{
+                rowRange:"active" //only toggle the values of the active filtered rows
+            }, hozAlign:"center", headerSort:false},
+            {title:"id", field:"id", headerFilter:true, headerSort:false},
+            {title:"*label", titleDownload:"label", field:"label", validator: ["required"], editor:"input", headerFilter:true, headerSortTristate:true, sorter: compareLabels},
+            {title: "*feature", titleDownload:"feature", field:"feature.id", headerSortTristate:true, sorter: rankSorter(features),
+                editor: singleSelectEditor, editorParams: function(cell) {
+                    const rowData = cell.getRow().getData();
+                    const siteId = rowData?.feature?.site?.id;
+
+                    return {
+                        values: features
+                            .filter(item => item.site?.id === siteId)
+                            .map(item => ({
+                                value: item.id,
+                                label: item.label
+                            }))
+                    };
+                },
+                headerFilter: multiSelectFilter, headerFilterParams: { valuesInData: true,
+                    values: features.map(item => ({
+                            value: item.id,
+                            label:
+                                item.label +
+                                " (" +
+                                item.site.label +
+                                ")"
+                    })),
+                    multiselect: true
+                },
+                headerFilterFunc: function(headerValue, rowValue) {
+                    if (!headerValue || (Array.isArray(headerValue) && headerValue.length === 0)) {
+                        return true;
+                    }
+                    return headerValue.includes(rowValue);
+                },
+                formatter: textFormatter(cell => formatFeature(features, cell.getValue())),
+                accessorDownload: value => formatFeature(features, value),
+            },
+            {title: "*site", titleDownload:"site", field:"feature.site.id", headerSortTristate:true, sorter: rankSorter(sites), 
+                editor: singleSelectEditor, editorParams:{
+                    values: sites.map(item => ({
+                            value: item.id,
+                            label:
+                                item.label +
+                                " (" +
+                                item.researchProjectList.map(rp => rp.projectName).join(',') +
+                                ")"
+                        }))
+                    ,
+                },
+                headerFilter: multiSelectFilter, headerFilterParams: { valuesInData: true,
+                    values: sites.map(item => ({
+                            value: item.id,
+                            label:
+                                item.label +
+                                " (" +
+                                item.researchProjectList.map(rp => rp.projectName).join(',') +
+                                ")"
+                    })),
+                    multiselect: true
+                },
+                headerFilterFunc: function(headerValue, rowValue) {
+                    if (!headerValue || (Array.isArray(headerValue) && headerValue.length === 0)) {
+                        return true;
+                    }
+                    return headerValue.includes(rowValue);
+                },
+                formatter: textFormatter(cell => formatSite(sites, cell.getValue())),
+                accessorDownload: value => formatSite(sites, value),
+            },
+            {title:"stratum", field:"stratum", editor:"input", headerFilter:true, headerSortTristate:true},
+            {title:"layer", field:"layer", editor:"input", headerFilter:true, headerSortTristate:true},
+            {title:"sector", field:"sector", editor:"input", headerFilter:true, headerSortTristate:true},
+            {title:"planum", field:"planum", editor:"input", headerFilter:true, headerSortTristate:true},
+            {title:"depth from [cm]", titleDownload:"depthFrom", field:"depthFrom", headerFilter:"input", headerSortTristate:true,
+                editor:"number", editorParams:{
+                    min:0,
+                    step:0.1,
+                },
+            },
+            {title:"depth to [cm]", titleDownload:"depthTo", field:"depthTo", headerFilter:"input", headerSortTristate:true,
+                editor:"number", editorParams:{
+                    min:0,
+                    step:0.1,
+                },
+            },
+            // Coordinate ---------------------------------------------------------------------------------------------
+            {title:"coordinate system", titleDownload:"coordinateSystem", field:"coordinate.coordinateSystem.id", headerSortTristate:true,
+                editor: singleSelectEditor, editorParams: danteEditorParams("coordinateSystem", { none: true }),
+                headerFilter: multiSelectFilter, headerFilterParams: { valuesInData: true,
+                    values: cachedCoordinateSystems.map(crs => ({
+                            value: crs.uri,
+                            label: [crs.prefLabel.en, crs.notation].filter(Boolean).join(" - ")
+                        })),
+                    multiselect:true
+                },
+                headerFilterFunc: function(headerValue, rowValue) {
+                    if (!headerValue || (Array.isArray(headerValue) && headerValue.length === 0)) {
+                        return true;
+                    }
+                    return headerValue.includes(rowValue);
+                },
+                formatter: textFormatter(cell => formatCoordinateSystem(cell.getValue())),
+                accessorDownload: value => formatCoordinateSystem(value),
+            },
+            {title:"longitude", field:"coordinate.longitude", headerFilter:"input", headerSortTristate:true,
+                editor:"number", editorParams:{
+                    min:0,
+                    step:0.1,
+                },
+            },
+            {title:"latitude", field:"coordinate.latitude", headerFilter:"input", headerSortTristate:true,
+                editor:"number", editorParams:{
+                    min:0,
+                    step:0.1,
+                },
+            },
+            {title:"altitude", field:"coordinate.altitude", headerFilter:"input", headerSortTristate:true,
+                editor:"number", editorParams:{
+                    min:0,
+                    step:0.1,
+                },
+            },
+            {title:"longitude WGS84", titleDownload:"longitudeWGS84", field:"coordinate.longitudeWgs84", headerFilter:"input", headerSortTristate:true,
+                editor:"number", editorParams:{
+                    min:0,
+                    step:0.1,
+                },
+            },
+            {title:"latitude WGS84", titleDownload:"latitudeWGS84", field:"coordinate.latitudeWgs84", headerFilter:"input", headerSortTristate:true,
+                editor:"number", editorParams:{
+                    min:0,
+                    step:0.1,
+                },
+            },
+            {title:"remarks coordinate", titleDownload:"remarksCoordinate", field:"remarksCoordinate", editor:"input", headerFilter:true, headerSortTristate:true},
+            // --------------------------------------------------------------------------------------------------------
+            {title: "botanical determination by (multiple selection)", titleDownload:"botanicalDeterminationBy", field:"botanicalDeterminationBy", headerSortTristate:true,
+                mutator: function(value) {
+                    // Map objects only to id
+                    return Array.isArray(value) ? value.map(item => item.id? item.id : item) : [];
+                },
+                editor: multiSelectEditor, editorParams:{
+                    values: [
+                        ...users.map(item => ({
+                            value: item.id,
+                            label: formatName(item)
+                        }))
+                    ],
+                    autocomplete:false,
+                    multiselect:true,
+                    emptyValue:[]
+                },
+                headerFilter: multiSelectFilter, headerFilterParams: {
+                    values: users.map(item => ({
+                            value: item.id,
+                            label: formatName(item)
+                    })),
+                    multiselect: true
+                },
+                headerFilterFunc: function(headerValue, rowValue){
+                    return headerValue.every(val => rowValue.includes(val));
+                },
+                sorter: formattedSorter(value => formatUser(users, value)),
+                formatter: textFormatter(cell => formatUser(users, cell.getValue())),
+                accessorDownload: value => formatUser(users, value),
+            },
+            {title:"botanicalDeterminationYear", field:"botanicalDeterminationYear", headerSortTristate:true,
+                // The years of the samples, or a new one typed in (4 digits; stored as text, e.g. '2020,2024' from ArboDat)
+                editor: singleSelectEditor, editorParams: cell => ({ ...yearEditorParams(cell), tagValue: String }),
+                // The years in the table (as stored, so they match the rows)
+                headerFilter: multiSelectFilter, headerFilterParams: { valuesLookup: true },
+                headerFilterFunc: anyOfFilter,
+                sorter:"array", sorterParams:{
+                    valueMap:"label"
+                },
+            },
+            {title: "fraction analyzed list", titleDownload:"fractionAnalyzedList", field:"fractionAnalyzedList", headerSortTristate:true,
+                mutator: function(value) {
+                    // Map objects only to id
+                    return Array.isArray(value) ? value.map(item => item.id? item.id : item) : [];
+                },
+                // Pills with the fractions (e.g. 'ORG 1 yes'), see js/multiSelectEditor.js; the cell opens the popup.
+                // A row is shown if it has all chosen fractions (as the other list filters).
+                headerFilter: multiSelectFilter, headerFilterParams: {
+                    values: () => [...new Set(fractions.map(formatFraction))].sort((a, b) => a.localeCompare(b, undefined, { numeric: true })),
+                },
+                sorter:"array", sorterParams:{
+                    valueMap:"label"
+                },
+                headerFilterFunc: function(headerValue, rowValue) {
+                    if (!headerValue || headerValue.length === 0) return true;
+                    if (!Array.isArray(rowValue)) return false;
+
+                    const labels = rowValue.map(id => {
+                        const fraction = fractions.find(f => f.id === id);
+                        return fraction ? formatFraction(fraction) : null;
+                    });
+                    return headerValue.every(label => labels.includes(label));
+                },
+                formatter: textFormatter(cell => formatFrac(cell.getValue())),
+                accessorDownload: value => formatFrac(value),
+                cssClass: "fraction-cell",
+                cellClick: (e, cell) => openFractionModal(cell.getRow()),
+            },
+            {title:"sample type", titleDownload:"sampleType", field:"sampleType.id", headerSortTristate:true,
+                editor: singleSelectEditor, editorParams: danteEditorParams("sampleType", { none: true }),
+                headerFilter: multiSelectFilter, headerFilterParams: { valuesInData: true,
+                    values: cachedSampleTypes.map(item => ({
+                            value: item.uri,
+                            label: item.prefLabel.en
+                        })),
+                    multiselect:true
+                },
+                headerFilterFunc: function(headerValue, rowValue) {
+                    if (!headerValue || (Array.isArray(headerValue) && headerValue.length === 0)) {
+                        return true;
+                    }
+                    return headerValue.includes(rowValue);
+                },
+                formatter: textFormatter(cell => formatSampleType(cell.getValue())),
+                accessorDownload: value => formatSampleType(value),
+            },
+            {title:"storage find", titleDownload:"storageFind", field:"sampleStorage", hozAlign:"center", headerSortTristate:true,
+                headerFilter: function(cell, onRendered, success, cancel){
+                    let state = "all";
+                    const box = document.createElement("input");
+                    box.type = "checkbox";
+                    box.indeterminate = true;
+
+                    box.addEventListener("click", function(e){
+                        if (state === "all") {
+                            box.indeterminate = false;
+                            box.checked = true;
+                            state = "true";
+                        } else if (state === "true") {
+                            box.indeterminate = false;
+                            box.checked = false;
+                            state = "false";
+                        } else {  // state === "false"
+                            box.indeterminate = true;
+                            box.checked = false;
+                            state = "all";
+                        }
+                        success(state);
+                    });
+
+                    return box;
+                },
+                headerFilterFunc: function(headerValue, rowValue){
+                    if (headerValue === "all") return true;
+                    if (headerValue === "true") return rowValue === true;
+                    if (headerValue === "false") return rowValue === false;
+                },
+                formatter: function(cell){
+                    var value = cell.getValue();
+                    return `<input type="checkbox" ${value ? "checked" : ""}>`;
+                },
+                cellClick: function(e, cell){
+                    let checkbox = e.target;
+                    if (checkbox.tagName === "INPUT") {
+                        let newValue = checkbox.checked;
+                        cell.setValue(newValue);
+                    }
+                }
+            },
+            {title:"microremain sample", titleDownload:"microRemain", field:"microRemain", hozAlign:"center", headerSortTristate:true,
+                headerFilter: function(cell, onRendered, success, cancel){
+                    let state = "all";
+                    const box = document.createElement("input");
+                    box.type = "checkbox";
+                    box.indeterminate = true;
+
+                    box.addEventListener("click", function(e){
+                        if (state === "all") {
+                            box.indeterminate = false;
+                            box.checked = true;
+                            state = "true";
+                        } else if (state === "true") {
+                            box.indeterminate = false;
+                            box.checked = false;
+                            state = "false";
+                        } else {  // state === "false"
+                            box.indeterminate = true;
+                            box.checked = false;
+                            state = "all";
+                        }
+                        success(state);
+                    });
+
+                    return box;
+                },
+                headerFilterFunc: function(headerValue, rowValue){
+                    if (headerValue === "all") return true;
+                    if (headerValue === "true") return rowValue === true;
+                    if (headerValue === "false") return rowValue === false;
+                },
+                formatter: function(cell){
+                    var value = cell.getValue();
+                    return `<input type="checkbox" ${value ? "checked" : ""}>`;
+                },
+                cellClick: function(e, cell){
+                    let checkbox = e.target;
+                    if (checkbox.tagName === "INPUT") {
+                        let newValue = checkbox.checked;
+                        cell.setValue(newValue);
+                    }
+                }
+            },
+            {title:"seeds and fruits", titleDownload:"seedsAndFruits", field:"seedsAndFruits.id", headerSortTristate:true,
+                editor: singleSelectEditor, editorParams: danteEditorParams("seedsAndFruits", { none: true }),
+                headerFilter: multiSelectFilter, headerFilterParams: { valuesInData: true,
+                    values: cachedSampleInvestigated.map(item => ({
+                            value: item.uri,
+                            label: item.prefLabel.en
+                        })),
+                    multiselect:true
+                },
+                headerFilterFunc: function(headerValue, rowValue) {
+                    if (!headerValue || (Array.isArray(headerValue) && headerValue.length === 0)) {
+                        return true;
+                    }
+                    return headerValue.includes(rowValue);
+                },
+                formatter: textFormatter(cell => formatSampleInvestigated(cell.getValue())),
+                accessorDownload: value => formatSampleInvestigated(value),
+            },
+            {title:"wood subfossile", titleDownload:"woodSubfossile", field:"woodSubfossile.id", headerSortTristate:true,
+                editor: singleSelectEditor, editorParams: danteEditorParams("woodSubfossile", { none: true }),
+                headerFilter: multiSelectFilter, headerFilterParams: { valuesInData: true,
+                    values: cachedSampleInvestigated.map(item => ({
+                            value: item.uri,
+                            label: item.prefLabel.en
+                        })),
+                    multiselect:true
+                },
+                headerFilterFunc: function(headerValue, rowValue) {
+                    if (!headerValue || (Array.isArray(headerValue) && headerValue.length === 0)) {
+                        return true;
+                    }
+                    return headerValue.includes(rowValue);
+                },
+                formatter: textFormatter(cell => formatSampleInvestigated(cell.getValue())),
+                accessorDownload: value => formatSampleInvestigated(value),
+            },
+            {title:"charcoal investigated", titleDownload:"charcoalInvestigated", field:"charcoalInvestigated.id", headerSortTristate:true,
+                editor: singleSelectEditor, editorParams: danteEditorParams("charcoalInvestigated", { none: true }),
+                headerFilter: multiSelectFilter, headerFilterParams: { valuesInData: true,
+                    values: cachedSampleInvestigated.map(item => ({
+                            value: item.uri,
+                            label: item.prefLabel.en
+                        })),
+                    multiselect:true
+                },
+                headerFilterFunc: function(headerValue, rowValue) {
+                    if (!headerValue || (Array.isArray(headerValue) && headerValue.length === 0)) {
+                        return true;
+                    }
+                    return headerValue.includes(rowValue);
+                },
+                formatter: textFormatter(cell => formatSampleInvestigated(cell.getValue())),
+                accessorDownload: value => formatSampleInvestigated(value),
+            },
+            {title:"charcoal total weight [g]", titleDownload:"totalWeight", field:"totalWeight", headerFilter:"input", headerSortTristate:true,
+                editor:"number", editorParams:{
+                    min:0,
+                    step:0.1,
+                },
+            },
+            {title:"charcoal undetermined weight [g]", titleDownload:"weightUndetermined", field:"weightUndetermined", headerFilter:"input", headerSortTristate:true,
+                editor:"number", editorParams:{
+                    min:0,
+                    step:0.1,
+                },
+            },
+            {title:"sample volume [l]", titleDownload:"sampleVolume", field:"sampleVolume", headerFilter:"input", headerSortTristate:true,
+                editor:"number", editorParams:{
+                    min:0,
+                    step:0.1,
+                },
+            },
+            {title:"volume determination", titleDownload:"volumeDetermination", field:"volumeDetermination", headerSortTristate:true,
+                editor:"list", editorParams:{
+                    values: ["dry", "wet"],
+                    emptyValue:null             
+                },
+                headerFilter:true, headerFilterParams: {
+                    values: ["dry", "wet"],
+                },
+            },
+            {title:"chronozone", field:"chronozone.id", headerSortTristate:true,
+                editor: singleSelectEditor, editorParams: danteEditorParams("chronozone", { none: true }),
+                headerFilter: multiSelectFilter, headerFilterParams: { valuesInData: true,
+                    values: cachedChronozones.map(item => ({
+                            value: item.uri,
+                            label: item.prefLabel.en
+                        })),
+                    multiselect:true
+                },
+                headerFilterFunc: function(headerValue, rowValue) {
+                    if (!headerValue || (Array.isArray(headerValue) && headerValue.length === 0)) {
+                        return true;
+                    }
+                    return headerValue.includes(rowValue);
+                },
+                formatter: textFormatter(cell => formatChronozone(cell.getValue())),
+                accessorDownload: value => formatChronozone(value),
+            },
+            {title:"archaeological dating", titleDownload:"archaeologicalDating", field:"archaeologicalDating", editor:"input", headerFilter:true, headerSortTristate:true},
+            {title:"cultural group", titleDownload:"culturalGroup", field:"culturalGroup", editor:"input", headerFilter:true, headerSortTristate:true},
+            {title:"absolute dating from", titleDownload:"absoluteDatingFrom", field:"absoluteDatingFrom", headerFilter:"input", headerSortTristate:true,
+                editor:"number", editorParams:{
+                    step:1,
+                },
+            },
+            {title:"absolute dating to", titleDownload:"absoluteDatingTo", field:"absoluteDatingTo", headerFilter:"input", headerSortTristate:true,
+                editor:"number", editorParams:{
+                    step:1,
+                },
+            },
+            {title:"remarks", field:"remarksSample", editor:"input", headerFilter:true, headerSort:false},
+        ],
+        initialSort: [
+            {column: "label", dir: "asc"}
+        ]
+    });
+
+
+    // Hide spinner
+    spinner.style.display = 'none';
+    // Show table
+    tableContainer.style.display = 'flex';
+
+    activeTable = "sampleTable";
+
+
+    // Fractions popup -----------------------------------------------------
+    // Opened by clicking a cell of the fractions column, edits the fractions of that one row.
+    const fractionModal = document.getElementById("fractionModal");
+    let fractionModalRow = null;
+
+    function openFractionModal(row) {
+        fractionModalRow = row;
+        const sample = row.getData();
+        // site, feature and sample, values start at the same horizontal point
+        const sampleInfo = document.getElementById("fractionModalSample");
+        sampleInfo.innerHTML = "";
+        [
+            ["site",    sample.feature?.site?.label],
+            ["feature", sample.feature?.label],
+            ["sample",  sample.label],
+        ].forEach(([name, value]) => {
+            const line = document.createElement("div");
+            const nameSpan = document.createElement("span");
+            nameSpan.className = "fraction-modal-sample-name";
+            nameSpan.textContent = name + ":";
+            line.append(nameSpan, value ?? "");
+            sampleInfo.appendChild(line);
+        });
+        // Boxes of sample-fraction-boxes.js; none for a sample without fractions ("no fractions" note, see explorer.scss)
+        document.getElementById("fractions").innerHTML = "";
+        (sample.fractionAnalyzedList || []).forEach(id => {
+            const fraction = fractions.find(f => f.id === id);
+            if (fraction) addFraction(fraction);
+        });
+        fractionModal.classList.add("open");
+    }
+
+    function closeFractionModal() {
+        fractionModal.classList.remove("open");
+        fractionModalRow = null;
+    }
+
+    // onclick (not addEventListener): the table is built more than once
+    fractionModal.querySelector(".fraction-modal-close").onclick = closeFractionModal;
+    fractionModal.onclick = e => {
+        if (e.target === fractionModal) closeFractionModal();
+    };
+    document.removeEventListener("keydown", fractionModalEscapeHandler);
+    fractionModalEscapeHandler = e => {
+        if (e.key === "Escape") closeFractionModal();
+    };
+    document.addEventListener("keydown", fractionModalEscapeHandler);
+
+    document.getElementById("fractionModalSave").onclick = async function() {
+        const row = fractionModalRow;
+        if (!row) return;
+        if (!document.getElementById("fractionModalForm").reportValidity()) return;
+
+        // Only this row is updated (not the selected rows). Fractions without id replace the old list on the server.
+        const sample = JSON.parse(JSON.stringify(row.getData()));
+        sample.fractionAnalyzedList = getFractions();
+        const payload = buildSamplePayload(sample);
+
+        try {
+            await axios.put(`api/samples/${sample.id}`, JSON.stringify(payload), {
+                headers: {
+                    "Content-Type": 'application/json'
+                }
+            });
+            // The saved fractions have new ids: reload them
+            const response = await axios.get("api/fractions_analyzed");
+            fractions = response.data;
+            row.update({
+                fractionAnalyzedList: fractions.filter(f => f.sample?.id === sample.id).map(f => f.id)
+            });
+            closeFractionModal();
+            toast.success("fractions saved");
+        } catch (error) {
+            console.error("Error updating fractions:", error);
+            toast.error("fractions could not be saved");
+        }
+    };
+
+    // PUT: update samples -------------------------------------------------
+    // Payload of the sample PUT. fractionAnalyzedList may contain ids or objects.
+    function buildSamplePayload(sample) {
+        // Map ids back to objects
+        const crs = cachedCoordinateSystems.find(crs => crs.uri === sample.coordinate.coordinateSystem.id);
+        const coordinateSystemAsObject = crs
+        ? {
+            id: crs.uri,
+            label: [crs.prefLabel?.en, crs.notation].filter(Boolean).join(" - ")
+          }
+        : null;
+        const botanicalDeterminationByAsObjects = (sample.botanicalDeterminationBy || []).map(item => typeof item === "string"
+            ? { id: item }
+            : item);
+        const fractionsAsObjects = (sample.fractionAnalyzedList || []).map(item => typeof item === "string"
+        ? { id: item,
+            fractionAnalyzed: fractions.find(frac => frac.id === item).fractionAnalyzed,
+            orgOrMin: fractions.find(frac => frac.id === item).orgOrMin,
+            sieveSize: fractions.find(frac => frac.id === item).sieveSize,
+            standardMultiplier: fractions.find(frac => frac.id === item).standardMultiplier,
+         }
+        : item);
+
+        const payload = {
+            ...sample,
+            feature: sample.feature ? { id: sample.feature.id } : null,
+            coordinate: {
+                coordinateSystem: coordinateSystemAsObject,
+                longitude: sample.coordinate.longitude,
+                longitudeWgs84: sample.coordinate.longitudeWgs84,
+                latitude: sample.coordinate.latitude,
+                latitudeWgs84: sample.coordinate.latitudeWgs84,
+                altitude: sample.coordinate.altitude,
+            },
+            botanicalDeterminationBy: botanicalDeterminationByAsObjects,
+            fractionAnalyzedList: fractionsAsObjects,
+        };
+
+        return payload;
+    }
+
+    sampleTable.on("cellEdited", async function(cell){
+
+        const editedField = cell.getField();
+        const newValue = cell.getValue();
+
+        const selectedRows = await getRowsToUpdate(sampleTable, cell, "sample", "samples");
+        if (!selectedRows) return;
+        selectedRows.forEach(row => {
+            
+            // Create payload
+            const sample = JSON.parse(JSON.stringify(row.getData()));
+            setNestedValue(sample, editedField, newValue); // other selected rows do not contain the new value yet
+            const sampleId = sample.id;
+
+            const payload = buildSamplePayload(sample);
+    
+            axios.put(`api/samples/${sampleId}`, JSON.stringify(payload), {
+                headers: {
+                    "Content-Type": 'application/json'
+                }
+            })
+            .then(async response => {
+                console.log(response.data);
+                
+                // Update table
+                if(row !== cell.getRow()) { // skip the edited line
+                    updateRowField(row, editedField, newValue);
+                }
+            })
+            .catch(error => handleUpdateError(cell, row, "sample", error));
+        });
+    });
+
+    // Delete rows --------------------------------------------------------------
+    const deleteButton = document.getElementById("deleteRows-button");
+    
+    // Only show deleteButton if at least one row is selected
+    sampleTable.on("rowSelectionChanged", function(rows){
+        deleteButton.classList.toggle("hidden", rows.length === 0);
+    });
+
+    // onclick (not addEventListener): the button is shared by all tables
+    deleteButton.onclick = async function() {
+        const selectedRows = sampleTable.getSelectedRows();
+        if (!await confirmDelete("sample", selectedRows.length)) return;
+
+        selectedRows.forEach(row => {
+            // Get id
+            const sampleId = row.getData().id;
+
+            axios.delete(`api/samples/${sampleId}`)
+            .then(async response => {
+                console.log(response.data);
+                await row.delete();
+                // Deleting a row does not fire rowSelectionChanged
+                deleteButton.classList.toggle("hidden", sampleTable.getSelectedRows().length === 0);
+            })
+            .catch(error => {
+                handleDeleteError("sample", error);
+            });            
+        });
+    };
+}
+
+// Export table -----------------------------------------------------------------
+document.getElementById("download-json").addEventListener("click", function(){
+    if (activeTable === "sampleTable") {
+        const rawData = sampleTable.getData("active");
+    
+        const transformed = rawData.map(row => {
+            // Feature
+            const featureId     = row.feature?.id;
+            const featureValues = sampleTable.getColumn("feature.id").getDefinition().editorParams({
+                getRow: () => ({
+                    getData: () => row
+                })
+            }).values;
+            const feature       = featureValues.find(f => f.value === featureId);
+            // Site
+            const siteId     = row.feature?.site?.id;
+            const siteValues = sampleTable.getColumn("feature.site.id").getDefinition().editorParams.values;
+            const site       = siteValues.find(s => s.value === siteId);
+            // Coordinate system
+            const coordinateSystemId = row.coordinate?.coordinateSystem?.id ?? null;
+            const hasCoordinateValues =
+                coordinateSystemId ||
+                row.coordinate?.longitude != null ||
+                row.coordinate?.latitude != null ||
+                row.coordinate?.altitude != null ||
+                row.coordinate?.longitudeWgs84 != null ||
+                row.coordinate?.latitudeWgs84 != null ||
+                row.coordinate?.remarksCoordinate != null;
+            // Fraction
+            const formatFrac = sampleTable
+                .getColumn("fractionAnalyzedList")
+                .getDefinition()
+                .formatter.raw; // plain text, the formatter itself escapes HTML
+            
+            return {
+                id:    row.id,
+                label: row.label,
+                feature: featureId && {
+                    id:   featureId,
+                    name: feature.label
+                },
+                site: siteId && {
+                    id:   siteId,
+                    name: site.label
+                },
+                stratum:   row.stratum,
+                layer:     row.layer,
+                sector:    row.sector,
+                planum:    row.planum,
+                depthFrom: row.depthFrom,
+                depthTo:   row.depthTo,
+                coordinate: hasCoordinateValues
+                    ? {
+                        ...(coordinateSystemId && {
+                            coordinateSystem: danteDownloadRecord("coordinateSystem", coordinateSystemId)
+                        }),
+                        longitude:      row.coordinate.longitude,
+                        latitude:       row.coordinate.latitude,
+                        altitude:       row.coordinate.altitude,
+                        longitudeWgs84: row.coordinate.longitudeWgs84,
+                        latitudeWgs84:  row.coordinate.latitudeWgs84,
+                        remarks:        row.coordinate.remarksCoordinate,
+                    }
+                    : null,
+                botanicalDeterminationBy: (row.botanicalDeterminationBy || []).map(botanicalDeterminationById => {
+                    const botanicalDeterminationByValues = sampleTable.getColumn("botanicalDeterminationBy").getDefinition().editorParams.values;
+                    const botanicalDeterminationBy = botanicalDeterminationByValues.find(bdb => bdb.value === botanicalDeterminationById);
+                    return { id: botanicalDeterminationById, name: botanicalDeterminationBy?.label };
+                }),
+                botanicalDeterminationYear: row.botanicalDeterminationYear,
+                fractionAnalyzedList: (row.fractionAnalyzedList || []).map(fractionId => {
+                    return { id: fractionId, name: formatFrac({ getValue: () => [fractionId] }) };
+                }),
+                sampleType: danteDownloadRecord("sampleType", row.sampleType?.id),
+                storageFind: row.sampleStorage,
+                microRemain: row.microRemain,
+                seedsAndFruits: danteDownloadRecord("sampleInvestigated", row.seedsAndFruits?.id),
+                woodSubfossile: danteDownloadRecord("sampleInvestigated", row.woodSubfossile?.id),
+                charcoalInvestigated: danteDownloadRecord("sampleInvestigated", row.charcoalInvestigated?.id),
+                totalWeight:         row.totalWeight,
+                weightUndetermined:  row.weightUndetermined,
+                sampleVolume:        row.sampleVolume,
+                volumeDetermination: row.volumeDetermination,
+                chronozone: danteDownloadRecord("chronozone", row.chronozone?.id),
+                archaeologicalDating: row.archaeologicalDating,
+                culturalGroup: row.culturalGroup,
+                absoluteDatingFrom: row.absoluteDatingFrom,
+                absoluteDatingTo: row.absoluteDatingTo,
+                remarks: row.remarksSample,
+            };
+        });
+
+        const blob = new Blob([JSON.stringify(transformed, null, 4)], { type: "application/json" });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement("a");
+        a.href = url;
+        a.download = "ArboDat+_Download_Samples.json";
+        a.click();
+        // Revoke later: WebKit (macOS app window) cancels downloads whose blob URL is already revoked.
+        setTimeout(() => URL.revokeObjectURL(url), 60000);
+    }
+});
+
+document.getElementById("download-csv").addEventListener("click", function(){
+    if (activeTable === "sampleTable") {
+        sampleTable.download(
+            "csv",
+            "ArboDat+_Download_Samples.csv"
+        );
+    }    
+});    
+
+document.getElementById("download-xlsx").addEventListener("click", function(){
+    if (activeTable === "sampleTable") {
+        sampleTable.download(
+            "xlsx",
+            "ArboDat+_Download_Samples.xlsx",
+            {sheetName:"ArboDat+ Samples"}
+        );
+    }
+});
+
+document.getElementById("download-html").addEventListener("click", function(){
+    if (activeTable === "sampleTable") {
+        sampleTable.download(
+            "html",
+            "ArboDat+_Download_Samples.html"
+        );
+    }
+});

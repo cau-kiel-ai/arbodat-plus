@@ -1,0 +1,110 @@
+document.addEventListener("DOMContentLoaded", async function () {
+    const table = getTableFromURL()
+    if (table) {
+        applyTable(table);
+    }
+
+    // Get and update dante attributes
+    await updateBackendDanteAttributes();
+});
+
+const tableSelector = $("#tableSelector");
+
+tableSelector.select2({
+    placeholder: "",
+    width: "220px",
+    minimumResultsForSearch: Infinity
+});
+
+// select2 fires change through jQuery, native listeners are not called
+tableSelector.on("change", (e) => {
+    const table = e.target.value;
+    setTableInURL(table);
+    renderTable(table);
+});
+
+// Support Back/Forward
+window.addEventListener("popstate", () => {
+    const table = getTableFromURL();
+    applyTable(table);
+});
+
+function getTableFromURL() {
+    const params = new URLSearchParams(window.location.search);
+    return params.get("table");
+}
+
+function setTableInURL(table) {
+    // Change URL without reload
+    const url = new URL(window.location);
+    url.searchParams.set("table", table);
+    window.history.pushState({}, "", url);
+}
+
+function applyTable(table) {
+    tableSelector.val(table).trigger("change.select2");
+    renderTable(table);
+}
+
+
+let activeTable = null;
+
+// Each table switch is a new build. A table that is still loading its data when another one is chosen
+// is not shown (otherwise it would replace the newer table as soon as its data arrives).
+let tableBuild = 0;
+const isCurrentBuild = build => build === tableBuild;
+
+function renderTable(table) {
+    tableBuild++;
+
+    const container = document.getElementById("table");
+
+    // Reset
+    container.innerHTML = "";
+    document.getElementById("deleteRows-button").classList.add("hidden");
+
+    switch (table) {
+        case "researchProject":
+            buildResearchProjectTable();
+            break;
+
+        case "institution":
+            buildInstitutionTable();
+            break;
+        
+        case "user":
+            buildUserTable();
+            break;
+
+        case "author":
+            buildAuthorTable();
+            break;
+        
+        case "literature":
+            buildLiteratureTable();
+            break;
+
+        case "site":
+            buildSiteTable();
+            break;
+
+        case "feature":
+            buildFeatureTable();
+            break;
+        
+        case "sample":
+            buildSampleTable();
+            break;
+
+        case "dating":
+            buildDatingTable();
+            break;
+
+        case "result":
+            buildResultTable();
+            break;
+    
+        default:
+            break;
+    }
+}

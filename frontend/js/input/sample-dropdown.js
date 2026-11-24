@@ -7,8 +7,6 @@ document.addEventListener("DOMContentLoaded", () => {
     const id = document.getElementById("sample_id");
     const inputField = document.getElementById("sample_label");
     const submit_update_button = document.getElementById("sample_submit_update_button");
-
-    const bot_det_by_container = document.getElementById("botanicalDeterminationByContainer");
     // ---------------------------------------------------------------------------------------
 
     let activeIndex = -1;
@@ -34,7 +32,7 @@ document.addEventListener("DOMContentLoaded", () => {
         adjustDropdownWidth();
 
         // Send a GET request to get all items
-        fetch('http://localhost:8080/samples', { // Customise here
+        fetch('api/samples', { // Customise here
             method: 'GET',
             headers: {
                 'Content-Type': 'application/json',
@@ -105,23 +103,11 @@ document.addEventListener("DOMContentLoaded", () => {
             longitude_wgs84_input.value = '';
             latitude_wgs84_input.value  = '';
             // Measurement details
-            // Reset list and container -----------
-            sampleBotanicalDeterminationByList = []
-            bot_det_by_container.innerHTML = "";
-            // ------------------------------------
+            clearMultiSelect('#botanicalDeterminationsBy');
             year_of_bot_det_input.value = '';
 
             // Reset fractions --------------------------------------
-            // fraction 1
-            document.getElementById("fraction_analyzed_1").value = '';
-            document.getElementById("org_1").checked = false;
-            document.getElementById("min_1").checked = false;
-            document.getElementById("sieveSize_1").value  = '';
-            document.getElementById("multiplier_1").value = '';
-            // all further fractions
-            while (frac_counter > 1) {
-                removeFraction();
-            } // ----------------------------------------------------
+            resetFractions(); // ----------------------------------------------------
 
             $('#sample_type').val(null).trigger('change');
             sample_storage_checkbox.checked = false;
@@ -137,8 +123,11 @@ document.addEventListener("DOMContentLoaded", () => {
             volume_determination_wet_radio.checked   = false;
             // Sample dating            
             $('#chronozone').val(null).trigger('change');
+            applyDefaults("sample");
             archaeological_dating_input.value = '';
             cultural_group_input.value        = '';
+            absolute_dating_from_input.value  = '';
+            absolute_dating_to_input.value    = '';
             remarks_textarea.value            = '';
             // -------------------------------------------
         }
@@ -146,6 +135,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
     function populateDropdown(itemList) {  
         dropdown.innerHTML = ""; // Reset dropdown
+        itemList = sortSamples(itemList); // Ascending
         
         itemList.forEach((item) => {
             const listItem = document.createElement("li");
@@ -184,51 +174,12 @@ document.addEventListener("DOMContentLoaded", () => {
         longitude_wgs84_input.value = item.coordinate?.longitudeWgs84 ?? "";
         latitude_wgs84_input.value  = item.coordinate?.latitudeWgs84  ?? "";
         // Measurement details
-        // Reset user list and container ----------------
-        sampleBotanicalDeterminationByList = []
-        bot_det_by_container.innerHTML = "";
-        // Add users to list and container
-        item.botanicalDeterminationBy.forEach(item => {
-            const itemText = formatName(item);            
-            const userData = { id: item.id };
-            const index = sampleBotanicalDeterminationByList.push(userData) - 1;
-            addUserItemBox(
-                itemText,
-                index,
-                "sampleBotanicalDeterminationByList",
-                "botanicalDeterminationByContainer"
-            );
-        }); // ------------------------------------------
+        setMultiSelect('#botanicalDeterminationsBy', item.botanicalDeterminationBy, formatName);
         year_of_bot_det_input.value = item.botanicalDeterminationYear;
 
-        // Reset fractions -----------------------------------------
-        // fraction 1
-        document.getElementById("fraction_analyzed_1").value = '';
-        document.getElementById("org_1").checked = false;
-        document.getElementById("min_1").checked = false;
-        document.getElementById("sieveSize_1").value  = '';
-        document.getElementById("multiplier_1").value = '';
-        // all further fractions
-        while (frac_counter > 1) {
-            removeFraction();
-        }
-        // Populate fractions --------------------------------------
-        item.fractionAnalyzedList?.forEach((fraction, index) => {
-            if (index === 0) {  // fraction 1
-                document.getElementById("fraction_analyzed_1").value = fraction.fractionAnalyzed;
-                document.getElementById("org_1").checked = fraction.orgOrMin === "org";
-                document.getElementById("min_1").checked = fraction.orgOrMin === "min";
-                document.getElementById("sieveSize_1").value  = fraction.sieveSize;
-                document.getElementById("multiplier_1").value = fraction.standardMultiplier;
-            } else {  // all further fractions
-                addFraction();
-                document.getElementById("fraction_analyzed_" + frac_counter).value = fraction.fractionAnalyzed;
-                document.getElementById("org_" + frac_counter).checked = fraction.orgOrMin === "org";
-                document.getElementById("min_" + frac_counter).checked = fraction.orgOrMin === "min";
-                document.getElementById("sieveSize_" + frac_counter).value  = fraction.sieveSize;
-                document.getElementById("multiplier_" + frac_counter).value = fraction.standardMultiplier;
-            }
-        }); // -----------------------------------------------------
+        // Reset and populate fractions ----------------------------
+        setFractions(item.fractionAnalyzedList);
+        // ---------------------------------------------------------
 
         $('#sample_type').val(item.sampleType?.id ?? "").trigger('change');
         sample_storage_checkbox.checked = item.sampleStorage;
@@ -246,6 +197,8 @@ document.addEventListener("DOMContentLoaded", () => {
         $('#chronozone').val(item.chronozone?.id ?? '').trigger('change');
         archaeological_dating_input.value = item.archaeologicalDating;
         cultural_group_input.value        = item.culturalGroup;
+        absolute_dating_from_input.value  = item.absoluteDatingFrom;
+        absolute_dating_to_input.value    = item.absoluteDatingTo;
         remarks_textarea.value            = item.remarksSample;
         // -------------------------------------------------------------------------
     }
@@ -273,23 +226,11 @@ document.addEventListener("DOMContentLoaded", () => {
         longitude_wgs84_input.value = '';
         latitude_wgs84_input.value  = '';
         // Measurement details
-        // Reset list and container -----------
-        sampleBotanicalDeterminationByList = []
-        bot_det_by_container.innerHTML = "";
-        // ------------------------------------
+        clearMultiSelect('#botanicalDeterminationsBy');
         year_of_bot_det_input.value = '';
         
         // Reset fractions --------------------------------------
-        // fraction 1
-        document.getElementById("fraction_analyzed_1").value = '';
-        document.getElementById("org_1").checked = false;
-        document.getElementById("min_1").checked = false;
-        document.getElementById("sieveSize_1").value  = '';
-        document.getElementById("multiplier_1").value = '';
-        // c
-        while (frac_counter > 1) {
-            removeFraction();
-        } // ----------------------------------------------------
+        resetFractions(); // ----------------------------------------------------
 
         $('#sample_type').val(null).trigger('change');
         sample_storage_checkbox.checked = false;
@@ -305,8 +246,11 @@ document.addEventListener("DOMContentLoaded", () => {
         volume_determination_wet_radio.checked   = false;
         // Sample dating
         $('#chronozone').val(null).trigger('change');
+        applyDefaults("sample");
         archaeological_dating_input.value = '';
         cultural_group_input.value        = '';
+        absolute_dating_from_input.value  = '';
+        absolute_dating_to_input.value    = '';
         remarks_textarea.value            = '';
         // ----------------------------------------
 

@@ -1,20 +1,22 @@
+// "Upload" is only enabled once both files are selected and both are .mdb files
+function updateUploadButton() {
+  const isMdb = id => /\.mdb$/i.test(document.getElementById(id).files[0]?.name ?? '');
+  document.getElementById('uploadButton').disabled = !(isMdb('dataFile') && isMdb('strukDataFile'));
+}
+document.getElementById('dataFile').addEventListener('change', updateUploadButton);
+document.getElementById('strukDataFile').addEventListener('change', updateUploadButton);
+
 async function getSites() {
-  showLoading();
-
-  await updateBackendDanteAttributes();
-
   // Get 'ArchBotDaten.mdb' file from the file upload
   const dataFile = document.getElementById('dataFile');
   if (dataFile.files.length === 0) {
     toast.info("Please select a 'ArchBotDaten.mdb' file.");
-    hideLoading();
     return;
   }
   // Check if 'ArchBotStrukDat.mdb' file is also uploaded
   const strukDataFile = document.getElementById('strukDataFile');
   if (strukDataFile.files.length === 0) {
     toast.info("Please select a 'ArchBotStrukDat.mdb' file.");
-    hideLoading() = 'none';
     return;
   }
 
@@ -22,8 +24,17 @@ async function getSites() {
   const formData = new FormData();
   formData.append("file", dataFile.files[0]);
 
+  showLoading();
+
   try {
-    const response = await axios.post("http://localhost:8080/migration/getSites", formData, {
+    // The migration needs the DANTE vocabularies in the backend. Without internet the vocabularies
+    // stored by earlier syncs are used, so this must not stop the upload.
+    const vocabulariesComplete = await updateBackendDanteAttributes();
+    if (!vocabulariesComplete) {
+      toast.info("Some DANTE vocabularies could not be updated. The vocabularies already stored in ArboDat+ are used for them.");
+    }
+
+    const response = await axios.post("api/migration/getSites", formData, {
       headers: {
         "Content-Type": "multipart/form-data"
       }
@@ -31,45 +42,16 @@ async function getSites() {
 
     populateSites(response.data); // Integrate list of sites into frontend
     // show accordion section 1
-    var accordionElement1 = document.getElementById("panelsStayOpen-collapseOne");
-    if (!accordionElement1.classList.contains("show")) {
-      accordionElement1.classList.add("show");
-    }
+    showAccordionSection("panelsStayOpen-collapseOne");
     // show accordion section 2
-    var accordionElement2 = document.getElementById("panelsStayOpen-collapseTwo");
-    if (!accordionElement2.classList.contains("show")) {
-      accordionElement2.classList.add("show");
-    }
+    showAccordionSection("panelsStayOpen-collapseTwo");
     
   } catch (error) {
       console.error("Error uploading file", error);
+      toast.error("Could not read sites from file: " + getErrorMessage(error));
   } finally {
     hideLoading();
   }
 }
 
-function populateSites(sites) {
-  const tableBody = document.getElementById("siteTableBody");
-  tableBody.innerHTML = ""; // Reset table
-
-  sites.forEach(site => {
-    const row = document.createElement("tr");
-
-    // First column: Site label
-    const siteLabelCell = document.createElement("td");
-    siteLabelCell.textContent = site;
-    row.appendChild(siteLabelCell);
-
-    // Second column: Selection checkbox
-    const checkboxCell = document.createElement("td");
-    checkboxCell.style = "text-align: right;"
-    const checkbox = document.createElement("input");
-    checkbox.type = "checkbox";
-    checkbox.value = site;
-    checkbox.classList.add("siteCheckbox"); // Access to checkboxes
-    checkboxCell.appendChild(checkbox);
-    row.appendChild(checkboxCell);
-
-    tableBody.appendChild(row);
-  });
-}
+// populateSites: see siteSelection.js

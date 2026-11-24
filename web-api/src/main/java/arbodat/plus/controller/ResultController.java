@@ -1,31 +1,36 @@
 package arbodat.plus.controller;
 
+import arbodat.plus.dto_migration.BulkItemStatus;
+import arbodat.plus.dto_migration.BulkResultItem;
 import arbodat.plus.model.*;
 import arbodat.plus.repository.*;
+import arbodat.plus.service.ResultKey;
+import arbodat.plus.service.ResultMigrationService;
+import arbodat.plus.service.ResultRules;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.dao.DataAccessException;
+import org.springframework.dao.DataIntegrityViolationException;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.*;
 
-//@CrossOrigin(origins = "http://127.0.0.1:5500")
-@CrossOrigin(origins = "*") // Allow requests from all domains
 @RestController
 @RequestMapping("/results")
 public class ResultController {
 
+    private static final Logger log = LoggerFactory.getLogger(ResultController.class);
+
+    @Autowired
+    ResultMigrationService resultMigrationService;
+
     @Autowired
     ResultRepository resultRepository;
-
-    @Autowired
-    SampleRepository sampleRepository;
-
-    @Autowired
-    SiteRepository siteRepository;
-
-    @Autowired
-    TaxonomyRepository taxonomyRepository;
 
     @Autowired
     StateOfPreservationRepository stateOfPreservationRepository;
@@ -39,10 +44,24 @@ public class ResultController {
     @Autowired
     TaxCodeRepository taxCodeRepository;
 
-    @GetMapping public Page<Result> getResults(Pageable pageable) { return resultRepository.findAll(pageable); }
+    @GetMapping
+    public Page<Result> getResults(@RequestParam(required = false) UUID sampleId, Pageable pageable) {
+        if (sampleId != null) {
+            return resultRepository.findBySampleId(sampleId, pageable);
+        }
+        return resultRepository.findAll(pageable);
+    }
 
     @PostMapping
     public String create(@RequestBody Result transferredResult) {
+
+        // Quantity and entry date (before anything is saved)
+        ResultRules.check(transferredResult);
+
+        // Check if such a result already exists in the sample (before anything is saved)
+        if (ResultKey.of(transferredResult).isTaken(resultRepository, null)) {
+            return "result already exists";
+        }
 
         // Handle taxCode
         TaxCode taxCode = taxCodeRepository.findById(transferredResult.getTaxCode().getId())
@@ -66,22 +85,8 @@ public class ResultController {
                 .orElseGet(() -> restTypeRepository.save(transferredResult.getRestType()));
         transferredResult.setRestType(restType);
 
-        // Check if such a result with these values already exists
-        Optional<Result> existingResult = resultRepository.findAlreadyExisting(
-                transferredResult.getSample(),
-                taxCode,
-                transferredResult.getOrgOrMin(),
-                transferredResult.getSieveSize(),
-                classificationConfer,
-                restType,
-                stateOfPreservation);
-
-        if (existingResult.isEmpty()) {
-            resultRepository.save(transferredResult);
-            return "result is created";
-        } else {
-            return "result already exists";
-        }
+        resultRepository.save(transferredResult);
+        return "result is created";
     }
 
     @PutMapping("/{resultId}")
@@ -91,6 +96,24 @@ public class ResultController {
         // Get result
         Result result = resultRepository.findById(resultId)
                 .orElseThrow(() -> new IllegalArgumentException("invalid result id: " + resultId));
+
+        // Quantity and entry date of the new values
+        ResultRules.check(transferredResult);
+
+        // Check if another result of the sample has the new values (before the result is changed:
+        // the query would flush the change). Values which aren't transferred stay as they are.
+        ResultKey key = new ResultKey(
+                transferredResult.getSample() != null ? transferredResult.getSample().getId() : null,
+                idOrCurrent(transferredResult.getTaxCode(), result.getTaxCode()),
+                transferredResult.getOrgOrMin(),
+                transferredResult.getSieveSize(),
+                transferredResult.getFractionAnalyzed(),
+                idOrCurrent(transferredResult.getClassificationConfer(), result.getClassificationConfer()),
+                idOrCurrent(transferredResult.getRestType(), result.getRestType()),
+                idOrCurrent(transferredResult.getStateOfPreservation(), result.getStateOfPreservation()));
+        if (key.isTaken(resultRepository, resultId)) {
+            return "result already exists";
+        }
 
         // Update attributes
         result.setEntryDate(transferredResult.getEntryDate());
@@ -138,24 +161,37 @@ public class ResultController {
             result.setStateOfPreservation(stateOfPreservation);
         }
 
-        // Check if such a result with these values already exists
-        Optional<Result> existingResult = resultRepository.findAlreadyExisting(
-                result.getSample(),
-                result.getTaxCode(),
-                result.getOrgOrMin(),
-                result.getSieveSize(),
-                result.getClassificationConfer(),
-                result.getRestType(),
-                result.getStateOfPreservation()
-        );
+        resultRepository.save(result);
+        return "result is updated";
+    }
 
-        if (existingResult.isEmpty() ||
-                existingResult.map(Result::getId).orElse(null).equals(resultId)) {
-            resultRepository.save(result);
-            return "result is updated";
-        } else {
-            return "result already exists";
-        }
+    @ExceptionHandler(ResultRules.ResultRuleException.class)
+    public ResponseEntity<String> handleResultRule(ResultRules.ResultRuleException e) {
+        return ResponseEntity.badRequest().body(e.getMessage());
+    }
+
+    // Another request saved the same result between the check and the save
+    @ExceptionHandler(DataIntegrityViolationException.class)
+    public ResponseEntity<String> handleDataIntegrityViolation(DataIntegrityViolationException e) {
+        String cause = String.valueOf(e.getMostSpecificCause().getMessage());
+        return ResponseEntity.status(HttpStatus.CONFLICT)
+                .body(cause.contains(Result.UNIQUE_KEY)
+                        ? "The result could not be saved: the sample already has such a result."
+                        : "The result could not be saved: " + cause);
+    }
+
+    // Id of the transferred value, or of the current one if none is transferred
+    private static String idOrCurrent(Object transferred, Object current) {
+        String id = vocabularyId(transferred);
+        return id != null ? id : vocabularyId(current);
+    }
+
+    private static String vocabularyId(Object value) {
+        if (value instanceof TaxCode v) return v.getId();
+        if (value instanceof ClassificationConfer v) return v.getId();
+        if (value instanceof RestType v) return v.getId();
+        if (value instanceof StateOfPreservation v) return v.getId();
+        return null;
     }
 
     @DeleteMapping("/{resultId}")
@@ -169,68 +205,22 @@ public class ResultController {
         return "result is deleted";
     }
 
-    @PostMapping("/createViaMigration/{taxonomyLabel}")
-    public String createResultViaMigration(@RequestBody  Result result,
-                                           @PathVariable String taxonomyLabel) {
-
-        // Handle taxCode
-        TaxCode taxCode = taxCodeRepository.findById(result.getTaxCode().getId())
-                .orElseGet(() -> taxCodeRepository.save(result.getTaxCode()));
-
-        // Handle cf (save if not already in database)
-        ClassificationConfer cf = result.getClassificationConfer();
-//        if (classificationConferRepository.findById(cf.getId()).isEmpty()) {
-//            cf = classificationConferRepository.save(cf);
-//        }
-
-        // Handle restType (save if not already in database)
-        RestType restType = result.getRestType();
-        if (restTypeRepository.findById(restType.getId()).isEmpty()) {
-            restType = restTypeRepository.save(restType);
-        }
-
-        // Handle stateOfPreservation (save if not already in database)
-        StateOfPreservation stateOfPreservation = result.getStateOfPreservation();
-        if (stateOfPreservationRepository.findById(stateOfPreservation.getId()).isEmpty()) {
-            stateOfPreservation = stateOfPreservationRepository.save(stateOfPreservation);
-        }
-
-        // fraction
-        String orgOrMin  = result.getOrgOrMin();
-        Double sieveSize = result.getSieveSize();
-
-        // Check if taxCode+fraction already exists
-        Optional<Result> existingResult = resultRepository.findAlreadyExisting(
-                result.getSample(),
-                taxCode,
-                orgOrMin,
-                sieveSize,
-                cf,
-                restType,
-                stateOfPreservation);
-
-        if (existingResult.isEmpty()) {
-            // Set Taxonomy in site ---------------------------------------------------------------
-            // Get taxonomy
-            Taxonomy taxonomy = taxonomyRepository.findByLabel(taxonomyLabel)
-                    .orElseThrow(() -> new IllegalArgumentException("invalid taxonomy label: " + taxonomyLabel));
-            // Get site
-            UUID sampleId = result.getSample().getId();
-            Sample sample = sampleRepository.findById(sampleId)
-                    .orElseThrow(() -> new IllegalArgumentException("invalid sample id: " + sampleId));
-            UUID siteId = sample.getFeature().getSite().getId();
-            Site site = siteRepository.findById(siteId)
-                    .orElseThrow(() -> new IllegalArgumentException("invalid site id: " + siteId));
-
-            site.setTaxonomy(taxonomy);
-            siteRepository.save(site);
-            // ------------------------------------------------------------------------------------
-
-            Result savedResult = resultRepository.save(result);
-            // Return Id
-            return savedResult.getId().toString();
-        } else {
-            return "result already exists";
+    /**
+     * Creates the results of the migration (result accordion). Every item gets its own status
+     * ("created", "exists" or "error"), so one bad row doesn't stop the others.
+     */
+    @PostMapping("/createViaMigration/bulk/{taxonomyLabel}")
+    public List<BulkItemStatus> createResultsViaMigration(@RequestBody List<BulkResultItem> items,
+                                                          @PathVariable String taxonomyLabel) {
+        try {
+            return resultMigrationService.createAll(taxonomyLabel, items);
+        } catch (DataAccessException e) {
+            // The transaction is rolled back -> none of the items is created
+            log.error("Bulk create of results failed", e);
+            String message = e.getMostSpecificCause().getMessage();
+            return items.stream()
+                    .map(item -> BulkItemStatus.error(item.getClientId(), message))
+                    .toList();
         }
     }
 }

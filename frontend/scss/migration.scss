@@ -1,0 +1,423 @@
+html {
+    height: 100%;
+}
+
+// min-height, not height: the sticky navbar only sticks within its parent (body), so body must grow with the content.
+// Only body is a flex container: as a flex item of html it would shrink back to the viewport height.
+body {
+    min-height: 100%;
+    display: flex;
+    flex-direction: column;
+}
+
+/* delete browser defaults: */
+body, ul, li, h1, h2, a{
+    margin: 0;
+    padding: 0;
+    font-family: arial;
+   }
+
+
+.clear-icon {
+    transform: translateY(-50%);
+    cursor: pointer;
+    position: absolute;
+    right: 25px;
+    top: 50%;
+}
+.clear-icon:hover {
+  text-decoration: underline;
+}
+
+
+  /* Tooltip Container */
+  label[data-tooltip] {
+    position: relative;
+    cursor: help;
+  }
+  
+  /* Tooltip */
+  label[data-tooltip]::after {
+    content: attr(data-tooltip);
+    position: absolute;
+    left: 105%;
+    top: 50%;
+    transform: translateY(-50%);
+    background: #333;
+    color: #fff;
+    padding: 8px;
+    border-radius: 5px;
+    white-space: normal;
+    //max-width: 220px;
+    display: inline-block;
+    min-width: 300px;
+    max-width: none;
+    font-size: 14px;
+    line-height: 1.4;
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.2);
+    z-index: 99999;
+    opacity: 0;
+    visibility: hidden;
+    transition: opacity 0.2s;
+  }
+  
+  /* Tooltip sichtbar beim Hover */
+  label[data-tooltip]:hover::after {
+    opacity: 1;
+    visibility: visible;
+  }
+
+    
+  .row, .col-25, fieldset {
+    overflow: visible !important;
+  }
+  
+
+/* ------------ Input.html specific settings: General --------------- */
+
+.container-md {
+    margin-top: 1.5rem;
+    width: 95%;
+    margin-bottom: 5%;
+}
+
+* {
+    box-sizing: border-box;
+}
+
+label {
+    padding: 12px 12px 12px 0;
+    display: inline-block;
+}
+
+fieldset .col-25 {
+    float: left;
+    width: 25%;
+    margin-top: 6px;
+}
+  
+fieldset .col-75 {
+    float: left;
+    width: 75%;
+    margin-top: 6px;
+}
+
+/* ------------ Input types --------------- */
+
+input[type=text], input[type=number], input[type=email], select, textarea {
+    width: 100%;
+    padding: 12px;
+    border: 2px solid #ccc;
+    border-radius: 4px;
+    resize: vertical;
+}
+
+input[type=int], input[type=number] {
+    width: 30%;
+    padding: 12px;
+    border: 2px solid #ccc;
+    border-radius: 4px;
+    resize: vertical;
+}
+
+input[type=checkbox] {
+    border: 2px solid #ccc;
+    border-radius: 4px;
+    margin-top: 1.5%;
+    margin-left: 0%;
+}
+
+input[type=radio] {
+    border: 2px solid #ccc;
+    border-radius: 4px;
+    margin-top: 15px;
+    margin-left: 0%;
+}
+
+.container-md .accordion-body {
+    background-color: white;
+    padding: 20px;
+}
+
+.container-md .accordion-body fieldset {
+    border-radius: 5px;
+    background-color: #f2f2f2;
+    padding: 20px;
+    //display:inline-block;
+}
+
+
+/* ------------ buttons --------------- */
+
+.container-md .buttonArea {
+    border-radius: 5px;
+    background-color: #f2f2f2;
+    padding: 20px;
+    display:inline-block;
+    width: 100%;
+}
+
+.container-md button {
+    z-index: 0;
+}
+
+// Button of the 'Create new Fraction' popup (the popup is outside the accordion): blue, centered
+#fractionAnalyzedModal .MySubmitButton {
+    display: block;
+    height: 42px;
+    margin: 16px auto 0;
+    padding: 0 20px;
+    cursor: pointer;
+    border-radius: 5px;
+    border-color: #f2f2f2;
+    background-color: rgb(37, 16, 193);
+    color: #FFFFFF;
+}
+
+.accordion .MySubmitButton {
+    width: 20%;
+    height: 42px;
+    padding: 0px;
+    margin: 0%;
+    margin-top: 2%;
+    cursor: pointer;
+    border-radius: 5px;
+    border-color:  #f2f2f2;
+    background-color: rgb(37, 16, 193);
+    color: #FFFFFF;
+    float:right;
+}
+
+.accordion .Add { // a class which is being used in addUser, addFraction, ...
+    width: 20%;
+    height: 42px;
+    padding: 0px;
+    margin: 0%;
+    margin-top: 2%;
+    cursor: pointer;
+    border-radius: 5px;
+    background-color:  rgb(37, 16, 193); //#797479;
+    color: #FFFFFF;
+    float:right;
+}
+
+.accordion .Remove { // delete last additional user or fraction
+    width: 20%;
+    height: 42px;
+    padding: 0px;
+    margin: 0%;
+    margin-top: 2%;
+    cursor: pointer;
+    border-radius: 5px;
+    background-color:  rgb(37, 16, 193);
+    color: #FFFFFF;
+    float:right;
+}
+
+
+/* ------------ site specific --------------- */
+
+.accordion #name{ 
+    width: 33%;
+    padding: 12px;
+    border: 2px solid #ccc;
+    border-radius: 4px;
+    resize: vertical;
+}
+
+
+/* ------------ sample specific --------------- */
+
+.container-md .accordion-body #fractions {
+    border-radius: 5px;
+    background-color: #f2f2f2;
+    padding:20px;
+    margin-bottom: 0%;
+    margin-left: 24%;
+    display:inline-block;
+    width: 75%;
+}
+
+.container-md .accordion-body #fractions .col-25{
+    float: left;
+    width: 35%;
+    margin-top: 6px;
+}
+
+.container-md .accordion-body #fractions .col-75{
+    float: left;
+    width: 64%;
+    margin-top: 6px;
+}
+
+.accordion #one_fraction {
+    margin-left: 0%;
+    padding: 12px; 
+    line-height: 75%;
+    border: 1px #ccc solid;
+    //background-color:  #f4fcfc;
+    border-radius: 5px;
+}
+
+.container-md #sample_accordion .buttonArea {
+    border-radius: 5px;
+    background-color: #f2f2f2;
+    padding:0%;
+    width: 80%;
+    float: center;
+}
+
+
+/* ------------ result specific --------------- */
+
+// One block per site: header (site label + taxonomy dropdown) and Tabulator (see js/migration/result.js)
+.migration-result-site {
+    margin-bottom: 24px;
+}
+
+.migration-result-header {
+    display: flex;
+    align-items: center;
+    gap: 20px;
+    margin-bottom: 12px;
+}
+
+.migration-result-site-text {
+    font-weight: bold;
+}
+
+.migration-result-site-label {
+    font-weight: bold;
+    font-size: 1.3em;
+}
+
+.migration-result-taxonomy {
+    width: 250px;
+}
+
+.migration-result-table {
+    font-size: 0.8em;
+}
+
+// Empty dante dropdown cell
+.migration-result-placeholder {
+    color: #6c757d;
+}
+
+// Center the "select row" checkbox in the header of the row selection column
+.tabulator .tabulator-header .tabulator-col.selectionColumn {
+    align-items: center;
+    justify-content: center;
+}
+
+.accordion #add_other_fraction { 
+    width: 74%;
+    margin-left: 25%; 
+    // border: 1px #ccc solid;
+    //background-color:  #f4fcfc;
+    border-radius: 5px;
+}
+
+
+/* ------------ dating specific --------------- */
+
+.container-md .accordion-body .accordion-body fieldset {
+    border-radius: 5px;
+    background-color: #f5fafc;
+    padding: 20px;
+    //display:inline-block;
+}
+
+.container-md .accordion-body .accordion-body {
+    border-radius: 0px;
+    //background-color: rgb(156, 31, 31);
+    margin-bottom: 20px;
+    //display:inline-block;
+}
+
+
+/* ------------ obsolet things? --------------- */
+
+.accordion .AddReference { // obsolet?
+    width: 12%;
+    //height: 42px;
+    padding: 0px;
+    margin: 0%;
+    margin-top: 0%;
+    cursor: pointer;
+    border-radius: 5px;
+    background-color:  rgb(37, 16, 193);
+    color: #FFFFFF;
+    float: center;
+}
+
+
+/* ------------ fancy stuff --------------- */
+
+button:hover{
+    text-decoration: underline;
+    background-color: #b4adb5;
+    cursor:pointer;
+}
+
+
+@media screen and (max-width: 1200px) {
+
+    .container-md{
+        color: #5D535E;
+        width: 95%;
+        margin-bottom: 5%;
+    }
+}
+
+
+@media screen and (max-width: 800px) {
+
+    .container-md{
+        color: #5D535E;
+        width: 95%;
+        margin-bottom: 5%;
+    }
+
+   
+}
+
+@media screen and (max-width: 720px) {
+
+    .container-md{
+        color: #5D535E;
+        width: 95%;
+        margin-bottom: 5%;
+    }
+
+    fieldset .col-25, fieldset .col-75 {
+        width: 100%;
+        margin-top: 0;
+      }
+
+
+}
+
+@import '../vendor/bootstrap@5.3.8/scss/bootstrap';
+@import 'stickyAccordion';
+@import 'multiSelect';
+@import 'multiSelectEditor';
+
+// Number cells of the tables (e.g. coordinates): typed only, without the spin buttons
+.tabulator input[type=number] {
+    appearance: textfield;
+    -moz-appearance: textfield;
+
+    &::-webkit-outer-spin-button,
+    &::-webkit-inner-spin-button {
+        -webkit-appearance: none;
+        margin: 0;
+    }
+}
+@import 'footer';
+@import 'navbar';
+
+// Coordinate list: a field whose value can't be taken over (see showCoordinateErrors in coordinates.js)
+.coordinate-invalid {
+    outline: 2px solid var(--bs-danger);
+}

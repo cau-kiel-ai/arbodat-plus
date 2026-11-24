@@ -10,31 +10,15 @@
 
         <link href="img/favicon.png" rel="icon">
         <link href="css/index.min.css" rel="stylesheet">
+        <script src="components/app-footer.js"></script>
+        <script src="components/app-navbar.js"></script>
     </head>
 
     <body>
-        <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
-        <script src="https://unpkg.com/axios/dist/axios.min.js"></script>
-        <header>
-            <h1> <img src="img/logo_arbodat_plus.png" alt="logo_arbodat_plus"> </h1>
-        </header>   
+        <script src="vendor/bootstrap@5.3.8/dist/js/bootstrap.bundle.min.js"></script>
+        <script src="vendor/axios@1.21.0/dist/axios.min.js"></script>
+        <app-navbar></app-navbar>
 
-        <!-- <section class="banner">
-            <img src="img/banner.png" alt="banner">
-        </section>  -->
-
-        <nav class="main_nav">
-            <ul>
-                <li><a href="input.html" target="_blank">Data Input</a></li>
-                <li><a href="migration.html" target="_blank">Data Migration</a></li>
-                <li><a href="data-explorer.html" target="_blank">Data Explorer</a></li>
-                <li><a href="report.html" target="_blank">Data Report</a></li>
-                <li><a href="export.html" target="_blank">Data Export</a></li>
-                <!--li><a href="about.html" target="_blank">About</a></li-->
-            </ul>
-        </nav> 
-
-        <!-- the main tag is unique for every web page -->
         <main>  
             <article>
                 <h2>Welcome to ArboDat+</h2>
@@ -48,7 +32,6 @@
                 <div class="intro"> 
                     <strong>Key changes and what they allow you to do:</strong>
                 </div>
-                    <p>
                         <ul>
                             <li>ArboDat+ is designed as an operating system independent web application, which can be run in almost any modern browser on most computers.</li>
                             <li>A newly implemented PostgreSQL database transitions the system to an open and free platform. The database remains relational,
@@ -57,34 +40,32 @@
                                 It is also possible to add local attribute labels to the central Dante Server.
                                 These will be manually reviewed prior to being uploaded centrally - updating lists for all users automatically. 
                                 This way, the data becomes consistent and interoperable with other data sets using the same data lists, while still allowing flexibility for unique needs.</li>
-                            <li>Migration of existing data sets is possible via the 'Data Migration' module.</li>
                             <li>The data entry structure has largely remained the same as in the previous version. New records can be entered through the ‘Data Input’ module.</li>
-                            <li>Data entries can be queried, filtered, altered and exported into different file types for download via the 'Data Explorer' module.</li>
-                            <li>In addition, ArboDat+ provides an interactive map for easy location management of sites and samples.</li>
+                            <li>Import of existing data sets from legacy MS Access ArboDat is possible via the 'Data Migration' module.</li>
+                            <li>Data entries can be queried, filtered, modified and exported into different file types for download via the 'Data Explorer' module.</li>
+                            <li>In addition, ArboDat+ provides an interactive map for easy location management of sites and reverse geocoding to automatically populate address details.</li>
+                            <li>The 'Export / Import' module exports the whole database, or only selected research projects, sites, features or samples, to a JSON file,
+                                and imports such a file into another ArboDat+: records already there are recognised and completed, nothing is deleted, and conflicting values are decided in a preview.</li>
+                            <li>Default values and custom order of Dante attributes in the 'Data Input' forms can be configured in the 'Settings' module.</li>
                         </ul>
-                </p>
             </article>
+
             <br><br>
         
             <div class="lower">
-                This continued development of ArboDat is being carried out as a collaborative project between NFDI for Objects (<a href="https://www.nfdi4objects.net/">NFDI4O</a>), 
-                Kiel University (<a href="https://www.uni-kiel.de/de/">CAU</a>), and the Lower Saxony Institute for Historical Coastal Research (<a href="https://nihk.de/">NIhK</a>).
+                This continued development of ArboDat is being carried out as a collaborative project between NFDI for Objects (<a href="https://www.nfdi4objects.net/" target="_blank">NFDI4O</a>), 
+                Kiel University (<a href="https://www.uni-kiel.de/" target="_blank">CAU</a>), and the Lower Saxony Institute for Historical Coastal Research (<a href="https://nihk.de/" target="_blank">NIhK</a>).
             </div>
 
             <ul class="images">
-                <li><img src="img/nfdi4objects_logo_volltitel_digital_USE.png" alt="NFDI4O" onclick="window.open('https://www.nfdi4objects.net/')"></li>
-                <li><img src="img/cau-norm-de-lilagrey-rgb-0720.png" alt="CAU" onclick="window.open('https://www.uni-kiel.de/de/')"></li>
-                <li><img src="img/Logo_NIhK_Homepage_ausdemNetz_CKN.png" alt="NIhK" onclick="window.open('https://nihk.de/')"></li>
+                <li><a href="https://www.nfdi4objects.net/" target="_blank" rel="noopener noreferrer"><img src="img/logo_nfdi4objects.png" alt="NFDI4O"></a></li>
+                <li><a href="https://www.uni-kiel.de/" target="_blank" rel="noopener noreferrer"><img src="img/logo_cau.png" alt="CAU"></a></li>
+                <li style="padding: 32px;"><a href="https://nihk.de/" target="_blank" rel="noopener noreferrer"><img src="img/logo_nihk.png" alt="NIhK"></a></li>
             </ul>
+
         </main>
 
-        <footer>
-            <ul>
-                <li><a href="license.html" target="_blank">License</a></li>
-                <li>Version 4.0.0</li>
-                <li><a href="contact.html" target="_blank">Contact<strong> ☏ </strong></a></li>
-            </ul>
-        </footer>
+        <app-footer></app-footer>
 
     </body>
 </html>

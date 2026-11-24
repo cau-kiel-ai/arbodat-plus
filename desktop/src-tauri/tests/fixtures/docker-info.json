@@ -1,0 +1,1 @@
+{"ID": "00000000-0000-4000-8000-000000000000", "Containers": 4, "Images": 22, "Driver": "overlay2", "KernelVersion": "6.10.14-linuxkit", "OperatingSystem": "Docker Desktop", "OSType": "linux", "Architecture": "aarch64", "NCPU": 14, "ServerVersion": "28.3.0", "Name": "docker-desktop"}

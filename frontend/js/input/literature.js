@@ -1,8 +1,8 @@
 let literature = [];
 
 async function getLiterature() {
-    const { data } = await axios.get('http://localhost:8080/literature');    
-    literature = data;
+    const { data } = await axios.get('api/literature');    
+    literature = sortLiterature(data);
 }
 
 // Form and Fields ---------------------------------------------------------------
@@ -16,63 +16,10 @@ const longCitationInput    = document.getElementById("literatureLongCitation");
 const abstractTextarea     = document.getElementById("literatureAbstract");
 
 // Select2 authors dropdown ------------------------------------------------------
-$('#literatureAuthors').select2({
-    placeholder: "",
-    allowClear: true,
-    width: "100%",
-    // For migration -----------------------
-    ...($('#literaturModal').length && {
-        dropdownParent: $('#literaturModal')
-    }), // ---------------------------------
-});
-
-// remove arrow
-$('#literatureAuthors')
-    .next('.select2-container')
-    .find('.select2-selection__arrow')
-    .remove();
-
-let literatureAuthors_isReopening = false;
-$('#literatureAuthors').on('select2:opening', async function (e) {
-    if (literatureAuthors_isReopening) {
-        literatureAuthors_isReopening = false;
-        return;
-    }
-
-    e.preventDefault(); // Prevent opening
-
-    // Disable dropdown and show "Loading..."
-    $('#literatureAuthors')
-        .empty()
-        .append(new Option('Loading...', 'loading', true, true))
-        .trigger('change')
-        .prop('disabled', true); // Disable
-
-    try {
-        await getAuthors();
-    } finally {
-        // Enable and reset dropdown
-        $('#literatureAuthors')
-            .prop('disabled', false) // Enable
-            .empty()
-            .append(new Option('', '', false, false));
-
-        // Update data
-        authors.forEach(item => {
-            $('#literatureAuthors').append(
-                new Option(formatName(item), item.id)
-            );
-        });
-
-        // Refresh UI
-        $('#literatureAuthors').trigger('change.select2');
-
-        // Reopen dropdown
-        literatureAuthors_isReopening = true;
-        setTimeout(() => {
-            $('#literatureAuthors').select2('open');
-        }, 0);
-    }
+initLazyMultiSelect('#literatureAuthors', {
+    load:   async () => { await getAuthors(); return authors; },
+    format: formatName,
+    dropdownParent: $('#literaturModal'), // For migration
 }); // ---------------------------------------------------------------------------
 
 function create_update_literature() {
@@ -87,12 +34,6 @@ function create_update_literature() {
             longCitation:    longCitationInput.value.trim(),
             litAbstract:     abstractTextarea.value.trim(),
         };
-
-        // For migration: refer literature to site -------------------------------
-        const siteId = document.getElementById("literatureSiteId")?.value ?? null;
-        if (siteId) {
-            literature.siteList = [{ id: siteId }];
-        } // ---------------------------------------------------------------------
 
         const literatureId = document.getElementById("literatureId").value;
         
@@ -114,68 +55,61 @@ function create_update_literature() {
         payload.append(
             "authorList",
             new Blob(
-                [JSON.stringify(literatureAuthorList)],
+                [JSON.stringify(selectedRefs('#literatureAuthors'))],
                 { type: "application/json" }
             )
         ); // -----------------------------------------
 
         if (literatureId) { // Update (PUT) --------------------------------------------
-            axios.put(`http://localhost:8080/literature/${literatureId}`, payload)
-            .then(response => {
-                console.log(response.data);
-                toast.success("literature updated");
+            confirmUpdate("literature").then(confirmed => {
+                if (!confirmed) return;
 
-                // For migration: check literature row
-                if (siteId) {
-                    addGreenCheck();
-                }
-            })
-            .catch(error => {
-                console.error('Error during PUT request to update literature:', error);
-                alert("action failed");
+                axios.put(`api/literature/${literatureId}`, payload)
+                .then(response => {
+                    console.log(response.data);
+                    toast.success("literature updated");
+
+                    // Migration: the literature lists show the changed literature
+                    // (this script is also used by the migration page, only that one defines fetchLiteratureOptions)
+                    if (typeof fetchLiteratureOptions === "function") {
+                        fetchLiteratureOptions();
+                    }
+                })
+                .catch(error => {
+                    console.error('Error during PUT request to update literature:', error);
+                    toast.error("action failed");
+                });
             });
         } else { // Create (POST) ------------------------------------------------------
-            axios.post('http://localhost:8080/literature', payload)
+            axios.post('api/literature', payload)
             .then(response => {
                 console.log(response.data);
                 toast.success("literature created");
                 
                 // Reset form
                 literatureForm.reset();
-                literatureAuthorList = [];
-                document.getElementById("literatureAuthorContainer").innerHTML = "";
+                clearMultiSelect('#literatureAuthors');
 
-                // For migration: check literature row
-                if (siteId) {
-                    addGreenCheck();
+                // Migration: the new literature is offered and chosen in the row which opened the popup
+                // (this script is also used by the migration page, only that one defines onLiteratureCreated)
+                if (typeof onLiteratureCreated === "function") {
+                    onLiteratureCreated();
                 }
             })
             .catch(error => {
                 console.error('Error during POST request to create literature:', error);
-                alert("action failed");
+                toast.error("action failed");
             });
         };
         
     } else { // Report ---------------------
-        titleInput.focus();
-        // wait until focus is set
-        setTimeout(() => {
-            literatureForm.reportValidity();
-        }, 400);
+        // Bootstrap's `scroll-behavior: smooth` animates the browser's scroll
+        // to the invalid field; jump to it instantly, then report.
+        const firstInvalid = literatureForm.querySelector(':invalid');
+        if (firstInvalid) {
+            firstInvalid.scrollIntoView({ block: 'center', behavior: 'instant' });
+            firstInvalid.focus({ preventScroll: true });
+        }
+        literatureForm.reportValidity();
     } // -----------------------------------
-}
-
-// For migration
-function addGreenCheck() {
-    const rowId = document.getElementById("literatureRowId").value;
-
-    const row = document.querySelector(`tr[data-row-id="${rowId}"]`);
-    if (!row) return;
-
-    // Add a green tick
-    const greenCheck = document.createElement("span");
-    greenCheck.innerHTML = "✅";
-    greenCheck.style.marginLeft = "20px";
-    
-    row.lastElementChild.appendChild(greenCheck);
 }

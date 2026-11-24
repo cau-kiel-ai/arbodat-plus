@@ -1,8 +1,8 @@
 let authors = [];
 
 async function getAuthors() {
-    const { data } = await axios.get('http://localhost:8080/authors');    
-    authors = data;
+    const { data } = await axios.get('api/authors');    
+    authors = sortPeople(data);
 }
 
 // Form and Fields -------------------------------------------------------------
@@ -27,18 +27,22 @@ function create_update_author() {
         if (authorId) { // Update (PUT) --------------------------------------------
             payload.id = authorId; // Add id to payload
 
-            axios.put(`http://localhost:8080/authors/${authorId}`, payload)
-            .then(response => {
-                console.log(response.data);
-                toast.success("author updated");
-            })
-            .catch(error => {
-                console.error('Error during PUT request to update author:', error);
-                alert("action failed");
+            confirmUpdate("author").then(confirmed => {
+                if (!confirmed) return;
+
+                axios.put(`api/authors/${authorId}`, payload)
+                .then(response => {
+                    console.log(response.data);
+                    toast.success("author updated");
+                })
+                .catch(error => {
+                    console.error('Error during PUT request to update author:', error);
+                    toast.error("action failed");
+                });
             });
 
         } else { // Create (POST) --------------------------------------------------
-            axios.post('http://localhost:8080/authors', payload)
+            axios.post('api/authors', payload)
             .then(response => {
                 console.log(response.data);
                 toast.success("author created");
@@ -48,15 +52,18 @@ function create_update_author() {
             })
             .catch(error => {
                 console.error('Error during POST request to create author:', error);
-                alert("action failed");
+                toast.error("action failed");
             });
         };
         
     } else { // Report -----------------
-        authorLastNameInput.focus();
-        // wait until focus is set
-        setTimeout(() => {
-            authorForm.reportValidity();
-        }, 200);
+        // Bootstrap's `scroll-behavior: smooth` animates the browser's scroll
+        // to the invalid field; jump to it instantly, then report.
+        const firstInvalid = authorForm.querySelector(':invalid');
+        if (firstInvalid) {
+            firstInvalid.scrollIntoView({ block: 'center', behavior: 'instant' });
+            firstInvalid.focus({ preventScroll: true });
+        }
+        authorForm.reportValidity();
     } // -------------------------------
 }

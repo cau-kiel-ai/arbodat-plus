@@ -6,12 +6,11 @@ import org.springframework.http.*;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.servlet.mvc.method.annotation.StreamingResponseBody;
 
+import java.nio.charset.StandardCharsets;
 import java.util.List;
 import java.util.UUID;
 import java.util.zip.GZIPOutputStream;
 
-//@CrossOrigin(origins = "http://127.0.0.1:5500")
-@CrossOrigin(origins = "*")
 @RestController
 @RequestMapping("/data_export")
 public class ExportController {
@@ -44,9 +43,19 @@ public class ExportController {
                 .contentType(MediaType.APPLICATION_JSON)
                 .header(
                         HttpHeaders.CONTENT_DISPOSITION,
-                        "attachment; filename=\"" + exportFileName + ".json\""
+                        ContentDisposition.attachment()
+                                .filename(sanitizeFileName(exportFileName) + ".json", StandardCharsets.UTF_8)
+                                .build().toString()
                 )
                 .body(body);
+    }
+
+    /*
+    Strips filesystem-unsafe and control characters, like sanitizeCustomFileName() in export.js.
+    */
+    static String sanitizeFileName(String raw) {
+        String cleaned = raw == null ? "" : raw.replaceAll("[\\\\/:*?\"<>|\\p{Cntrl}]+", "-").trim();
+        return cleaned.isEmpty() ? "ArboDat+_Export" : cleaned;
     }
 
     @ExceptionHandler(IllegalArgumentException.class)

@@ -1,3 +1,23 @@
+// Number of an input, a decimal comma is accepted as well ('12,5'); null if empty or not a number
+function parseDecimal(value) {
+    if (value == null) return null;
+    const text = String(value).trim().replace(',', '.');
+    return text !== '' && !isNaN(text) ? Number(text) : null;
+}
+
+// A number field of a request: empty -> null, a number (decimal comma too) -> the number; anything else stays
+// text, so the backend refuses it with the field and the value ("latitude: '12,5a' is not a number")
+function decimalOrText(value) {
+    if (value == null || String(value).trim() === '') return null;
+    const parsed = parseDecimal(value);
+    return parsed !== null ? parsed : String(value).trim();
+}
+
+// A coordinate value entered: not empty and a number (0 too, it isn't "no value")
+function isCoordinateValue(value) {
+    return parseDecimal(value) !== null;
+}
+
 async function transformCoordinatesToWGS84(longitude, latitude, sourceEPSG) {
 
     const sourceProj = 'EPSG:'+sourceEPSG;

@@ -1,4 +1,11 @@
 
+// Label of the selected option of a vocabulary dropdown. The text of an option is indented with non-breaking
+// spaces for its hierarchy level; data-label is the label without them (the placeholder option has none).
+function selectedLabel(select) {
+    const option = select.selectedOptions[0];
+    return option ? (option.getAttribute("data-label") ?? option.text.trim()) : null;
+}
+
 function populateDanteDropdown (attribute, dropdown) {
 
     // Get cachedData
@@ -98,9 +105,13 @@ function populateDanteDropdown (attribute, dropdown) {
             const exists = optionsArray.some(opt => opt.value === item.uri);
 
             if (!exists) {
+                // restType: the cached data is already in the (custom) display order -> always append
+                //           (inserting behind the parent would reverse the order of its children)
+                const appendOnly = attribute === "restType";
+
                 let insertAfterIndex = -1;
                 if (item.ancestors) {
-                    item.ancestors.reverse().forEach((ancestor, index) => {
+                    [...item.ancestors].reverse().forEach((ancestor, index) => {
                         // Check if such an entry already exists and if so determine index
                         const optionIndex = optionsArray.findIndex(opt => opt.value === ancestor.uri)
     
@@ -127,7 +138,7 @@ function populateDanteDropdown (attribute, dropdown) {
                                 dropdown.insertBefore(option, dropdown.options[insertAfterIndex + 1] || null);
                                 insertAfterIndex++;
                             }                        
-                        } else {
+                        } else if (!appendOnly) {
                             insertAfterIndex = optionIndex;
                         }
                     });
@@ -226,35 +237,6 @@ function populateDanteDropdown (attribute, dropdown) {
                     option.textContent = "\u00A0\u00A0" + "other place of cult";
                     option.setAttribute("data-label", "other place of cult");
                     dropdown.appendChild(option);
-                }
-
-                // ArboDat+_restType
-                else if (
-                    item.uri === "ArboDat+_restType_unknown" ||
-                    item.uri === "ArboDat+_restType_notChosen"
-                ) {
-                    // Create "ArboDat+_restType" option
-                    let option = document.createElement('option');
-                    option.textContent = "ArboDat+_restType";
-                    option.disabled = true;
-                    option.style.fontWeight = "bold";
-                    option.style.color = "gray";
-                    dropdown.appendChild(option);
-
-                    // Create "ArboDat+_restType_unknown" option
-                    option = document.createElement('option');
-                    option.value = "ArboDat+_restType_unknown";
-                    option.textContent = "\u00A0\u00A0" + "unknown";
-                    option.setAttribute("data-label", "unknown");
-                    dropdown.appendChild(option);
-                    
-                    // Create "ArboDat+_restType_notChosen" option
-                    option = document.createElement('option');
-                    option.value = "ArboDat+_restType_notChosen";
-                    option.textContent = "\u00A0\u00A0" + "not chosen";
-                    option.setAttribute("data-label", "not chosen");
-                    dropdown.appendChild(option);
-
                 } else {
                     // Skip guide term
                     if (item.type.includes("http://vocab.getty.edu/ontology#GuideTerm")) { continue }
@@ -292,6 +274,10 @@ function populateDanteDropdown (attribute, dropdown) {
             const label = [item.notation, item.prefLabel?.zxx].filter(Boolean).join(", ");
             option.textContent = label;
             option.setAttribute("data-label", label);
+
+            // Lowercased copies for the (case-insensitive) search matcher/sorter in codeNameFilter.js
+            option.setAttribute("data-code-lc", codeSearchKey(item.notation));
+            option.setAttribute("data-name-lc", String(item.prefLabel?.zxx ?? "").toLowerCase());
 
             dropdown.appendChild(option);
             continue; // Jumps to next iteration without executing the rest of the code
@@ -353,6 +339,12 @@ function populateNarrower(dropdown, narrower, attribute, structuralConcept) {
     }
 }
 
+// Search key for the code filter (codeNameFilter.js): all notations lowercased, each prefixed with "|"
+// (DANTE notations are arrays, e.g. ["UBA", "UB"]) -> "|uba|ub"; "" if there is no notation.
+function codeSearchKey(notation) {
+    return [].concat(notation ?? []).map(n => "|" + String(n).toLowerCase()).join("");
+}
+
 function populateTaxCodeDropdown(uri, dropdown) {
     
     // Reset Dropdown
@@ -372,6 +364,10 @@ function populateTaxCodeDropdown(uri, dropdown) {
         const label = [item.notation, item.prefLabel?.la].filter(Boolean).join(", ");
         option.textContent = label;
         option.setAttribute("data-label", item.notation);
+
+        // Lowercased copies for the (case-insensitive) search matcher/sorter in codeNameFilter.js
+        option.setAttribute("data-code-lc", codeSearchKey(item.notation));
+        option.setAttribute("data-name-lc", String(item.prefLabel?.la ?? "").toLowerCase());
 
         dropdown.appendChild(option);
     }

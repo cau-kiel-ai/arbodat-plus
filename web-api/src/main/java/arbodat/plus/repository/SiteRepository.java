@@ -14,15 +14,17 @@ public interface SiteRepository extends JpaRepository<Site, UUID> {
     @Query("SELECT l FROM Literature l JOIN l.siteList s WHERE s.id = :siteId")
     Set<Literature> findLiteratureBySiteId(@Param("siteId") UUID siteId);
 
-    List<Site> findAllByLabel(String label);
+    // Labels compare case-insensitively (as in ArboDat 2018 / Access)
+    List<Site> findAllByLabelIgnoreCase(String label);
 
+    // Sites with the label (ignoring case) in one of the research projects
     @Query("""
        SELECT DISTINCT s FROM Site s
        JOIN s.researchProjectList rpList
-       WHERE s.label = :siteLabel
+       WHERE lower(s.label) = lower(:siteLabel)
          AND rpList.id IN :researchProjectIds
        """)
-    Optional<Site> findAlreadyExisting(
+    List<Site> findAlreadyExisting(
             @Param("siteLabel") String siteLabel,
             @Param("researchProjectIds") Set<UUID> researchProjectIds);
 

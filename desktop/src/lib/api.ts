@@ -1,0 +1,90 @@
+import { Channel, invoke } from "@tauri-apps/api/core";
+import { listen } from "@tauri-apps/api/event";
+import { openUrl } from "@tauri-apps/plugin-opener";
+import type { AppError } from "./bindings/AppError";
+import type { BackupList } from "./bindings/BackupList";
+import type { RestoreCandidate } from "./bindings/RestoreCandidate";
+import type { Operation } from "./bindings/Operation";
+import type { ProgressEvent } from "./bindings/ProgressEvent";
+import type { ServerStatus } from "./bindings/ServerStatus";
+import type { SettingsView } from "./bindings/SettingsView";
+import type { Status } from "./bindings/Status";
+
+/** Never rejects for Docker/stack problems: those are part of the returned status. */
+export const getStatus = () => invoke<Status>("get_status");
+
+const commands: Record<Operation, string> = {
+  install: "install",
+  start: "start",
+  stop: "stop",
+  changePort: "change_port",
+  remove: "remove_installation",
+  backup: "backup_now",
+  restore: "restore_backup",
+  update: "update_stack",
+  rollBack: "roll_back_update",
+};
+
+/**
+ * Runs install / start / stop / ... Progress arrives through `onEvent`; the promise rejects with an
+ * `AppError` (see `asAppError`) when the operation fails.
+ */
+export function runOperation(
+  operation: Operation,
+  onEvent: (event: ProgressEvent) => void,
+  args: Record<string, unknown> = {},
+): Promise<void> {
+  const channel = new Channel<ProgressEvent>();
+  channel.onmessage = onEvent;
+  return invoke<void>(commands[operation], { ...args, onEvent: channel });
+}
+
+export const getSettings = () => invoke<SettingsView>("get_settings");
+export const setAutoStart = (enabled: boolean) => invoke<SettingsView>("set_auto_start", { enabled });
+/** Opens the system's folder picker; resolves to `null` if the user cancelled. */
+export const chooseBackupFolder = () => invoke<SettingsView | null>("choose_backup_folder");
+export const resetBackupFolder = () => invoke<SettingsView>("reset_backup_folder");
+
+/**
+ * Switches to server mode and opens the ArboDat+ window on `url`. Unless `force`, the address is
+ * checked first; rejects with an `AppError` (`serverUnreachable` / `notArbodat` can be forced).
+ */
+export const connectServer = (url: string, force = false) => invoke<SettingsView>("connect_server", { url, force });
+/** Back to ArboDat+ on this computer. */
+export const useLocalMode = () => invoke<SettingsView>("use_local_mode");
+export const serverStatus = () => invoke<ServerStatus>("server_status");
+export const listBackups = () => invoke<BackupList>("list_backups");
+/** "Restore from file": the system's file picker; `null` if cancelled. Nothing is restored yet. */
+export const chooseRestoreFile = () => invoke<RestoreCandidate | null>("choose_restore_file");
+/** Deletes one backup (the .dump and its details file) from the backup folder. */
+export const deleteBackup = (fileName: string) => invoke<void>("delete_backup", { fileName });
+/** Shows the backup folder in Finder / Explorer / the file manager. */
+export const openBackupFolder = () => invoke<void>("open_backup_folder");
+
+/** A text report about the app, Docker and the installation (database password left out). */
+export const getDiagnostics = () => invoke<string>("get_diagnostics");
+/** Opens the saved server in the system browser. */
+export const openServerInBrowser = () => invoke<void>("open_server_in_browser");
+
+/** Rejections from our commands are `AppError`s; anything else (a bug, IPC trouble) gets wrapped. */
+export function asAppError(e: unknown): AppError {
+  if (e && typeof e === "object" && "code" in e && "message" in e) return e as AppError;
+  return { code: "dockerFailed", message: "Something unexpected went wrong.", detail: String(e) };
+}
+
+/** Opens the ArboDat+ window (rejects with an `AppError` if ArboDat+ doesn't answer). */
+export const openArbodat = () => invoke<void>("open_arbodat");
+
+/** The window can't be closed while an operation runs; the backend then sends this. */
+export const onCloseBlocked = (callback: () => void) => listen("close-blocked", callback);
+
+/** Opens a link in the system browser (allowed URLs: capabilities/launcher.json). */
+export const openLink = (url: string) => openUrl(url);
+
+export type Platform = "macos" | "windows" | "linux";
+
+export const platform: Platform = navigator.userAgent.includes("Mac")
+  ? "macos"
+  : navigator.userAgent.includes("Windows")
+    ? "windows"
+    : "linux";

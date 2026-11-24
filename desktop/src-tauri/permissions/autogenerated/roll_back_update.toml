@@ -1,0 +1,11 @@
+# Automatically generated - DO NOT EDIT!
+
+[[permission]]
+identifier = "allow-roll-back-update"
+description = "Enables the roll_back_update command without any pre-configured scope."
+commands.allow = ["roll_back_update"]
+
+[[permission]]
+identifier = "deny-roll-back-update"
+description = "Denies the roll_back_update command without any pre-configured scope."
+commands.deny = ["roll_back_update"]
