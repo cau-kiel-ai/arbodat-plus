@@ -342,6 +342,13 @@ function attachMultiSelect(select, { anchor, column, placeholder, tags = false, 
     };
 }
 
+// Wrapped pills: the row gets as high as needed (and back after closing). A table without a fixed height
+// (e.g. the migration tables, maxHeight) gets as high as its rows again; without a redraw, which would end the edit.
+function fitRowHeight(cell) {
+    cell.getRow().normalizeHeight?.();
+    cell.getTable().rowManager?.adjustTableSize?.(true);
+}
+
 // Cell editor
 function multiSelectEditor(cell, onRendered, success, cancel, params = {}) {
     const before = cell.getValue() ?? [];
@@ -350,8 +357,7 @@ function multiSelectEditor(cell, onRendered, success, cancel, params = {}) {
     const originals = fillMultiSelect(select, params.values, before);
 
     onRendered(() => {
-        // Wrapped pills: the row gets as high as needed (and back after closing)
-        const normalizeRowHeight = () => cell.getRow().normalizeHeight?.();
+        const normalizeRowHeight = () => fitRowHeight(cell);
         const multiSelect = attachMultiSelect(select, {
             anchor: cell.getElement(), column: cell.getColumn(), placeholder: "search",
             tags: params.tags === true, isTag: params.isTag, cssClass: "multi-select-editor", onResize: normalizeRowHeight,
@@ -388,7 +394,7 @@ function singleSelectEditor(cell, onRendered, success, cancel, params = {}) {
     });
 
     onRendered(() => {
-        const normalizeRowHeight = () => cell.getRow().normalizeHeight?.();
+        const normalizeRowHeight = () => fitRowHeight(cell);
         const required = String(cell.getColumn().getDefinition().title ?? "").startsWith("*");
         const multiSelect = attachMultiSelect(select, {
             anchor: cell.getElement(), column: cell.getColumn(), placeholder: "search",
