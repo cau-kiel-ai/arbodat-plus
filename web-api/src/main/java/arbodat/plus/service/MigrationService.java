@@ -1620,13 +1620,17 @@ public class MigrationService {
                                 if ("C14-Datierung".equals(datingMethodLabel)) {
                                     // Create new C14 dating
                                     C14Dating newC14Dating = new C14Dating();
-                                    newC14Dating.setC14AgeBp(row.getInt("C14-Alter BP"));
-                                    newC14Dating.setC14StdDev(row.getInt("Standardab C14"));
+                                    // Values with their standard deviation, without the ArboDat default value 0
+                                    Double[] age = measurement(row, "C14-Alter BP", "Standardab C14");
+                                    newC14Dating.setC14AgeBp(integerValue(age[0]));
+                                    newC14Dating.setC14StdDev(integerValue(age[1]));
                                     newC14Dating.setC14CalibrationBcAd2s(row.getString("C14 cal"));
-                                    newC14Dating.setDeltaC13(row.getDouble("13C PDB-Wert"));
-                                    newC14Dating.setDeltaC13Uncertainty(row.getDouble("Standardab 13C PDB"));
-                                    newC14Dating.setPmc(row.getDouble("pMC-Wert"));
-                                    newC14Dating.setPmcUncertainty(row.getDouble("Standardab PMC"));
+                                    Double[] deltaC13 = measurement(row, "13C PDB-Wert", "Standardab 13C PDB");
+                                    newC14Dating.setDeltaC13(deltaC13[0]);
+                                    newC14Dating.setDeltaC13Uncertainty(deltaC13[1]);
+                                    Double[] pmc = measurement(row, "pMC-Wert", "Standardab PMC");
+                                    newC14Dating.setPmc(pmc[0]);
+                                    newC14Dating.setPmcUncertainty(pmc[1]);
                                     // Assign C14 dating to new absolute dating
                                     newAbsoluteDating.setC14Dating(newC14Dating);
 
@@ -2040,6 +2044,21 @@ public class MigrationService {
             remarks.add("Limes = true");
         }
         return String.join(", ", remarks);
+    }
+
+    // [value, standard deviation] of a C14 measurement. 0 is the default value in ArboDat: a deviation of 0 is
+    // none, and a value of 0 without deviation (0 ± 0) was not measured; 0 with a deviation is kept.
+    private static Double[] measurement(Row row, String valueColumn, String deviationColumn) {
+        Double value = doubleValue(row, valueColumn);
+        Double deviation = nonZeroValue(row, deviationColumn);
+        if (value != null && value == 0 && deviation == null) {
+            value = null;
+        }
+        return new Double[]{value, deviation};
+    }
+
+    private static Integer integerValue(Double value) {
+        return value == null ? null : (int) Math.round(value);
     }
 
     // Coordinate of a site without easting and northing: an altitude-only coordinate is set directly, without

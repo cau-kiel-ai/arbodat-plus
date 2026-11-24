@@ -262,6 +262,25 @@ class MigrationServiceTest extends PostgresTest {
     }
 
     @Test
+    void theArboDatDefaultValue0IsNoC14Measurement() throws IOException {
+        createData(site("c14").dating("Methode", "C14-Datierung")
+                              .dating("C14-Alter BP", 1500).dating("Standardab C14", 0)      // no deviation
+                              .dating("13C PDB-Wert", 0.0).dating("Standardab 13C PDB", 0.0) // 0 ± 0: not measured
+                              .dating("pMC-Wert", 0.0).dating("Standardab PMC", 0.3));       // 0 ± 0.3: measured
+
+        migrate(List.of("c14"), newResearchProject());
+
+        Map<String, Object> c14 = jdbc.queryForMap("SELECT c14_age_bp, c14_std_dev, delta_c13, delta_c13_uncertainty,"
+                                                   + " pmc, pmc_uncertainty FROM c14_dating");
+        assertEquals(1500, c14.get("c14_age_bp"));
+        assertNull(c14.get("c14_std_dev"));
+        assertNull(c14.get("delta_c13"));
+        assertNull(c14.get("delta_c13_uncertainty"));
+        assertEquals(0.0, c14.get("pmc"));
+        assertEquals(0.3, c14.get("pmc_uncertainty"));
+    }
+
+    @Test
     void fieldsOfOtherDatingMethodsAreKeptInTheDatingRemarks() throws IOException {
         createData(
                 // C14 dating: its C14 fields are taken over, 'Alter andere' and the dendro fields go to the remarks
