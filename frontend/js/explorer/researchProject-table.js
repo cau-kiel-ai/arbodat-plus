@@ -1,6 +1,7 @@
 let researchProjectTable;
 
 async function buildResearchProjectTable() {
+    const build = tableBuild;
     const container = document.getElementById("table");
     const spinner = document.getElementById('tableSpinner');
     const tableContainer = document.querySelector('.table-container');
@@ -52,6 +53,9 @@ async function buildResearchProjectTable() {
     await loadDanteDownloadRecords(["license"]);
 
     // Create Table -------------------------------------------------------------
+    // Another table was chosen while the data was loading: this one is not shown
+    if (!isCurrentBuild(build)) return;
+
     researchProjectTable = newTabulator("#table", {
         height:"100%",
         data: researchProjects,
@@ -64,8 +68,8 @@ async function buildResearchProjectTable() {
             {title:"funder", field:"funder", editor:"input", headerFilter:true, headerSortTristate:true},
             {title:"authorisation number", field:"authorisationNumber", titleDownload:"authorisationNumber", editor:"input", headerFilter:true, headerSortTristate:true},
             {title:"license", titleDownload:"license", field:"license.id", headerSort:false,
-                editor:"list", editorParams: danteEditorParams("license", { none: true }),
-                headerFilter:true, headerFilterParams: {
+                editor: singleSelectEditor, editorParams: danteEditorParams("license", { none: true }),
+                headerFilter: multiSelectFilter, headerFilterParams: { valuesInData: true,
                     values: cachedLicenses.map(license => ({
                         value: license.uri,
                         label: license.prefLabel.en
@@ -82,11 +86,14 @@ async function buildResearchProjectTable() {
                 accessorDownload: value => formatLicense(value),
             },
             {title:"site list (multiple selection)", titleDownload:"siteList", field: "siteList", headerSortTristate:true,
+                // Many sites: the column stays narrow (the text is cut, the tooltip shows all), the pills wrap
+                maxWidth: MULTI_SELECT_MAX_WIDTH,
+                tooltip: (e, cell) => cell.getElement().classList.contains("tabulator-editing") ? "" : escapeHtml(formatSites(sites, cell.getValue())),
                 mutator: function(value) {
                     // Map site objects only to site id
                     return Array.isArray(value) ? value.map(site => site.id? site.id : site) : [];
                 },
-                editor:"list", editorParams:{
+                editor: multiSelectEditor, editorParams:{
                     values: sites.map(item => ({                        
                         value: item.id,
                         label: item.label + " ("+ item.researchProjectList.map(rp => rp.projectName) + ")"
@@ -95,7 +102,7 @@ async function buildResearchProjectTable() {
                     multiselect:true,
                     emptyValue:[]
                 },
-                headerFilter:"list", headerFilterParams: {
+                headerFilter: multiSelectFilter, headerFilterParams: {
                     values: sites.map(item => ({
                         value: item.id,
                         label: item.label + " ("+ item.researchProjectList.map(rp => rp.projectName) + ")"

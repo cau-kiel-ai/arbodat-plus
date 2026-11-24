@@ -29,7 +29,8 @@ async function loadResults(params = {}) {
 }
 
 // Build the table in `selector`; columns in `hiddenFields` are hidden but still exported
-async function createResultTable({ selector, results, hiddenFields = [], height = "100%" }) {
+// isCurrent: false -> the table is not wanted any more (explorer: another table was chosen while loading), null is returned
+async function createResultTable({ selector, results, hiddenFields = [], height = "100%", isCurrent = () => true }) {
 
     // GET sites --------------------------------------------------------------
     let sites = [];
@@ -101,6 +102,8 @@ async function createResultTable({ selector, results, hiddenFields = [], height 
         return stateOfPreservation?.prefLabel.en ?? stateOfPreservationId;
     }
 
+    if (!isCurrent()) return null;
+
     // Create Table -------------------------------------------------------------
     const table = newTabulator(selector, {
         height: height,
@@ -111,7 +114,7 @@ async function createResultTable({ selector, results, hiddenFields = [], height 
             }, hozAlign:"center", headerSort:false},
             {title:"id", field:"id", headerFilter:true, headerSort:false},
             {title: "*sample", titleDownload:"sample", field:"sample.id", headerSortTristate:true, sorter: rankSorter(samples),
-                editor:"list", editorParams: function(cell) {
+                editor: singleSelectEditor, editorParams: function(cell) {
                     const rowData = cell.getRow().getData();
                     const featureId = rowData?.sample.feature.id;
 
@@ -124,7 +127,7 @@ async function createResultTable({ selector, results, hiddenFields = [], height 
                             }))
                     };
                 },
-                headerFilter:"list", headerFilterParams: {
+                headerFilter: multiSelectFilter, headerFilterParams: { valuesInData: true,
                     values: samples.map(item => ({
                             value: item.id,
                             label:
@@ -145,7 +148,7 @@ async function createResultTable({ selector, results, hiddenFields = [], height 
                 accessorDownload: value => formatSample(samples, value),
             },
             {title: "*feature", titleDownload:"feature", field:"sample.feature.id", headerSortTristate:true, sorter: rankSorter(features),
-                editor:"list", editorParams: function(cell) {
+                editor: singleSelectEditor, editorParams: function(cell) {
                     const rowData = cell.getRow().getData();
                     const siteId = rowData?.sample.feature.site.id;
 
@@ -158,7 +161,7 @@ async function createResultTable({ selector, results, hiddenFields = [], height 
                             }))
                     };
                 },
-                headerFilter:"list", headerFilterParams: {
+                headerFilter: multiSelectFilter, headerFilterParams: { valuesInData: true,
                     values: features.map(item => ({
                             value: item.id,
                             label:
@@ -179,7 +182,7 @@ async function createResultTable({ selector, results, hiddenFields = [], height 
                 accessorDownload: value => formatFeature(features, value),
             },
             {title: "*site", titleDownload:"site", field:"sample.feature.site.id", headerSortTristate:true, sorter: rankSorter(sites),
-                editor:"list", editorParams:{
+                editor: singleSelectEditor, editorParams:{
                     values: sites.map(item => ({
                             value: item.id,
                             label:
@@ -190,7 +193,7 @@ async function createResultTable({ selector, results, hiddenFields = [], height 
                         }))
                     ,
                 },
-                headerFilter:"list", headerFilterParams: {
+                headerFilter: multiSelectFilter, headerFilterParams: { valuesInData: true,
                     values: sites.map(item => ({
                             value: item.id,
                             label:
@@ -215,7 +218,7 @@ async function createResultTable({ selector, results, hiddenFields = [], height 
                     // Map objects only to id
                     return Array.isArray(value) ? value.map(item => item.id? item.id : item) : [];
                 },
-                editor:"list", editorParams: function(cell) {
+                editor: multiSelectEditor, editorParams: function(cell) {
                     const rowData = cell.getRow().getData();
                     const sampleId = rowData?.sample?.id;
 
@@ -231,7 +234,7 @@ async function createResultTable({ selector, results, hiddenFields = [], height 
                         emptyValue:[]
                     };
                 },
-                headerFilter:"list", headerFilterParams: {
+                headerFilter: multiSelectFilter, headerFilterParams: {
                     values: datings.map(item => ({
                             value: item.id,
                             label: formatDatings(item)
@@ -322,27 +325,11 @@ async function createResultTable({ selector, results, hiddenFields = [], height 
             },
             {title:"*tax code", titleDownload:"taxCode", field:"taxCode.id", headerSortTristate:true,
                 // taxCodes of the taxonomy of the row's site
-                editor:"list", editorParams: taxCodeEditorParams(cell =>
+                editor: singleSelectEditor, editorParams: taxCodeEditorParams(cell =>
                     samples.find(s => s.id === cell.getRow().getData().sample?.id)?.feature.site.taxonomy?.id),
-                headerFilter:"input",
-                headerFilterFunc: function(headerValue, rowValue, rowData) {
-                    if (!headerValue) return true;
-                    if (!rowValue) return false;                    
-
-                    const sample = samples.find(s => s.id === rowData.sample?.id);
-                    if (!sample) return false;
-
-                    const taxonomyUri = sample.feature.site.taxonomy?.id;
-                    const taxCodes = cachedTaxCodesForURI.get(taxonomyUri) || [];
-
-                    const entry = taxCodes.find(item => item.uri === rowValue);
-                    if (!entry) return false;
-                    const label = [entry.notation, entry.prefLabel?.la].filter(Boolean).join(", ").toLowerCase();
-
-                    const header = headerValue.toString().toLowerCase();
-
-                    return label.includes(header);
-                },
+                // The taxCodes in the table (labels as in the download)
+                headerFilter: multiSelectFilter, headerFilterParams: { valuesLookup: true },
+                headerFilterFunc: anyOfFilter,
                 formatter: textFormatter(function(cell) {
                     const rowData = cell.getRow().getData();
 
@@ -409,17 +396,21 @@ async function createResultTable({ selector, results, hiddenFields = [], height 
                     }
                 },
             },
-            {title:"*sieve size", titleDownload:"sieveSize", field:"sieveSize", validator: ["required"], headerFilter:"input", headerSortTristate:true,
-                editor:"list", editorParams: function(cell) {
+            {title:"*sieve size", titleDownload:"sieveSize", field:"sieveSize", validator: ["required"], headerSortTristate:true,
+                // The sieve sizes of the sample's fractions analyzed with this org / min (a result belongs to a fraction)
+                editor: singleSelectEditor, editorParams: function(cell) {
                     const rowData = cell.getRow().getData();
                     const fractions = rowData?.sample.fractionAnalyzedList || [];
                     const orgOrMin = rowData?.orgOrMin;
                     const allowedValues = fractions.filter(f => f.orgOrMin === orgOrMin).map(f => f.sieveSize);
 
                     return {
-                        values: allowedValues
+                        values: [...new Set(allowedValues)].sort((a, b) => a - b)
                     };
                 },
+                // The sieve sizes in the table
+                headerFilter: multiSelectFilter, headerFilterParams: { valuesLookup: true },
+                headerFilterFunc: anyOfFilter,
             },
             {title:"*fraction analyzed", titleDownload:"fractionAnalyzed", field:"fractionAnalyzed", headerSortTristate:true,
                 editor:"list", editorParams:{ values: [ "yes", "no", "partly"] },
@@ -433,8 +424,8 @@ async function createResultTable({ selector, results, hiddenFields = [], height 
                 },
             },
             {title:"*classification confer", titleDownload:"classificationConfer", field:"classificationConfer.id", headerSortTristate:true,
-                editor:"list", editorParams: danteEditorParams("classificationConfer"),
-                headerFilter:true, headerFilterParams: {
+                editor: singleSelectEditor, editorParams: danteEditorParams("classificationConfer"),
+                headerFilter: multiSelectFilter, headerFilterParams: { valuesInData: true,
                     values: cachedClassificationConfers.map(item => ({
                             value: item.uri,
                             label: item.prefLabel.en
@@ -451,9 +442,9 @@ async function createResultTable({ selector, results, hiddenFields = [], height 
                 accessorDownload: value => formatClassificationConfer(value),
             },
             {title:"*rType", titleDownload:"restType", field:"restType.id", headerSortTristate:true,
-                editor:"list", editorParams: danteEditorParams("restType", {
+                editor: singleSelectEditor, editorParams: danteEditorParams("restType", {
                     fallback: restTypes.map(restType => ({ value: restType.id, label: restType.label })) }),
-                headerFilter:true, headerFilterParams: {
+                headerFilter: multiSelectFilter, headerFilterParams: { valuesInData: true,
                     values: restTypes.map(item => ({
                             value: item.id,
                             label: item.label
@@ -470,8 +461,8 @@ async function createResultTable({ selector, results, hiddenFields = [], height 
                 accessorDownload: value => formatRestType(value),
             },
             {title:"*state of preservation", titleDownload:"stateOfPreservation", field:"stateOfPreservation.id", headerSortTristate:true,
-                editor:"list", editorParams: danteEditorParams("stateOfPreservation"),
-                headerFilter:true, headerFilterParams: {
+                editor: singleSelectEditor, editorParams: danteEditorParams("stateOfPreservation"),
+                headerFilter: multiSelectFilter, headerFilterParams: { valuesInData: true,
                     values: cachedStateOfPreservation.map(item => ({
                             value: item.uri,
                             label: item.prefLabel.en
@@ -656,6 +647,7 @@ function attachResultDeleteHandler(table, deleteButton) {
 
 // Explorer: build the table with all results -----------------------------------------
 async function buildResultTable() {
+    const build = tableBuild;
     const container = document.getElementById("table");
     const spinner = document.getElementById('tableSpinner');
     const tableContainer = document.querySelector('.table-container');
@@ -666,7 +658,10 @@ async function buildResultTable() {
     const results = await loadResults();
     // Only the explorer has the JSON download
     await loadDanteDownloadRecords(["taxCode", "classificationConfer", "restType", "stateOfPreservation"]);
-    resultTable = await createResultTable({ selector: "#table", results });
+    // Another table chosen while the data was loading: this one is not shown
+    const table = await createResultTable({ selector: "#table", results, isCurrent: () => isCurrentBuild(build) });
+    if (!table) return;
+    resultTable = table;
     attachResultDeleteHandler(resultTable, document.getElementById("deleteRows-button"));
 
     // Hide spinner

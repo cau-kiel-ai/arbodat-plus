@@ -1,6 +1,7 @@
 let featureTable;
 
 async function buildFeatureTable() {
+    const build = tableBuild;
     const container = document.getElementById("table");
     const spinner = document.getElementById('tableSpinner');
     const tableContainer = document.querySelector('.table-container');
@@ -26,12 +27,6 @@ async function buildFeatureTable() {
         console.error("Error loading sites:", error)
     }
 
-    // Create year list for excavation yerars -----------------------------------
-    const currentYear = new Date().getFullYear();
-    const years = [];
-    for (let year = currentYear; year >= 0; year--) {
-    years.push(year);
-    }
 
     function formatPreservationCondition(preservationConditionId){
         if (!preservationConditionId) return "";
@@ -50,6 +45,9 @@ async function buildFeatureTable() {
     await loadDanteDownloadRecords(["preservationCondition", "featureType"]);
 
     // Create Table -------------------------------------------------------------
+    // Another table was chosen while the data was loading: this one is not shown
+    if (!isCurrentBuild(build)) return;
+
     featureTable = newTabulator("#table", {
         height: "100%",
         data: features,
@@ -60,7 +58,7 @@ async function buildFeatureTable() {
             {title:"id", field:"id", headerFilter:true, headerSort:false},
             {title:"*label", titleDownload:"label", field:"label", validator: ["required"], editor:"input", headerFilter:true, headerSortTristate:true, sorter: compareLabels},
             {title: "*site", titleDownload:"site", field:"site.id", headerSortTristate:true, sorter: rankSorter(sites),
-                editor:"list", editorParams:{
+                editor: singleSelectEditor, editorParams:{
                     values: [
                         ...sites.map(item => ({
                             value: item.id,
@@ -73,7 +71,7 @@ async function buildFeatureTable() {
                     ],
                     emptyValue:null
                 },
-                headerFilter:"list", headerFilterParams: {
+                headerFilter: multiSelectFilter, headerFilterParams: { valuesInData: true,
                     values: sites.map(item => ({
                             value: item.id,
                             label:
@@ -138,8 +136,8 @@ async function buildFeatureTable() {
                 }
             },
             {title:"preservation condition", titleDownload:"preservationCondition", field:"preservationCondition.id", headerSortTristate:true,
-                editor:"list", editorParams: danteEditorParams("preservationCondition", { none: true }),
-                headerFilter:true, headerFilterParams: {
+                editor: singleSelectEditor, editorParams: danteEditorParams("preservationCondition", { none: true }),
+                headerFilter: multiSelectFilter, headerFilterParams: { valuesInData: true,
                     values: cachedPreservationConditions.map(item => ({
                         value: item.uri,
                         label: item.prefLabel.en
@@ -156,8 +154,8 @@ async function buildFeatureTable() {
                 accessorDownload: value => formatPreservationCondition(value),
             },
             {title:"feature type", titleDownload:"featureType", field:"featureType.id", headerSortTristate:true,
-                editor:"list", editorParams: danteEditorParams("featureType", { none: true }),
-                headerFilter:true, headerFilterParams: {
+                editor: singleSelectEditor, editorParams: danteEditorParams("featureType", { none: true }),
+                headerFilter: multiSelectFilter, headerFilterParams: { valuesInData: true,
                     values: cachedFeatureTypes.map(item => ({
                         value: item.uri,
                         label: item.prefLabel.en
@@ -173,17 +171,13 @@ async function buildFeatureTable() {
                 formatter: textFormatter(cell => formatFeatureType(cell.getValue())),
                 accessorDownload: value => formatFeatureType(value),
             },
-            {title: "excavationYears", field:"excavationYears", headerSortTristate:true,
-                editor:"list", editorParams:{
-                    values: years,
-                    autocomplete:false,
-                    multiselect:true,
-                    emptyValue:[]
-                },
-                headerFilter:"list", headerFilterParams: {
-                    values: years,
-                    multiselect: true
-                },
+            {title: "excavation years", titleDownload:"excavationYears", field:"excavationYears", headerSortTristate:true,
+                // The years of the features, or a new one typed in: only 1700 to the current year (as on the input page,
+                // the backend refuses other years)
+                editor: multiSelectEditor, editorParams: cell => ({ ...yearEditorParams(cell),
+                    isTag: term => /^\d{4}$/.test(term) && Number(term) >= 1700 && Number(term) <= new Date().getFullYear() }),
+                // The years in the table
+                headerFilter: multiSelectFilter, headerFilterParams: { valuesLookup: true },
                 headerFilterFunc: function(headerValue, rowValue){
                     return headerValue.every(val => rowValue.includes(val));
                 },

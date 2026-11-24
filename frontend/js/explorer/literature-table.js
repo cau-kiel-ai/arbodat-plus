@@ -1,6 +1,7 @@
 let literatureTable;
 
 async function buildLiteratureTable() {
+    const build = tableBuild;
     const container = document.getElementById("table");
     const spinner = document.getElementById('tableSpinner');
     const tableContainer = document.querySelector('.table-container');
@@ -26,14 +27,11 @@ async function buildLiteratureTable() {
         console.error("Error loading authors:", error)
     }
 
-    // Create year list for publication year ------------------------------------
-    const currentYear = new Date().getFullYear();
-    const years = [];
-    for (let year = currentYear; year >= 0; year--) {
-    years.push(year);
-    }
 
     // Create Table -------------------------------------------------------------
+    // Another table was chosen while the data was loading: this one is not shown
+    if (!isCurrentBuild(build)) return;
+
     literatureTable = newTabulator("#table", {
         height: "100%",
         data: literature,
@@ -44,19 +42,13 @@ async function buildLiteratureTable() {
             {title:"id", field:"id", headerFilter:true, headerSort:false},
             {title:"*title", titleDownload:"title", field:"title", validator: ["required"], editor:"input", headerFilter:true, headerSortTristate:true, sorter: compareLabels},
             {title:"publication year", titleDownload:"publicationYear", field:"publicationYear", headerSortTristate:true,
-                editor:"list", editorParams:{
-                    values: years,
-                    emptyValue:null
-                },
-                headerFilter:"list", headerFilterParams: {
-                    values: years,
-                    multiselect: true
-                },
-                headerFilterFunc: function(headerValue, rowValue) {
-                    if (!headerValue || headerValue.length === 0) return true;
-                    if (rowValue == null) return false;
-                    return headerValue.includes(rowValue);
-                },
+                // Free text, only a year of 4 digits (or nothing)
+                editor:"input", editorParams: { mask: "9999" },
+                validator: "regex:^\\d{4}$",
+                mutatorEdit: value => value === "" || value === null || value === undefined ? null : Number(value),
+                // The years in the table
+                headerFilter: multiSelectFilter, headerFilterParams: { valuesLookup: true },
+                headerFilterFunc: anyOfFilter,
                 sorter:"array", sorterParams:{
                     valueMap:"label"
                 },
@@ -66,7 +58,7 @@ async function buildLiteratureTable() {
                     // Map objects only to id
                     return Array.isArray(value) ? value.map(item => item.id? item.id : item) : [];
                 },
-                editor:"list", editorParams:{
+                editor: multiSelectEditor, editorParams:{
                     values: [
                         ...authors.map(item => ({
                             value: item.id,
@@ -77,7 +69,7 @@ async function buildLiteratureTable() {
                     multiselect:true,
                     emptyValue:[]
                 },
-                headerFilter:"list", headerFilterParams: {
+                headerFilter: multiSelectFilter, headerFilterParams: {
                     values: authors.map(item => ({
                             value: item.id,
                             label: formatName(item)
@@ -135,7 +127,8 @@ async function buildLiteratureTable() {
                  }
                 : item);
 
-            const { authorList, ...literatureWithoutAuthorList } = literature;
+            // Without the sites: they are linked in the sites table / the migration (and the nested sites couldn't always be read)
+            const { authorList, siteList, ...literatureWithoutAuthorList } = literature;
 
             // Create FormData object
             const formData = new FormData();

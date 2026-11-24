@@ -1,6 +1,7 @@
 package arbodat.plus.model;
 
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
+import com.fasterxml.jackson.annotation.JsonProperty;
 import jakarta.persistence.*;
 import lombok.Data;
 import java.io.Serializable;
@@ -42,8 +43,12 @@ public class AbsoluteDating implements Serializable {
     @JoinColumn(name = "sample")
     private Sample sample;
 
+    // Only written to JSON, never read: the results are linked on the result side (Result.absoluteDatingList).
+    // Reading it failed once a result had been read before (Jackson, mutual @JsonIgnoreProperties:
+    // "No _valueDeserializer assigned") -> a dating with results couldn't be saved from the data explorer.
     @ManyToMany(mappedBy = "absoluteDatingList")
     @JsonIgnoreProperties("absoluteDatingList")
+    @JsonProperty(access = JsonProperty.Access.READ_ONLY)
     private Set<Result> resultList;
 
     @ManyToMany(mappedBy = "absoluteDatingList")

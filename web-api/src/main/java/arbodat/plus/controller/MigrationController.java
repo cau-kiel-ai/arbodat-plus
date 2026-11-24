@@ -1,9 +1,12 @@
 package arbodat.plus.controller;
 
+import arbodat.plus.dto_migration.BulkDanteAttributeItem;
+import arbodat.plus.dto_migration.BulkItemStatus;
 import arbodat.plus.dto_migration.MigrationResponse;
 import arbodat.plus.model.ResearchProject;
 import arbodat.plus.service.LabelTakenException;
 import arbodat.plus.service.MigrationService;
+import arbodat.plus.service.NonMatchingAttributeMigrationService;
 import com.healthmarketscience.jackcess.Database;
 import com.healthmarketscience.jackcess.DatabaseBuilder;
 import com.healthmarketscience.jackcess.Row;
@@ -11,6 +14,7 @@ import com.healthmarketscience.jackcess.Table;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.dao.DataAccessException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -30,6 +34,27 @@ public class MigrationController {
 
     @Autowired
     private MigrationService migrationService;
+
+    @Autowired
+    private NonMatchingAttributeMigrationService nonMatchingAttributeMigrationService;
+
+    /**
+     * Sets the DANTE values of many non-matching attributes (non-matching attributes accordion of the migration).
+     * Every item gets its own status ("updated" or "error"), so one bad row doesn't stop the others.
+     */
+    @PutMapping("/nonMatchingAttributes/bulk")
+    public List<BulkItemStatus> updateNonMatchingAttributes(@RequestBody List<BulkDanteAttributeItem> items) {
+        try {
+            return nonMatchingAttributeMigrationService.updateAll(items);
+        } catch (DataAccessException e) {
+            // The transaction is rolled back -> none of the items is updated
+            log.error("Bulk update of non-matching attributes failed", e);
+            String message = e.getMostSpecificCause().getMessage();
+            return items.stream()
+                    .map(item -> BulkItemStatus.error(item.getClientId(), message))
+                    .toList();
+        }
+    }
 
     /**
      * Endpoint for upload .mdb file to get its site list.

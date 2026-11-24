@@ -1,101 +1,3 @@
-function toggleAllCheckboxes(masterCheckbox, tableBodyId) {
-    const tableBody = document.getElementById(tableBodyId);
-    if (tableBody) {
-      // Rows hidden by a table filter (tableFilter.js) and group header checkboxes are skipped
-      const checkboxes = tableBody.querySelectorAll('input[type="checkbox"]:not(.group-select)');
-      checkboxes.forEach(checkbox => {
-        if (!checkbox.disabled && !checkbox.closest('tr.filter-hidden')) {
-          checkbox.checked = masterCheckbox.checked;
-        }
-      });
-      // Let the table filter update its group header checkboxes
-      tableBody.dispatchEvent(new Event('change'));
-    }
-}
-
-let updatingDropdowns = false;
-function updateCheckedDropdowns(value, tableBodyId, selectIdPrefix) {
-    if (updatingDropdowns) return;
-    updatingDropdowns = true;
-
-    const tableBody = document.getElementById(tableBodyId);
-    if (tableBody) {
-        const checkboxes = tableBody.querySelectorAll('input[type="checkbox"]:checked');
-        // Update value in checked Dropdowns
-        checkboxes.forEach(checkbox => {
-            if (!checkbox.disabled) {
-                const row = checkbox.closest('tr');
-                const dropdown = row.querySelector(`select[id^=${selectIdPrefix}]`);
-                if (dropdown) {
-                    dropdown.value = value;
-                    if(selectIdPrefix === "coordinateSystemDropdown_") {
-                        $(dropdown).trigger('change');
-                    }
-                    if ([
-                        "c14LabDropdown_",
-                        "taxCodeDropdown_",
-                        "restTypeDropdown_",
-                        "stateOfPreservationDropdown_",
-                        "coordinateSystemDropdown_",
-                        "danteDropdown_",
-                    ].includes(selectIdPrefix)) {
-                        $(dropdown).trigger('change.select2');
-                    }
-                }
-            }
-        });
-    }
-    updatingDropdowns = false;
-}
-
-let updatingDropdownsMultiple = false;
-function updateCheckedDropdownsMultiple(values, tableBodyId, selectIdPrefix) {
-    if (updatingDropdownsMultiple) return;
-    updatingDropdownsMultiple = true;
-
-    const tableBody = document.getElementById(tableBodyId);
-    if (tableBody) {
-        const checkboxes = tableBody.querySelectorAll('input[type="checkbox"]:checked');
-        // Update values in checked Dropdowns
-        checkboxes.forEach(checkbox => {
-            if (!checkbox.disabled) {
-                const row = checkbox.closest('tr');
-                const dropdown = row.querySelector(`select[id^=${selectIdPrefix}]`);
-                if (dropdown) {
-                    // Clear previous selections
-                    Array.from(dropdown.options).forEach(option => {
-                        option.selected = values.includes(option.value);
-                    });
-                    if ([
-                        "userDropdown_",
-                        "danteDropdown_",
-                    ].includes(selectIdPrefix)) {
-                        $(dropdown).trigger('change.select2');
-                    }
-                }
-            }
-        });
-    }
-    updatingDropdownsMultiple = false;
-}
-
-function updateCheckedInputs(value, tableBodyId, inputIdPrefix) {
-    const tableBody = document.getElementById(tableBodyId);
-    if (tableBody) {
-        const checkboxes = tableBody.querySelectorAll('input[type="checkbox"]:checked');
-        // Update value in checked inputs
-        checkboxes.forEach(checkbox => {
-            if (!checkbox.disabled) {
-                const row = checkbox.closest('tr');
-                const input = row.querySelector(`input[id^=${inputIdPrefix}]`);
-                if (input) {
-                    input.value = value;
-                }
-            }
-        });
-    }
-}
-
 // Escape a value for a single quoted JS string inside an inline handler (onclick="fn('${escapeJsArg(value)}')"):
 // first for the JS string, then for the HTML attribute
 function escapeJsArg(value) {
@@ -109,12 +11,6 @@ function escapeJsArg(value) {
         .replace(/</g, "&lt;");
 }
 
-// Encode an item for the single quoted data-item attribute of the 'Add to JSON' button.
-// encodeURIComponent keeps the apostrophe, which would end the attribute value.
-function encodeRowItem(item) {
-    return encodeURIComponent(JSON.stringify(item)).replace(/'/g, "%27");
-}
-
 // Add one grouped entry to the JSON, remove all rows it covers and tell the user
 // how many rows were added and how many rows with the same label had to be skipped
 function addGroupToJSON(entry, rows, skippedReasons = [], removeRows = rows => rows.forEach(row => row.remove())) {
@@ -123,41 +19,12 @@ function addGroupToJSON(entry, rows, skippedReasons = [], removeRows = rows => r
     displayJSON();
     console.log(`${rows.length} row(s) added to JSON`);
 
-    if (rows.length > 1 || skippedReasons.length > 0) {
-        let message = `${rows.length} ${rows.length === 1 ? "row" : "rows"} added to JSON.`;
-        if (skippedReasons.length > 0) {
-            const reasons = [...new Set(skippedReasons)].join(", ");
-            message += ` ${skippedReasons.length} more with the same label skipped (${reasons}).`;
-        }
-        toast.success(message);
+    let message = `${rows.length} ${rows.length === 1 ? "row" : "rows"} added to JSON.`;
+    if (skippedReasons.length > 0) {
+        const reasons = [...new Set(skippedReasons)].join(", ");
+        message += ` ${skippedReasons.length} more with the same label skipped (${reasons}).`;
     }
-}
-
-// Adds all rows with the same attribute and nonMatchingLabel as the clicked row
-function addLabelToJSON(itemId, attribute, button) {
-    const clickedRow = button.closest("tr");
-    const label = clickedRow.dataset.nonMatchingLabel;
-
-    const rows = Array.from(document.querySelectorAll("tr[data-attribute]"))
-        .filter(row => row.dataset.attribute === attribute && row.dataset.nonMatchingLabel === label);
-    if (!rows.includes(clickedRow)) {
-        rows.push(clickedRow);
-    }
-
-    addGroupToJSON({
-        attribute: attribute,
-        nonMatchingLabel: label,
-        itemIds: rows.map(row => row.dataset.id ?? itemId)
-    }, rows);
-}
-
-function addLabelToJSONWithItem(button, attribute) {
-    // attributes: 'coordinateSystemSite', 'coordinateSystemSample' (results: addResultsToJSON, C14 laboratories: addC14LabCodesToJSON)
-    const row = button.closest("tr");
-
-    if (attribute == "coordinateSystemSite" || attribute == "coordinateSystemSample") {
-        addCoordinatesToJSON(row, attribute);
-    }
+    toast.success(message);
 }
 
 // Results -------------------------------------------------------------------
@@ -280,44 +147,7 @@ function addResultsToJSON(row) {
     addGroupToJSON({ ...clicked.data, items: payloads }, rows, skippedReasons, removeResultRows);
 }
 
-// Coordinates ---------------------------------------------------------------
-
-function readCoordinateRow(row, attribute) {
-    // Get latitude, longitude, altitude, remarks from input
-    const longitude = parseDecimal(row.cells[2].querySelector("input").value);
-    const latitude  = parseDecimal(row.cells[3].querySelector("input").value);
-    const altitude  = parseDecimal(row.cells[4].querySelector("input").value);
-
-    // WGS84 and remarks are shifted by one cell in the sample table
-    const offset = attribute == "coordinateSystemSite" ? 0 : 1;
-    const longitudeWgs84 = parseDecimal(row.cells[7 + offset].querySelector("input").value);
-    const latitudeWgs84  = parseDecimal(row.cells[8 + offset].querySelector("input").value);
-    const remarks        = row.cells[9 + offset].querySelector("textarea").value;
-
-    return {
-        [attribute == "coordinateSystemSite" ? "siteId" : "sampleId"]: row.dataset.itemId,
-        latitude:       latitude,
-        longitude:      longitude,
-        altitude:       altitude,
-        longitudeWgs84: longitudeWgs84,
-        latitudeWgs84:  latitudeWgs84,
-        remarks:        remarks,
-    };
-}
-
-// Adds the clicked coordinate and all coordinates of the same table with the same coordinate system
-function addCoordinatesToJSON(row, attribute) {
-    const label = row.dataset.coordinateSystem;
-
-    const rows = Array.from(row.closest("tbody").rows)
-        .filter(otherRow => otherRow === row || otherRow.dataset.coordinateSystem === label);
-
-    addGroupToJSON({
-        itemType: attribute === "coordinateSystemSite" ? "coordinateSite" : "coordinateSample",
-        nonMatching_coordinateSystem: label,
-        items: rows.map(otherRow => readCoordinateRow(otherRow, attribute))
-    }, rows);
-}
+// (coordinates: addCoordinatesToJSON in coordinates.js)
 
 // C14 laboratories ----------------------------------------------------------
 // (rows are Tabulator rows of the C14 table, see labsAndNumbers.js)
@@ -362,7 +192,14 @@ function addC14LabCodesToJSON(row) {
     }, rows, skippedReasons, rows => deleteTableRows(c14LabTable, rows.map(row => row.getData().id)));
 }
 
-// Common parts of the migration Tabulators (results, fractions analyzed, labs and numbers) ----------
+// Common parts of the migration Tabulators (team, literature, results, fractions analyzed, labs and numbers,
+// coordinates, non-matching attributes) ----
+
+// Cell text, or a grey hint (e.g. "select", "enter") while the cell is empty
+const placeholderFormatter = (text, format = value => value) => cell =>
+    cell.getValue() || cell.getValue() === 0
+        ? escapeHtml(format(cell.getValue()))
+        : `<span class="migration-result-placeholder">${text}</span>`;
 
 // Checkbox column; the checkbox in the header (de)selects only the filtered rows
 function selectionColumn() {
@@ -370,17 +207,46 @@ function selectionColumn() {
             titleFormatterParams: { rowRange: "active" }, hozAlign: "center", headerSort: false, width: 40};
 }
 
-// Text column with a filter field in the header (site, feature, sample, ...)
+// Text column filtered by its values (site, feature, sample, ...): search in the existing values,
+// several can be chosen (pills, rows with one of them), as in the explorer (see js/multiSelectEditor.js)
+function filterValuesColumn(title, field) {
+    return {title, field, headerSort: false, minWidth: 90, formatter: "plaintext",
+            headerFilter: multiSelectFilter, headerFilterParams: { valuesLookup: true }, headerFilterFunc: anyOfFilter};
+}
+
+// Text column with a free text filter in the header (e.g. sub sample, ids)
 function filterTextColumn(title, field) {
     return {title, field, headerSort: false, minWidth: 90, formatter: "plaintext",
-            headerFilter: "input", headerFilterPlaceholder: "filter"};
+            headerFilter: "input", headerFilterPlaceholder: ""};
+}
+
+// Column with a dropdown filter in the header (the distinct values of the column, one of them; e.g. user role)
+function filterListColumn(title, field) {
+    return {title, field, headerSort: false, formatter: "plaintext",
+            headerFilter: "list", headerFilterParams: { valuesLookup: true, clearable: true, sort: "asc" },
+            headerFilterFunc: "=", headerFilterPlaceholder: ""};
 }
 
 // - counter: element for "x rows" / "x of y rows"
+// - no redraw whenever the table comes into view (see stopRedrawWhenVisible)
 // - rows hidden by a filter are deselected, so the bulk actions skip them
 // - a value edited in a selected row is copied to the other selected rows:
 //   copyFields = { field: canCopy(rowData) } (rows for which canCopy is false keep their value)
+// Tabulator redraws a table whenever it comes into view (IntersectionObserver of its resize module). While the page is
+// scrolled this changes the layout and the browser's scroll anchoring makes the page jump (e.g. scrolling up past the
+// sample coordinates). The migration tables are redrawn when their accordion is opened (shown.bs.collapse,
+// redrawMigrationTables), so the observer is not needed.
+// Internal Tabulator API (check when upgrading Tabulator): table.modules.resizeTable.visibilityObserver. Accessed
+// defensively: without it, the observer stays and the page can jump again.
+function stopRedrawWhenVisible(table) {
+    const stop = () => table.modules?.resizeTable?.visibilityObserver?.disconnect();
+    if (table.initialized) stop();
+    else table.on("tableBuilt", stop);
+}
+
 function setupMigrationTable(table, { counter, copyFields = {} }) {
+    stopRedrawWhenVisible(table);
+
     table.on("cellEdited", cell => {
         const row = cell.getRow();
         const canCopy = copyFields[cell.getField()];
@@ -407,10 +273,23 @@ function setupMigrationTable(table, { counter, copyFields = {} }) {
     table.on("dataProcessed", updateCounter);
 }
 
+// Adds values to a list field (e.g. users, literature) of the row with rowId and of the other selected rows,
+// if that row is selected (e.g. a user / literature created in a popup opened from the row)
+function chooseInRows(table, rowId, field, values) {
+    const row = rowId ? table?.getRow(rowId) : null;
+    if (!row || values.length === 0) return;
+    const rows = row.isSelected() ? table.getSelectedData() : [row.getData()];
+    return updateTableRows(table, rows.map(data => ({
+        id: data.id,
+        [field]: [...new Set([...(data[field] ?? []), ...values])],
+    })));
+}
+
 // Tabulator can't measure itself in a collapsed accordion: redraw the migration tables once they are visible.
 // Tables which are still being built measure themselves (the accordions are open then).
 function redrawMigrationTables() {
-    const tables = [fractionTable, c14LabTable, labTable, ...[...resultTables.values()].map(site => site.table)];
+    const tables = [siteSelectionTable, ...existingTables.values(), userTable, literatureTable, fractionTable, c14LabTable, labTable, siteCoordinateTable, sampleCoordinateTable,
+                    ...nonMatchingTables.values(), ...[...resultTables.values()].map(site => site.table)];
     tables.forEach(table => {
         if (table?.initialized) table.redraw(true);
     });
@@ -442,20 +321,6 @@ function deleteTableRows(table, ids) {
     const remove = new Set(ids);
     if (remove.size < BULK_ROWS) return table.deleteRow([...remove]);
     return replaceTableData(table, table.getData().filter(row => !remove.has(row.id)));
-}
-
-function hideTableIfTbodyEmpty(tbody) {
-    if (tbody) {
-        const table = tbody.closest('table');
-        if (table) {
-            // hide if empty
-            if (tbody.rows.length === 0) {
-                table.style.display = 'none';
-            } else { // display
-                table.style.display = 'table';
-            }
-        }
-    }
 }
 
 // Open an accordion section without animation and mark its header button as expanded,

@@ -1,6 +1,7 @@
 let userTable;
 
 async function buildUserTable() {
+    const build = tableBuild;
     const container = document.getElementById("table");
     const spinner = document.getElementById('tableSpinner');
     const tableContainer = document.querySelector('.table-container');
@@ -27,6 +28,9 @@ async function buildUserTable() {
     }
 
     // Create Table -------------------------------------------------------------
+    // Another table was chosen while the data was loading: this one is not shown
+    if (!isCurrentBuild(build)) return;
+
     userTable = newTabulator("#table", {
         height: "100%",
         data: users,
@@ -45,7 +49,7 @@ async function buildUserTable() {
                     // Map site type objects only to site type id
                     return Array.isArray(value) ? value.map(item => item.id? item.id : item) : [];
                 },
-                editor:"list", editorParams:{
+                editor: multiSelectEditor, editorParams:{
                     values: [
                         ...institutions.map(item => ({
                             value: item.id,
@@ -56,7 +60,7 @@ async function buildUserTable() {
                     multiselect:true,
                     emptyValue:[]
                 },
-                headerFilter:"list", headerFilterParams: {
+                headerFilter: multiSelectFilter, headerFilterParams: {
                     values: institutions.map(item => ({
                             value: item.id,
                             label: item.label + (item.rorId ? ` (${item.rorId})` : "")

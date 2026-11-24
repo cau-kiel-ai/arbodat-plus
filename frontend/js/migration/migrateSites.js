@@ -26,9 +26,7 @@ async function migrateSites(researchProjectList) {
     formData.append("researchProjectList", new Blob([JSON.stringify(researchProjectList)], { type: "application/json" }));
 
     // Add siteList (only selected sites)
-    const selectedCheckboxes = Array.from(document.querySelectorAll(".siteCheckbox"))
-        .filter(checkbox => checkbox.checked);
-    const selectedSites = selectedCheckboxes.map(checkbox => checkbox.value);
+    const selectedSites = selectedSiteLabels();
 
     formData.append("siteList", new Blob([JSON.stringify(selectedSites)], { type: "application/json" }));
 
@@ -43,9 +41,9 @@ async function migrateSites(researchProjectList) {
         // Sites, whose migration failed: they were rolled back and can be migrated again
         const failedSiteList = response.data.failedSiteList ?? [];
         const failedSites = new Map(failedSiteList.map(item => [item.label, item.message]));
-        markFailedSites(selectedCheckboxes, failedSites);
+        markFailedSites(failedSites);
 
-        if (failedSites.size === selectedCheckboxes.length) {
+        if (failedSites.size === selectedSites.length) {
             toast.error("Migration failed for all selected sites, nothing was migrated.");
             return;
         }
@@ -61,31 +59,10 @@ async function migrateSites(researchProjectList) {
         container.innerHTML = "";
         // -------------------------------------------------------------------
 
-        // Strike, uncheck and disable migrated lines
-        selectedCheckboxes
-            .filter(checkbox => !failedSites.has(checkbox.value))
-            .forEach(checkbox => {
-                const row = checkbox.closest("tr");
-                row.style.color = "gray";
-                checkbox.disabled = true;
-                checkbox.checked = false;
-                // Add a green tick
-                const greenCheck = document.createElement("span");
-                greenCheck.innerHTML = "✅";
-                greenCheck.style.marginLeft = "20px";
-                row.lastElementChild.appendChild(greenCheck);
-            });
-
-        // Extract lists from the response        
-        const existingSiteList = response.data.existingSiteList;
-        const existingFeatureList = response.data.existingFeatureList;
-        const existingSampleList = response.data.existingSampleList;
-        const existingAbsoluteDatingList = response.data.existingAbsoluteDatingList;
-        
-        createExistingSiteList(existingSiteList);
-        createExistingFeatureList(existingFeatureList);
-        createExistingSampleList(existingSampleList);
-        createExistingAbsoluteDatingList(existingAbsoluteDatingList);
+        // The migrated sites get their status, the already existing ones too (and are listed with the other
+        // not migrated elements, see siteSelection.js); failed sites keep theirs (markFailedSites)
+        await markSites(selectedSites.filter(label => !failedSites.has(label)), "migrated");
+        await populateExistingLists(response.data);
 
         const literatureList = response.data.literatureList;
         const nonMatchingDanteAttributeList = response.data.nonMatchingDanteAttributeList;
@@ -95,10 +72,10 @@ async function migrateSites(researchProjectList) {
         const labAndNumberList = response.data.labAndNumberList;
         const resultList = response.data.resultList;
         
-        populateNonMatchingDanteAttributes(nonMatchingDanteAttributeList);
-        populateLiterature(literatureList);
-        populateCoordinates(coordinateList);
-        populateUsers(userList);
+        await populateNonMatchingDanteAttributes(nonMatchingDanteAttributeList);
+        await populateLiterature(literatureList);
+        await populateCoordinates(coordinateList);
+        await populateUsers(userList);
         populateFractionsAnalyzed(fractionAnalyzedList);
         await populateLabsAndNumbers(labAndNumberList);
         await populateResults(resultList);
@@ -142,338 +119,4 @@ async function migrateSites(researchProjectList) {
     } finally {
         hideLoading();
     }
-}
-
-// Mark sites, whose migration failed (rolled back), with the reason; they stay selectable for a new attempt
-function markFailedSites(selectedCheckboxes, failedSites) {
-    selectedCheckboxes.forEach(checkbox => {
-        const row = checkbox.closest("tr");
-        row.querySelector(".failedSiteMessage")?.remove();
-
-        if (failedSites.has(checkbox.value)) {
-            const failedMessage = document.createElement("span");
-            failedMessage.className = "failedSiteMessage";
-            failedMessage.textContent = "❗ failed, rolled back: " + failedSites.get(checkbox.value);
-            failedMessage.style.marginLeft = "20px";
-            failedMessage.style.color = "darkred";
-            row.lastElementChild.appendChild(failedMessage);
-        }
-    });
-}
-
-// Create Tables for already existing items under 'Site Selection' ----------------------
-function createExistingSiteList(existingSiteList) {
-
-    if (existingSiteList.length > 0) {
-
-        let table = document.getElementById("existingSiteListTable");
-
-        if (!table) {
-
-            // Get site selection form
-            const siteSelectionForm = document.getElementById("siteSelectionForm");
-
-            // Add text
-            const headerText = document.createElement("p");
-            headerText.innerHTML = "Not migrated, allready existing sites and additional added research projects";
-            siteSelectionForm.appendChild(headerText);
-
-            // Create new table
-            const newTable = document.createElement("table");
-            newTable.className = "table table-striped";
-            newTable.id = "existingSiteListTable";
-
-            // Create new table head
-            const thead = document.createElement("thead");
-            thead.innerHTML = `
-            <tr>
-                <th scope="col">site</th>
-                <th scope="col">site id</th>
-                <th scope="col">research projects</th>
-                <th scope="col">added research projects</th>
-            </tr>
-            `;
-            newTable.appendChild(thead);
-
-            // Create new table body
-            const tbody = document.createElement("tbody");
-            // Create lines
-            existingSiteList.forEach(item => {
-                const row = document.createElement("tr");
-
-                // Add columns
-                row.innerHTML = `
-                    <td>${escapeHtml(item.label)}</td>
-                    <td>${escapeHtml(item.id)}</td>
-                    <td>${escapeHtml(item.researchProjectNames.join(", "))}</td>
-                    <td>${escapeHtml(item.addedResearchProjectNames.join(", "))}</td>
-                `;
-
-                tbody.appendChild(row);
-
-                // Replace ✅ with ❌ in siteList
-                Array.from(document.querySelectorAll(".siteCheckbox"))
-                .filter(checkbox => item.label == checkbox.value)
-                .map(checkbox => {
-                    const row = checkbox.closest("tr");
-                    const existingSymbol = row.lastElementChild.querySelector("span");
-                    existingSymbol.innerHTML = "❌ (already migrated)";
-                });
-            });        
-
-            newTable.appendChild(tbody);
-            siteSelectionForm.appendChild(newTable);
-        } 
-        // If table allready exists only add lines
-        else {
-            const tbody = table.querySelector("tbody");
-
-            existingSiteList.forEach(item => {
-                const row = document.createElement("tr");
-
-                // Füge die Spalten hinzu
-                row.innerHTML = `
-                    <td>${escapeHtml(item.label)}</td>
-                    <td>${escapeHtml(item.id)}</td>
-                    <td>${escapeHtml(item.researchProjectNames.join(", "))}</td>
-                    <td>${escapeHtml(item.addedResearchProjectNames.join(", "))}</td>
-                `;
-
-                tbody.appendChild(row);
-
-                // Ersetze ✅ mit ❌ in siteList
-                Array.from(document.querySelectorAll(".siteCheckbox"))
-                    .filter(checkbox => item.label == checkbox.value)
-                    .map(checkbox => {
-                        const row = checkbox.closest("tr");
-                        const existingSymbol = row.lastElementChild.querySelector("span");
-                        if (existingSymbol) {
-                            existingSymbol.innerHTML = "❌ (already migrated)";
-                        }
-                    });
-            });            
-        }
-    }    
-}
-
-function createExistingFeatureList(existingFeatureList) {
-
-    if (existingFeatureList.length > 0) {
-
-        let table = document.getElementById("existingFeatureListTable");
-
-        if (!table) {
-
-            // Get site selection form
-            const siteSelectionForm = document.getElementById("siteSelectionForm");
-
-            // Add text
-            const headerText = document.createElement("p");
-            headerText.innerHTML = "<br>Not migrated, allready existing features related to selected sites";
-            siteSelectionForm.appendChild(headerText);
-
-            // Create new table
-            const newTable = document.createElement("table");
-            newTable.className = "table table-striped";
-            newTable.id = "existingFeatureListTable";
-
-            // Create new table head
-            const thead = document.createElement("thead");
-            thead.innerHTML = `
-            <tr>
-                <th scope="col">feature</th>
-                <th scope="col">feature id</th>
-                <th scope="col">site</th>
-            </tr>
-            `;
-            newTable.appendChild(thead);
-
-            // Create new table body
-            const tbody = document.createElement("tbody");
-            // Create lines
-            existingFeatureList.forEach(item => {
-                const row = document.createElement("tr");
-
-                // Add columns
-                row.innerHTML = `
-                    <td>${escapeHtml(item.label)}</td>
-                    <td>${escapeHtml(item.id)}</td>
-                    <td>${escapeHtml(item.siteLabel)}</td>
-                `;
-
-                tbody.appendChild(row);
-            });        
-
-            newTable.appendChild(tbody);
-            siteSelectionForm.appendChild(newTable);
-        } 
-        // If table allready exists only add lines
-        else {
-            const tbody = table.querySelector("tbody");
-
-            existingFeatureList.forEach(item => {
-                const row = document.createElement("tr");
-
-                // Füge die Spalten hinzu
-                row.innerHTML = `
-                    <td>${escapeHtml(item.label)}</td>
-                    <td>${escapeHtml(item.id)}</td>
-                    <td>${escapeHtml(item.siteLabel)}</td>
-                `;
-
-                tbody.appendChild(row);
-            });            
-        }
-    }    
-}
-
-function createExistingSampleList(existingSampleList) {
-
-    if (existingSampleList.length > 0) {
-
-        let table = document.getElementById("existingSampleListTable");
-
-        if (!table) {
-
-            // Get site selection form
-            const siteSelectionForm = document.getElementById("siteSelectionForm");
-
-            // Add text
-            const headerText = document.createElement("p");
-            headerText.innerHTML = "<br>Not migrated, allready existing samples related to selected sites";
-            siteSelectionForm.appendChild(headerText);
-
-            // Create new table
-            const newTable = document.createElement("table");
-            newTable.className = "table table-striped";
-            newTable.id = "existingSampleListTable";
-
-            // Create new table head
-            const thead = document.createElement("thead");
-            thead.innerHTML = `
-            <tr>
-                <th scope="col">sample</th>
-                <th scope="col">sample id</th>
-                <th scope="col">site</th>
-                <th scope="col">feature</th>
-            </tr>
-            `;
-            newTable.appendChild(thead);
-
-            // Create new table body
-            const tbody = document.createElement("tbody");
-            // Create lines
-            existingSampleList.forEach(item => {
-                const row = document.createElement("tr");
-
-                // Add columns
-                row.innerHTML = `
-                    <td>${escapeHtml(item.label)}</td>
-                    <td>${escapeHtml(item.id)}</td>
-                    <td>${escapeHtml(item.siteLabel)}</td>
-                    <td>${escapeHtml(item.featureLabel)}</td>
-                `;
-
-                tbody.appendChild(row);
-            });        
-
-            newTable.appendChild(tbody);
-            siteSelectionForm.appendChild(newTable);
-        } 
-        // If table allready exists only add lines
-        else {
-            const tbody = table.querySelector("tbody");
-
-            existingSampleList.forEach(item => {
-                const row = document.createElement("tr");
-
-                // Füge die Spalten hinzu
-                row.innerHTML = `
-                    <td>${escapeHtml(item.label)}</td>
-                    <td>${escapeHtml(item.id)}</td>
-                    <td>${escapeHtml(item.siteLabel)}</td>
-                    <td>${escapeHtml(item.featureLabel)}</td>
-                `;
-
-                tbody.appendChild(row);
-            });            
-        }
-    }    
-}
-
-function createExistingAbsoluteDatingList(existingAbsoluteDatingList) {
-
-    if (existingAbsoluteDatingList.length > 0) {
-
-        let table = document.getElementById("existingAbsoluteDatingListTable");
-
-        if (!table) {
-
-            // Get site selection form
-            const siteSelectionForm = document.getElementById("siteSelectionForm");
-
-            // Add text
-            const headerText = document.createElement("p");
-            headerText.innerHTML = "<br>Not migrated, allready existing datings related to selected sites";
-            siteSelectionForm.appendChild(headerText);
-
-            // Create new table
-            const newTable = document.createElement("table");
-            newTable.className = "table table-striped";
-            newTable.id = "existingAbsoluteDatingListTable";
-
-            // Create new table head
-            const thead = document.createElement("thead");
-            thead.innerHTML = `
-            <tr>
-                <th scope="col">sub sample</th>
-                <th scope="col">absolute dating id</th>
-                <th scope="col">site</th>
-                <th scope="col">feature</th>
-                <th scope="col">sample</th>
-            </tr>
-            `;
-            newTable.appendChild(thead);
-
-            // Create new table body
-            const tbody = document.createElement("tbody");
-            // Create lines
-            existingAbsoluteDatingList.forEach(item => {
-                const row = document.createElement("tr");
-
-                // Add columns
-                row.innerHTML = `
-                    <td>${escapeHtml(item.subSample)}</td>
-                    <td>${escapeHtml(item.id)}</td>
-                    <td>${escapeHtml(item.siteLabel)}</td>
-                    <td>${escapeHtml(item.featureLabel)}</td>
-                    <td>${escapeHtml(item.sampleLabel)}</td>
-                `;
-
-                tbody.appendChild(row);
-            });        
-
-            newTable.appendChild(tbody);
-            siteSelectionForm.appendChild(newTable);
-        } 
-        // If table allready exists only add lines
-        else {
-            const tbody = table.querySelector("tbody");
-
-            existingAbsoluteDatingList.forEach(item => {
-                const row = document.createElement("tr");
-
-                // Füge die Spalten hinzu
-                row.innerHTML = `
-                    <td>${escapeHtml(item.subSample)}</td>
-                    <td>${escapeHtml(item.id)}</td>
-                    <td>${escapeHtml(item.siteLabel)}</td>
-                    <td>${escapeHtml(item.featureLabel)}</td>
-                    <td>${escapeHtml(item.sampleLabel)}</td>
-                `;
-
-                tbody.appendChild(row);
-            });            
-        }
-    }    
 }

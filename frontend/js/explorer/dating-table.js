@@ -1,6 +1,7 @@
 let datingTable;
 
 async function buildDatingTable() {
+    const build = tableBuild;
     const container = document.getElementById("table");
     const spinner = document.getElementById('tableSpinner');
     const tableContainer = document.querySelector('.table-container');
@@ -160,11 +161,10 @@ async function buildDatingTable() {
     // Lab (dendrochronology/other): select an existing lab or type a new one
     const laboratoryEditorParams = () => ({
         values: laboratories.map(item => item.label),
-        autocomplete: true,
-        freetext: true,
-        clearable: true,
-        listOnEmpty: true,
+        tags: true, // a new laboratory can be typed
     });
+    // Filter of the laboratory columns: the laboratories in the table
+    const laboratoryFilter = { headerFilter: multiSelectFilter, headerFilterParams: { valuesLookup: true }, headerFilterFunc: anyOfFilter };
 
 
     // Dropdowns of the DANTE columns (same entries and order as on the input page, see danteListEditor.js)
@@ -172,6 +172,9 @@ async function buildDatingTable() {
     await loadDanteDownloadRecords(["material", "datingMethod", "c14Laboratory"]);
 
     // Create Table -------------------------------------------------------------
+    // Another table was chosen while the data was loading: this one is not shown
+    if (!isCurrentBuild(build)) return;
+
     datingTable = newTabulator("#table", {
         height: "100%",
         data: absoluteDatings,
@@ -182,7 +185,7 @@ async function buildDatingTable() {
             {title:"id", field:"id", headerFilter:true, headerSort:false},
             {title:"*subsample", titleDownload:"subSample", field:"subSample", validator: ["required"], editor:"input", headerFilter:true, headerSortTristate:true, sorter: compareLabels},
             {title: "*sample", titleDownload:"sample", field:"sample.id", headerSortTristate:true, sorter: rankSorter(samples),
-                editor:"list", editorParams: function(cell) {
+                editor: singleSelectEditor, editorParams: function(cell) {
                     const rowData = cell.getRow().getData();
                     const featureId = rowData?.sample.feature.id;
 
@@ -195,7 +198,7 @@ async function buildDatingTable() {
                             }))
                     };
                 },                
-                headerFilter:"list", headerFilterParams: {
+                headerFilter: multiSelectFilter, headerFilterParams: { valuesInData: true,
                     values: samples.map(item => ({
                             value: item.id,
                             label:
@@ -216,7 +219,7 @@ async function buildDatingTable() {
                 accessorDownload: value => formatSample(samples, value),
             },
             {title: "*feature", titleDownload:"feature", field:"sample.feature.id", headerSortTristate:true, sorter: rankSorter(features),
-                editor:"list", editorParams: function(cell) {
+                editor: singleSelectEditor, editorParams: function(cell) {
                     const rowData = cell.getRow().getData();
                     const siteId = rowData?.sample.feature.site.id;
 
@@ -229,7 +232,7 @@ async function buildDatingTable() {
                             }))
                     };
                 },
-                headerFilter:"list", headerFilterParams: {
+                headerFilter: multiSelectFilter, headerFilterParams: { valuesInData: true,
                     values: features.map(item => ({
                             value: item.id,
                             label:
@@ -250,7 +253,7 @@ async function buildDatingTable() {
                 accessorDownload: value => formatFeature(features, value),
             },
             {title: "*site", titleDownload:"site", field:"sample.feature.site.id", headerSortTristate:true, sorter: rankSorter(sites),
-                editor:"list", editorParams:{
+                editor: singleSelectEditor, editorParams:{
                     values: sites.map(item => ({
                             value: item.id,
                             label:
@@ -261,7 +264,7 @@ async function buildDatingTable() {
                         }))
                     ,
                 },
-                headerFilter:"list", headerFilterParams: {
+                headerFilter: multiSelectFilter, headerFilterParams: { valuesInData: true,
                     values: sites.map(item => ({
                             value: item.id,
                             label:
@@ -286,7 +289,7 @@ async function buildDatingTable() {
                     // Map objects only to id
                     return Array.isArray(value) ? value.map(item => item.id? item.id : item) : [];
                 },
-                editor:"list", editorParams:{
+                editor: multiSelectEditor, editorParams:{
                     values: [
                         ...literature.map(item => ({
                             value: item.id,
@@ -297,7 +300,7 @@ async function buildDatingTable() {
                     multiselect:true,
                     emptyValue:[]
                 },
-                headerFilter:"list", headerFilterParams: {
+                headerFilter: multiSelectFilter, headerFilterParams: {
                     values: literature.map(item => ({
                             value: item.id,
                             label: formatLiterature(item)
@@ -312,8 +315,8 @@ async function buildDatingTable() {
                 accessorDownload: value => formatLit(literature, value),
             },
             {title:"material", field:"material.id", headerSortTristate:true,
-                editor:"list", editorParams: danteEditorParams("material", { none: true }),
-                headerFilter:true, headerFilterParams: {
+                editor: singleSelectEditor, editorParams: danteEditorParams("material", { none: true }),
+                headerFilter: multiSelectFilter, headerFilterParams: { valuesInData: true,
                     values: cachedMaterials.map(item => ({
                             value: item.uri,
                             label: item.prefLabel.en
@@ -331,8 +334,8 @@ async function buildDatingTable() {
             },
             {title:"remarks", field:"remarks", editor:"input", headerFilter:true, headerSort:false},
             {title:"dating method", titleDownload:"datingMethod", field:"datingMethod.id", headerSortTristate:true,
-                editor:"list", editorParams: danteEditorParams("datingMethod"),
-                headerFilter:"list", headerFilterParams: {
+                editor: singleSelectEditor, editorParams: danteEditorParams("datingMethod"),
+                headerFilter: multiSelectFilter, headerFilterParams: { valuesInData: true,
                     values: cachedDatingMethods.map(item => ({
                             value: item.uri,
                             label: item.prefLabel.en
@@ -350,7 +353,7 @@ async function buildDatingTable() {
             },
             {title:"dendrochronology", columns:[
                 datingColumn("dendro", {title:"laboratory", titleDownload:"dendroLaboratory", field:"dendrochronologicalDating.laboratory.label",
-                    editor:"list", editorParams: laboratoryEditorParams, headerFilter:"input"}),
+                    editor: singleSelectEditor, editorParams: laboratoryEditorParams, ...laboratoryFilter}),
                 datingColumn("dendro", {title:"number", titleDownload:"dendroNumber", field:"dendrochronologicalDating.number", editor:"input"}),
                 datingColumn("dendro", {title:"age", titleDownload:"dendroAge", field:"dendrochronologicalDating.dendrochronologicalAge", editor:"input"}),
                 datingColumn("dendro", {title:"waney edge", titleDownload:"dendroWaneyEdge", field:"dendrochronologicalDating.waneyEdge", hozAlign:"center",
@@ -369,10 +372,8 @@ async function buildDatingTable() {
             ]},
             {title:"radiocarbon", columns:[
                 datingColumn("c14", {title:"C14 Laboratory", titleDownload:"c14Laboratory", field:"c14Dating.c14Laboratory.id",
-                    editor:"list", editorParams: { ...danteEditorParams("c14Laboratory"), clearable: true },
-                    headerFilter:"input",
-                    headerFilterFunc: (headerValue, rowValue) =>
-                        !headerValue || formatC14Laboratory(rowValue).toLowerCase().includes(headerValue.toString().toLowerCase()),
+                    editor: singleSelectEditor, editorParams: danteEditorParams("c14Laboratory"),
+                    headerFilter: multiSelectFilter, headerFilterParams: { valuesLookup: true }, headerFilterFunc: anyOfFilter,
                     sorter: (a, b) => compareLabels(formatC14Laboratory(a), formatC14Laboratory(b)),
                     formatter: textFormatter(cell => formatC14Laboratory(cell.getValue())),
                     accessorDownload: value => formatC14Laboratory(value)}),
@@ -393,7 +394,7 @@ async function buildDatingTable() {
             ]},
             {title:"other dating", columns:[
                 datingColumn("other", {title:"laboratory", titleDownload:"otherLaboratory", field:"otherDating.laboratory.label",
-                    editor:"list", editorParams: laboratoryEditorParams, headerFilter:"input"}),
+                    editor: singleSelectEditor, editorParams: laboratoryEditorParams, ...laboratoryFilter}),
                 datingColumn("other", {title:"number", titleDownload:"otherNumber", field:"otherDating.number", editor:"input"}),
                 datingColumn("other", {title:"age", titleDownload:"otherAge", field:"otherDating.ageDivers", editor:"input"}),
             ]},

@@ -35,12 +35,6 @@ function create_update_literature() {
             litAbstract:     abstractTextarea.value.trim(),
         };
 
-        // For migration: refer literature to site -------------------------------
-        const siteId = document.getElementById("literatureSiteId")?.value ?? null;
-        if (siteId) {
-            literature.siteList = [{ id: siteId }];
-        } // ---------------------------------------------------------------------
-
         const literatureId = document.getElementById("literatureId").value;
         
         // Create payload -----------------------------
@@ -75,9 +69,10 @@ function create_update_literature() {
                     console.log(response.data);
                     toast.success("literature updated");
 
-                    // For migration: check literature row
-                    if (siteId) {
-                        addGreenCheck();
+                    // Migration: the literature lists show the changed literature
+                    // (this script is also used by the migration page, only that one defines fetchLiteratureOptions)
+                    if (typeof fetchLiteratureOptions === "function") {
+                        fetchLiteratureOptions();
                     }
                 })
                 .catch(error => {
@@ -95,9 +90,10 @@ function create_update_literature() {
                 literatureForm.reset();
                 clearMultiSelect('#literatureAuthors');
 
-                // For migration: check literature row
-                if (siteId) {
-                    addGreenCheck();
+                // Migration: the new literature is offered and chosen in the row which opened the popup
+                // (this script is also used by the migration page, only that one defines onLiteratureCreated)
+                if (typeof onLiteratureCreated === "function") {
+                    onLiteratureCreated();
                 }
             })
             .catch(error => {
@@ -116,19 +112,4 @@ function create_update_literature() {
         }
         literatureForm.reportValidity();
     } // -----------------------------------
-}
-
-// For migration
-function addGreenCheck() {
-    const rowId = document.getElementById("literatureRowId").value;
-
-    const row = document.querySelector(`tr[data-row-id="${rowId}"]`);
-    if (!row) return;
-
-    // Add a green tick
-    const greenCheck = document.createElement("span");
-    greenCheck.innerHTML = "✅";
-    greenCheck.style.marginLeft = "20px";
-    
-    row.lastElementChild.appendChild(greenCheck);
 }

@@ -1,0 +1,183 @@
+/* ---------------- searchable multi-select in Tabulator (see js/multiSelectEditor.js) ---------------- */
+// Scoped to the table: more specific than select2's own rules in every state (focused or not), which are
+// loaded after the page styles and would otherwise win (e.g. their pill margins without focus).
+
+// Shared: the pills in one line and vertically centered (the column grows with them),
+// even gaps before and between the pills, the search field one line high
+%multi-select-pills {
+    display: inline-flex;
+    align-items: center;
+    height: 100%;
+    vertical-align: middle;
+
+    .selection {
+        display: flex;
+        align-items: center;
+        width: 100%;
+        height: 100%;
+    }
+
+    .select2-selection--multiple {
+        display: flex;
+        flex-wrap: nowrap;
+        align-items: center;
+        width: 100%;
+        min-height: 0;
+        padding: 0;
+        outline: none;
+    }
+
+    // The pills and the search field are items of one row (the search follows the last pill,
+    // without pills it starts on the left)
+    .select2-selection__rendered {
+        display: contents;
+    }
+
+    // A pill longer than the field is cut (...), so the x for all values stays in the field
+    .select2-selection__choice {
+        flex-shrink: 1;
+        min-width: 0;
+        max-width: calc(100% - 8px);
+        margin: 0 0 0 4px;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+    }
+
+    // Measuring the width the pills need (js: fit): at their full length
+    &.multi-select-measure {
+        .select2-selection--multiple {
+            width: max-content;
+        }
+
+        .select2-selection__choice {
+            flex-shrink: 0;
+            max-width: none;
+        }
+    }
+
+    .select2-search--inline {
+        flex-shrink: 0;
+    }
+
+    // x for all values: at the right end (select2 places it absolutely at the top), looks like the x of the pills
+    .select2-selection__clear {
+        position: static;
+        order: 99;
+        flex-shrink: 0;
+        height: auto;
+        margin: 0 4px 0 auto;
+        padding: 0 4px;
+        border: none;
+        border-radius: 4px;
+        background: none;
+        color: #999;
+        font-size: 1em;
+        font-weight: bold;
+        line-height: inherit;
+        cursor: pointer;
+
+        &:hover {
+            background-color: #f1f1f1;
+            color: #333;
+        }
+    }
+
+    .select2-search--inline {
+        display: inline-flex;
+        align-items: center;
+        margin-left: 4px;
+
+        // select2's textarea: one line high (it has two by default, its text then sits above the middle
+        // and the pills move when typing starts or ends)
+        .select2-search__field {
+            height: 1.5em;
+            min-height: 0;
+            margin: 0;
+            padding: 0;
+            line-height: 1.5em;
+            overflow: hidden;
+            resize: none;
+            vertical-align: middle;
+        }
+    }
+
+    // More pills than fit into the widest column: several lines (the row / header gets higher)
+    &.multi-select-wrap .select2-selection--multiple {
+        flex-wrap: wrap;
+        row-gap: 3px;
+        padding-top: 3px;
+        padding-bottom: 3px;
+    }
+}
+
+
+// Cell editor: looks like the cell itself
+.tabulator .tabulator-cell .select2-container--default.multi-select-editor {
+    @extend %multi-select-pills;
+
+    .select2-selection--multiple {
+        border: none;
+        border-radius: 0;
+        background: transparent;
+    }
+
+    // One value (singleSelectEditor): as text, not as a pill; it gives way to the typed search
+    &.multi-select-single {
+        .select2-selection__choice {
+            padding: 0;
+            border: none;
+            background: none;
+        }
+
+        .select2-selection__choice__remove {
+            display: none;
+        }
+
+        .select2-selection__choice__display {
+            padding: 0;
+        }
+
+        &.multi-select-typing .select2-selection__choice {
+            display: none;
+        }
+    }
+}
+
+// Header filter: height and border like the other filter fields (the browser's text input)
+.tabulator .tabulator-header .select2-container--default.multi-select-filter {
+    @extend %multi-select-pills;
+    height: auto;
+
+    .select2-selection--multiple {
+        box-sizing: border-box;
+        min-height: 33px;
+        padding: 0 2px 0 0;
+        border: 1px solid rgb(118, 118, 118);
+        border-radius: 3px;
+        background: #fff;
+        cursor: text;
+    }
+
+    &.select2-container--focus .select2-selection--multiple,
+    &.select2-container--open .select2-selection--multiple {
+        outline: auto 1px -webkit-focus-ring-color;
+    }
+
+    // Tabulator sets the textareas of header filters to 'height: auto !important' (two lines)
+    .select2-search--inline .select2-search__field {
+        height: 1.5em !important;
+    }
+}
+
+// Headings of the list (DANTE guide terms): shown (explorer.scss hides the groups of its other dropdowns),
+// bold and grey as in the dropdowns of the input page; they can't be chosen
+.select2-container--default .select2-dropdown.multi-select-dropdown {
+    .select2-results__group,
+    .select2-results__option--disabled {
+        display: block;
+        padding: 6px 7px;
+        color: gray;
+        font-weight: bold;
+    }
+}

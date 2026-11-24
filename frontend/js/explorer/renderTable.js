@@ -49,7 +49,13 @@ function applyTable(table) {
 
 let activeTable = null;
 
+// Each table switch is a new build. A table that is still loading its data when another one is chosen
+// is not shown (otherwise it would replace the newer table as soon as its data arrives).
+let tableBuild = 0;
+const isCurrentBuild = build => build === tableBuild;
+
 function renderTable(table) {
+    tableBuild++;
 
     const container = document.getElementById("table");
 
