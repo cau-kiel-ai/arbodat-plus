@@ -223,6 +223,33 @@ class MigrationServiceTest extends PostgresTest {
     }
 
     @Test
+    void anExistingSiteIsNotAddedToAResearchProjectWithAnotherSiteOfTheSameLabel() throws IOException {
+        createData(site("ok"));
+        migrate(List.of("ok"), newResearchProject());
+        ResearchProject first = existingResearchProject();
+
+        // Research project B already has another site 'OK'
+        UUID projectB = UUID.randomUUID();
+        UUID otherSite = UUID.randomUUID();
+        jdbc.update("INSERT INTO research_project (id, project_name) VALUES (?, 'Project B')", projectB);
+        jdbc.update("INSERT INTO site (id, site_label) VALUES (?, 'OK')", otherSite);
+        jdbc.update("INSERT INTO site_research_project_relation (site_id, research_project_id) VALUES (?, ?)", otherSite, projectB);
+        ResearchProject second = new ResearchProject();
+        second.setId(projectB);
+
+        // 'ok' is found in the first project and would be added to project B as well
+        MigrationResponse response = migrationService.migrateData(dataFile.getAbsolutePath(),
+                strukDataFile.getAbsolutePath(), new ArrayList<>(List.of(first, second)), List.of("ok"));
+
+        assertEquals(1, response.getFailedSiteList().size());
+        assertTrue(response.getFailedSiteList().get(0).getMessage().contains("Site 'ok' already exists in this research project."),
+                   response.getFailedSiteList().get(0).getMessage());
+        assertEquals(List.of(otherSite), jdbc.queryForList(
+                "SELECT site_id FROM site_research_project_relation WHERE research_project_id = ?", UUID.class, projectB));
+        assertEquals(2, count("site"));
+    }
+
+    @Test
     void rowsOfOtherSitesAreNotMixedIn() throws IOException {
         // 'ok2' starts like 'ok' and 'OK2' differs only in letter case from 'ok2'
         createData(site("ok"), site("ok2").featureSite("OK2"));

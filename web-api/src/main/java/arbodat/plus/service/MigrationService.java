@@ -35,6 +35,9 @@ public class MigrationService {
     ResearchProjectService researchProjectService;
 
     @Autowired
+    LabelUniqueness labelUniqueness;
+
+    @Autowired
     SiteTypeMapper siteTypeMapper;
 
     @Autowired
@@ -606,7 +609,9 @@ public class MigrationService {
                                 List<ResearchProject> differenceOfResearchProjects = researchProjectService.
                                         getDifference(researchProjectList, new ArrayList<>(matchingSite.getResearchProjectList()));
 
-                                // Add this difference
+                                // Add this difference - unless one of these research projects already has another site
+                                // with this label (the site then fails and is rolled back, see LabelUniqueness)
+                                labelUniqueness.checkSite(siteLabel, differenceOfResearchProjects, siteId);
                                 matchingSite.getResearchProjectList().addAll(differenceOfResearchProjects);
                                 siteRepository.save(matchingSite);
 
