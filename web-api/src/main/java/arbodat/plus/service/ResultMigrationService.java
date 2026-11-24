@@ -39,28 +39,6 @@ public class ResultMigrationService {
     @Autowired
     ClassificationConferRepository classificationConferRepository;
 
-    // Values which make a result unique (see ResultRepository.findAlreadyExisting).
-    // Like the query, a result with an empty value never counts as already existing.
-    private record ResultKey(UUID sampleId, String taxCode, String orgOrMin, Double sieveSize,
-                             String classificationConfer, String restType, String stateOfPreservation) {
-
-        static Optional<ResultKey> of(Result result) {
-            ResultKey key = new ResultKey(
-                    result.getSample() != null ? result.getSample().getId() : null,
-                    result.getTaxCode() != null ? result.getTaxCode().getId() : null,
-                    result.getOrgOrMin(),
-                    result.getSieveSize(),
-                    result.getClassificationConfer() != null ? result.getClassificationConfer().getId() : null,
-                    result.getRestType() != null ? result.getRestType().getId() : null,
-                    result.getStateOfPreservation() != null ? result.getStateOfPreservation().getId() : null);
-
-            boolean complete = key.sampleId != null && key.taxCode != null && key.orgOrMin != null
-                    && key.sieveSize != null && key.classificationConfer != null
-                    && key.restType != null && key.stateOfPreservation != null;
-            return complete ? Optional.of(key) : Optional.empty();
-        }
-    }
-
     /**
      * Creates the given results and sets the taxonomy of their sites.
      * Each item gets its own status; items with an unknown sample or a missing value get "error",
@@ -101,7 +79,7 @@ public class ResultMigrationService {
 
         Set<ResultKey> existingKeys = new HashSet<>();
         resultRepository.findBySampleIdIn(sampleIds)
-                .forEach(existing -> ResultKey.of(existing).ifPresent(existingKeys::add));
+                .forEach(existing -> existingKeys.add(ResultKey.of(existing)));
 
         // Check every item ------------------------------------------------------------------------
         List<BulkItemStatus> statuses = new ArrayList<>();
@@ -136,8 +114,8 @@ public class ResultMigrationService {
                 result.setClassificationConfer(classificationConfers.get(result.getClassificationConfer().getId()));
             }
 
-            Optional<ResultKey> key = ResultKey.of(result);
-            if (key.isPresent() && !existingKeys.add(key.get())) {
+            // Already in the database or earlier in the list (empty values count as values, see ResultKey)
+            if (!existingKeys.add(ResultKey.of(result))) {
                 statuses.add(BulkItemStatus.exists(clientId));
                 continue;
             }

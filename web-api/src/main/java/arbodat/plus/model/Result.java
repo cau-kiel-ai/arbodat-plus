@@ -11,8 +11,13 @@ import java.util.UUID;
 
 @Data
 @Entity
+// A result is unique within its sample by sample, tax code, org / min, sieve size, fraction analyzed, cf,
+// rest type and state of preservation (see ResultKey). The unique index treats empty values as equal
+// (NULLS NOT DISTINCT), which Hibernate can't create from the entity: ResultConstraints adds it at start.
 @Table(name = "result")
 public class Result implements Serializable {
+
+    public static final String UNIQUE_KEY = "uk_result_key";
 
     @Id
     @GeneratedValue(strategy = GenerationType.UUID)
