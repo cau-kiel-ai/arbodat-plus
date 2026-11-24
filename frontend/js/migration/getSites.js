@@ -52,28 +52,4 @@ async function getSites() {
   }
 }
 
-function populateSites(sites) {
-  const tableBody = document.getElementById("siteTableBody");
-  tableBody.innerHTML = ""; // Reset table
-
-  sites.forEach(site => {
-    const row = document.createElement("tr");
-
-    // First column: Site label
-    const siteLabelCell = document.createElement("td");
-    siteLabelCell.textContent = site;
-    row.appendChild(siteLabelCell);
-
-    // Second column: Selection checkbox
-    const checkboxCell = document.createElement("td");
-    checkboxCell.style = "text-align: right;"
-    const checkbox = document.createElement("input");
-    checkbox.type = "checkbox";
-    checkbox.value = site;
-    checkbox.classList.add("siteCheckbox"); // Access to checkboxes
-    checkboxCell.appendChild(checkbox);
-    row.appendChild(checkboxCell);
-
-    tableBody.appendChild(row);
-  });
-}
+// populateSites: see siteSelection.js

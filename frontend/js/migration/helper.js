@@ -1,18 +1,3 @@
-function toggleAllCheckboxes(masterCheckbox, tableBodyId) {
-    const tableBody = document.getElementById(tableBodyId);
-    if (tableBody) {
-      // Group header checkboxes are skipped
-      const checkboxes = tableBody.querySelectorAll('input[type="checkbox"]:not(.group-select)');
-      checkboxes.forEach(checkbox => {
-        if (!checkbox.disabled) {
-          checkbox.checked = masterCheckbox.checked;
-        }
-      });
-      // Let the table filter update its group header checkboxes
-      tableBody.dispatchEvent(new Event('change'));
-    }
-}
-
 // Escape a value for a single quoted JS string inside an inline handler (onclick="fn('${escapeJsArg(value)}')"):
 // first for the JS string, then for the HTML attribute
 function escapeJsArg(value) {
@@ -283,7 +268,7 @@ function chooseInRows(table, rowId, field, values) {
 // Tabulator can't measure itself in a collapsed accordion: redraw the migration tables once they are visible.
 // Tables which are still being built measure themselves (the accordions are open then).
 function redrawMigrationTables() {
-    const tables = [userTable, literatureTable, fractionTable, c14LabTable, labTable, siteCoordinateTable, sampleCoordinateTable,
+    const tables = [siteSelectionTable, ...existingTables.values(), userTable, literatureTable, fractionTable, c14LabTable, labTable, siteCoordinateTable, sampleCoordinateTable,
                     ...nonMatchingTables.values(), ...[...resultTables.values()].map(site => site.table)];
     tables.forEach(table => {
         if (table?.initialized) table.redraw(true);

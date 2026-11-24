@@ -313,7 +313,7 @@
           </h2>
           <div id="panelsStayOpen-collapseOne" class="accordion-collapse collapse">
             <div class="accordion-body">
-              Select existing research projects (by clicking in the 'project name' field) or create new ones to migrate sites corresponding to them.
+              Select existing research projects (by clicking in the 'project name' field) or create new ones and add them to migrate sites corresponding to them.
               <br><br>
 
               <form id="research_project">
@@ -526,33 +526,27 @@
           <div id="panelsStayOpen-collapseTwo" class="accordion-collapse collapse">
             <div class="accordion-body">              
               <p>
-                Select sites to be migrated for the added research projects.<br>
-                - To select or deselect a site use the checkbox on the right. To select or deselect <u>all</u> sites use the checkbox at the top right of a table.<br><br>
+                Select sites to be migrated corresponding to the added research projects above.<br>
+                - To select or deselect a site use the checkbox on the left. To select or deselect <u>all</u> sites use the checkbox at the top left of the table.<br>
+                - To filter sites by label or status use the fields in the table header.<br><br>
                 - Sites that have the same label and already assigned to any added research project in the database will not be migrated (these sites will be listed below).
                 If the site to migrate contains more research projects than the existing site in the database, the additional research projects will be added to the existing site.<br>                
                 - Features, samples and datings related to the selected sites, that have the same label and are already assigned to the same elements in the database will not be migrated (these features, samples and datings will be listed below).
               </p>
 
               <form id="siteSelectionForm">
-                <table class="table table-striped">
-                  <thead>
-                    <tr>
-                      <th scope="col">Site</th>
-                      <th scope="col" style="text-align: right; padding-right: 8px;">
-                        Select
-                        <input type="checkbox" onclick="toggleAllCheckboxes(this, 'siteTableBody')" style="margin-left: 10px;">
-                      </th>
-
-                    </tr>
-                  </thead>
-                  <tbody id="siteTableBody">
-                    <!-- Rows will be dynamically added here populateSites function -->
-                  </tbody>
-                </table>
+                <div class="d-flex flex-wrap align-items-center gap-3 mb-2">
+                  <span id="siteSelectionCounter" class="small text-muted"></span>
+                </div>
+                <!-- Tabulator, created by populateSites (siteSelection.js) -->
+                <div id="siteSelectionTable" class="migration-result-table"></div>
                 <!-- Button -->
-                <div class="text-center">
+                <div class="text-center mt-3">
                   <button type="button" class="btn btn-primary" onclick="handleMigrateSites()" > Migrate Sites </button>
                 </div>
+
+                <!-- Not migrated, already existing sites / features / samples / datings (siteSelection.js) -->
+                <div id="existingTables"></div>
 
                 <script>
                   function handleMigrateSites() {
@@ -1167,6 +1161,7 @@
     <!-- shared by the accordion scripts below (e.g. placeholderFormatter while they load) -->
     <script src="js/migration/helper.js"></script>
     <script src="js/migration/getSites.js"></script>
+    <script src="js/migration/siteSelection.js"></script>
     <script src="js/migration/researchProject-dropdown.js"></script>
     <script src="js/migration/migrateSites.js"></script>
     <script src="js/migration/literature.js"></script>
