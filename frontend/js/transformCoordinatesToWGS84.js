@@ -1,3 +1,8 @@
+// A coordinate value entered: not empty and a number (0 too, it isn't "no value")
+function isCoordinateValue(value) {
+    return value != null && String(value).trim() !== '' && !isNaN(value);
+}
+
 async function transformCoordinatesToWGS84(longitude, latitude, sourceEPSG) {
 
     const sourceProj = 'EPSG:'+sourceEPSG;

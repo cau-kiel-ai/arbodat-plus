@@ -114,7 +114,7 @@ function populateCoordinates(coordinateList) {
                     const coordinateSystem = coordinate_system_dropdown.options[coordinate_system_dropdown.selectedIndex];
                     let sourceEPSG = coordinateSystem?.getAttribute('data-crsNotation');
                 
-                    if (longitude && latitude && sourceEPSG && sourceEPSG !== "undefined") {
+                    if (isCoordinateValue(longitude_input.value) && isCoordinateValue(latitude_input.value) && sourceEPSG && sourceEPSG !== "undefined") {
                         try {
                             // transform coordinates to WGS84
                             const { transformedLatitude, transformedLongitude } =
@@ -240,7 +240,7 @@ function populateCoordinates(coordinateList) {
                     const coordinateSystem = coordinate_system_dropdown.options[coordinate_system_dropdown.selectedIndex];
                     let sourceEPSG = coordinateSystem?.getAttribute('data-crsNotation');
                 
-                    if (longitude && latitude && sourceEPSG != null) {
+                    if (isCoordinateValue(longitude_input.value) && isCoordinateValue(latitude_input.value) && sourceEPSG != null) {
                         try {
                             // transform coordinates to WGS84
                             const { transformedLatitude, transformedLongitude } =
@@ -303,13 +303,13 @@ async function createCoordinate(itemType, itemId, row, triggerNext = true) {
     const longitudeInput = document.getElementById(`longitudeInput_${itemType}_${itemId}`);
     const longitude = longitudeInput ? parseFloat(longitudeInput.value) : null;
 
-    if (longitude && longitude != 'null') {
+    if (longitudeInput && isCoordinateValue(longitudeInput.value)) {
 
         // Get latitudeInput
         const latitudeInput = document.getElementById(`latitudeInput_${itemType}_${itemId}`);
         const latitude = latitudeInput ? parseFloat(latitudeInput.value) : null;
 
-        if (latitude && latitude != 'null') {
+        if (latitudeInput && isCoordinateValue(latitudeInput.value)) {
 
             // Get coordinateSystemDropdown
             const coordinateSystemDropdown = document.getElementById(`coordinateSystemDropdown_${itemType}_${itemId}`);

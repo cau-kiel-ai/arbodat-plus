@@ -243,7 +243,7 @@ document.addEventListener('DOMContentLoaded', async function () {
             const coordinateSystem = coordinate_system_dropdown.options[coordinate_system_dropdown.selectedIndex];
             let sourceEPSG = coordinateSystem?.getAttribute('data-crsNotation');
           
-            if (longitude && latitude && sourceEPSG && sourceEPSG !== "undefined") {
+            if (isCoordinateValue(longitude_input.value) && isCoordinateValue(latitude_input.value) && sourceEPSG && sourceEPSG !== "undefined") {
                 try {
                     // transform coordinates to WGS84
                     const { transformedLatitude, transformedLongitude } =
