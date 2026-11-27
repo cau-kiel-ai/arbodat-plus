@@ -19,9 +19,6 @@ Running ArboDat+ on a server for several people is described in [deploy/README.m
 | Windows | 10 (22H2) or 11, x64 | Docker Desktop (with WSL 2) |
 | Linux | Ubuntu 22.04 / Debian 12 or newer, x64 or arm64 | Docker Engine or Docker Desktop |
 
-The first installation downloads about 400 MB. Afterwards ArboDat+ works without internet, except for
-the vocabularies from DANTE and the map tiles.
-
 ## 1. Install Docker
 
 ### macOS and Windows: Docker Desktop
